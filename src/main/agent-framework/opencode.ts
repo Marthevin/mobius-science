@@ -143,20 +143,25 @@ const OPENCODE_PERMISSION_RULES: Record<string, 'ask' | 'allow' | 'deny'> = {
   external_directory: 'deny'
 }
 
-const opencodePermissionRules = (storageRoot?: string): Record<string, unknown> => ({
-  ...OPENCODE_PERMISSION_RULES,
-  ...(storageRoot
-    ? {
-        // OpenCode evaluates the last matching rule. Its native Skill allowances precede the app
-        // policy, so restore only the provisioned tree after deny. `*` also matches nested paths.
-        // This directory contains copied Skill resources, not provider configuration or auth data.
-        external_directory: {
-          '*': 'deny',
-          [join(opencodeConfigDir(storageRoot), 'skills', '*')]: 'allow'
-        }
-      }
-    : {})
-})
+const opencodePermissionRules = (storageRoot?: string): Record<string, unknown> => {
+  if (!storageRoot) return { ...OPENCODE_PERMISSION_RULES }
+
+  const skillFiles = join(opencodeConfigDir(storageRoot), 'skills', '*')
+  // OpenCode checks edit patterns against a worktree-relative path. The
+  // provisioned directory can be outside any workspace depth, so match its
+  // stable app-owned suffix as well as its absolute external-directory path.
+  const relativeSkillFiles = '**/opencode/config/opencode/skills/**'
+  return {
+    ...OPENCODE_PERMISSION_RULES,
+    // OpenCode evaluates the last matching rule. Its native Skill allowances precede the app
+    // policy, so restore only the provisioned tree after deny. `*` also matches nested paths.
+    // This directory contains copied Skill resources, not provider configuration or auth data.
+    external_directory: { '*': 'deny', [skillFiles]: 'allow' },
+    // External access also makes native edit eligible. Keep materialized resources read-only even
+    // when the client would approve an edit prompt; POSIX chmod alone cannot protect Windows.
+    edit: { '*': 'ask', [skillFiles]: 'deny', [relativeSkillFiles]: 'deny' }
+  }
+}
 
 // OpenCode also permits direct `@agent` invocation independently of Task permission. Disable every
 // built-in subagent exposed by supported/current OpenCode releases; external agent discovery is
