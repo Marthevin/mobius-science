@@ -4060,12 +4060,14 @@ describe('SettingsService: official vendors', () => {
         permissions: { ask: ['WebFetch'] },
         availableModels: [
           'deepseek-v4-flash',
+          'deepseek-flash',
           'deepseek-v4-pro',
           'deepseek-v4-pro[1m]',
           'deepseek-v4-flash-vision-exp'
         ],
         modelOverrides: {
           'deepseek-v4-flash': 'deepseek-v4-flash',
+          'deepseek-flash': 'deepseek-flash',
           'deepseek-v4-pro': 'deepseek-v4-pro',
           'deepseek-v4-pro[1m]': 'deepseek-v4-pro[1m]',
           'deepseek-v4-flash-vision-exp': 'deepseek-v4-flash-vision-exp'
@@ -4078,12 +4080,14 @@ describe('SettingsService: official vendors', () => {
     ).resolves.toMatchObject({
       availableModels: [
         'deepseek-v4-flash',
+        'deepseek-flash',
         'deepseek-v4-pro',
         'deepseek-v4-pro[1m]',
         'deepseek-v4-flash-vision-exp'
       ],
       modelOverrides: {
         'deepseek-v4-flash': 'deepseek-v4-flash',
+        'deepseek-flash': 'deepseek-flash',
         'deepseek-v4-pro': 'deepseek-v4-pro',
         'deepseek-v4-pro[1m]': 'deepseek-v4-pro[1m]',
         'deepseek-v4-flash-vision-exp': 'deepseek-v4-flash-vision-exp'
@@ -4201,7 +4205,7 @@ describe('SettingsService: official vendors', () => {
     })
   })
 
-  it('probes DeepSeek Pro through the native Responses route under Codex', async () => {
+  it('probes the current DeepSeek Flash default through native Responses under Codex', async () => {
     const service = createService()
     await repository.setAgentFramework('codex')
     const fetchMock = vi.fn().mockResolvedValue(validNativeCompatibilityToolCallResponse())
@@ -4209,6 +4213,25 @@ describe('SettingsService: official vendors', () => {
 
     const result = await service.validateProvider({
       draft: { type: 'official', vendorId: 'deepseek', key: 'sk-ds' }
+    })
+
+    expect(result).toMatchObject({ ok: true, category: 'ok' })
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.deepseek.com/v1/responses')
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      model: 'deepseek-flash',
+      stream: true,
+      tools: [{ type: 'function', name: 'open_science__bridge_probe' }]
+    })
+  })
+
+  it('probes DeepSeek Pro through the native Responses route under Codex', async () => {
+    const service = createService()
+    await repository.setAgentFramework('codex')
+    const fetchMock = vi.fn().mockResolvedValue(validNativeCompatibilityToolCallResponse())
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await service.validateProvider({
+      draft: { type: 'official', vendorId: 'deepseek', key: 'sk-ds', model: 'deepseek-v4-pro' }
     })
 
     expect(result).toMatchObject({ ok: true, category: 'ok' })
@@ -4326,7 +4349,7 @@ describe('SettingsService: image-input capability', () => {
     const minimax = minimaxSnapshot.providers.find((p) => p.vendorId === 'minimax')
     expect(minimax?.supportsImageInput).toBe(true)
 
-    // DeepSeek's default model is text-only.
+    // DeepSeek's default Flash model accepts image input.
     const deepseekSnapshot = await service.upsertProvider({
       type: 'official',
       name: 'DeepSeek',
@@ -4334,7 +4357,7 @@ describe('SettingsService: image-input capability', () => {
       key: 'k'
     })
     const deepseek = deepseekSnapshot.providers.find((p) => p.vendorId === 'deepseek')
-    expect(deepseek?.supportsImageInput).toBe(false)
+    expect(deepseek?.supportsImageInput).toBe(true)
   })
 
   it('tracks the active model for a vendor with mixed vision support (DeepSeek)', async () => {

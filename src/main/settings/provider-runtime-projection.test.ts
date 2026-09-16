@@ -273,7 +273,7 @@ describe('ProviderRuntimeProjectionOwner', () => {
     }
   )
 
-  it('enables image input only for DeepSeek vision-exp while keeping native Responses', () => {
+  it('enables image input for canonical DeepSeek Flash and the legacy vision alias', () => {
     const owner = new ProviderRuntimeProjectionOwner()
     const provider: StoredProvider = {
       id: 'deepseek',
@@ -300,7 +300,7 @@ describe('ProviderRuntimeProjectionOwner', () => {
         getAgentFramework('codex')
       ).provider.supportsImageInput
     ).toBe(false)
-    expect(owner.toProviderView(provider).supportsImageInput).toBe(false)
+    expect(owner.toProviderView(provider).supportsImageInput).toBe(true)
   })
 
   it('projects regional Tencent Hy4 across every supported framework', () => {

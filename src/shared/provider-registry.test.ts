@@ -209,16 +209,17 @@ describe('provider registry', () => {
     expect(getOfficialVendor('deepseek')?.label).toBe('DeepSeek')
   })
 
-  it('ships DeepSeek V4 with a vision-capable flash experimental model', () => {
+  it('offers the current DeepSeek Flash model first while retaining legacy selections', () => {
     expect(
       getOfficialVendor('deepseek')?.models.map(({ id, contextWindow }) => ({ id, contextWindow }))
     ).toEqual([
+      { id: 'deepseek-flash', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-pro', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-pro[1m]', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-flash', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-flash-vision-exp', contextWindow: 1_000_000 }
     ])
-    expect(defaultVendorModel('deepseek')).toBe('deepseek-v4-pro')
+    expect(defaultVendorModel('deepseek')).toBe('deepseek-flash')
     expect(resolveVendorOpenAiBaseUrl('deepseek')).toBe('https://api.deepseek.com/v1')
     expect(resolveVendorApiEndpoints('deepseek')).toEqual(['anthropic', 'openai'])
   })
@@ -871,7 +872,8 @@ describe('provider registry', () => {
       expect(isVendorModelMultimodal('openai', 'gpt-6-turbo')).toBe(true)
     })
 
-    it('returns true only for the DeepSeek vision-exp model', () => {
+    it('returns true for the current DeepSeek Flash model and the legacy vision alias', () => {
+      expect(isVendorModelMultimodal('deepseek', 'deepseek-flash')).toBe(true)
       expect(isVendorModelMultimodal('deepseek', 'deepseek-v4-flash-vision-exp')).toBe(true)
       expect(isVendorModelMultimodal('deepseek', 'deepseek-v4-pro')).toBe(false)
       expect(isVendorModelMultimodal('deepseek', 'deepseek-v4-flash')).toBe(false)

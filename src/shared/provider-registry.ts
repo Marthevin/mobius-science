@@ -233,7 +233,7 @@ export const OFFICIAL_VENDORS: OfficialVendor[] = [
   {
     id: 'deepseek',
     label: 'DeepSeek',
-    // DeepSeek V4 supports an explicit thinking-off switch plus high/max reasoning effort.
+    // DeepSeek Flash supports an explicit thinking-off switch plus high/max reasoning effort.
     reasoningEffort: 'none-high-max',
     // DeepSeek exposes both routes: Anthropic /v1/messages under `/anthropic`, and the OpenAI-compatible
     // route under `/v1`. The same model ids work on both, so it's safe to prefer OpenAI where the
@@ -246,22 +246,24 @@ export const OFFICIAL_VENDORS: OfficialVendor[] = [
     apiKeyUrl: 'https://platform.deepseek.com/api_keys',
     modelsListUrl: 'https://api.deepseek.com/v1/models',
     models: [
+      { id: 'deepseek-flash', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-pro', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-pro[1m]', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-flash', contextWindow: 1_000_000 },
       { id: 'deepseek-v4-flash-vision-exp', contextWindow: 1_000_000 }
     ],
-    // Bundled DeepSeek V4 models serve the native Responses API. Keep the explicit list because the
+    // Bundled DeepSeek models serve the native Responses API. Keep the explicit list because the
     // vendor also exposes non-Responses models through its live model catalog.
     responsesModels: [
+      'deepseek-flash',
       'deepseek-v4-pro',
       'deepseek-v4-pro[1m]',
       'deepseek-v4-flash',
       'deepseek-v4-flash-vision-exp'
     ],
-    // Only the vision-exp id accepts image input. Pro and flash stay text-only; sending images to
-    // them returns 400. The explicit list also covers the same id when it arrives via live refresh.
-    multimodal: { multimodalModels: ['deepseek-v4-flash-vision-exp'] }
+    // The canonical Flash id accepts images. Keep the legacy vision alias for saved configurations;
+    // Pro remains text-only in the vendor's documented API features despite its current Flash routing.
+    multimodal: { multimodalModels: ['deepseek-flash', 'deepseek-v4-flash-vision-exp'] }
   },
   {
     id: 'bailian',
