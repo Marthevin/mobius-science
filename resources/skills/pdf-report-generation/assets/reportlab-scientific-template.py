@@ -272,23 +272,28 @@ class ScientificReport:
             wrapped.append([self._paragraph(str(cell), style) for cell in row])
         table = LongTable(wrapped, colWidths=widths, repeatRows=1 if repeat_header else 0)
         table.hAlign = "LEFT"
+        table_commands = [
+            # Table's own cell style defaults to Helvetica even when every
+            # visible cell is a Paragraph. Set it explicitly so ReportLab
+            # does not emit an unused, unembedded base-14 font resource.
+            ("FONTNAME", (0, 0), (-1, -1), "ResearchRegular"),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 5),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            (
+                "ROWBACKGROUNDS",
+                (0, 1 if repeat_header else 0),
+                (-1, -1),
+                [colors.white, colors.HexColor("#F5F7F8")],
+            ),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.3, RULE),
+        ]
+        if repeat_header:
+            table_commands.insert(0, ("BACKGROUND", (0, 0), (-1, 0), ACCENT))
         table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), ACCENT),
-                    # Table's own cell style defaults to Helvetica even when every
-                    # visible cell is a Paragraph. Set it explicitly so ReportLab
-                    # does not emit an unused, unembedded base-14 font resource.
-                    ("FONTNAME", (0, 0), (-1, -1), "ResearchRegular"),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F5F7F8")]),
-                    ("LINEBELOW", (0, 0), (-1, -1), 0.3, RULE),
-                ]
-            )
+            TableStyle(table_commands)
         )
         self.story.extend([table, Spacer(1, 3 * mm)])
 
