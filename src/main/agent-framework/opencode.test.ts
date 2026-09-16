@@ -149,7 +149,7 @@ describe('opencodeFramework.prepareModelConfig', () => {
     for (const tool of ['read', 'lsp', 'skill']) {
       expect(rules[tool]).toBe('allow')
     }
-    for (const tool of ['edit', 'webfetch', 'websearch']) {
+    for (const tool of ['webfetch', 'websearch']) {
       expect(rules[tool]).toBe('ask')
     }
     for (const tool of ['bash', 'glob', 'grep', 'list']) expect(rules[tool]).toBe('deny')
@@ -157,6 +157,11 @@ describe('opencodeFramework.prepareModelConfig', () => {
       ['*', 'deny'],
       [join('/data', 'opencode', 'config', 'opencode', 'skills', '*'), 'allow']
     ])
+    expect(rules.edit).toEqual({
+      '*': 'ask',
+      [join('/data', 'opencode', 'config', 'opencode', 'skills', '*')]: 'deny',
+      '**/opencode/config/opencode/skills/**': 'deny'
+    })
     const writtenConfig = JSON.parse(
       config.configFiles?.find((file) => file.path.endsWith('opencode.json'))?.content ?? '{}'
     )
