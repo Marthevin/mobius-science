@@ -1,10 +1,11 @@
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { SkillRegistry } from './registry'
+import { ClaudeCodeSkillMaterializer } from './materializer'
 import { toUnpackedAsarPath } from './resource-path'
 
 const seedRoot = async (): Promise<string> => {
@@ -75,6 +76,50 @@ describe('SkillRegistry', () => {
       expect(skill.helpers?.[0]?.exports.length).toBeGreaterThan(0)
       expect(skill.helpers?.[0]).not.toHaveProperty('source')
     }
+  })
+
+  it('projects the bundled PDF report Skill with its supporting references', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    const skill = (await new SkillRegistry(skillsRoot).list()).find(
+      ({ id }) => id === 'pdf-report-generation'
+    )
+    expect(skill).toMatchObject({ name: 'pdf-report-generation', source: 'featured' })
+    if (!skill) throw new Error('PDF report Skill missing from production manifest')
+
+    const configDir = await mkdtemp(join(tmpdir(), 'pdf-report-skill-'))
+    await new ClaudeCodeSkillMaterializer().sync(configDir, [skill])
+    for (const reference of [
+      'research-integrity.md',
+      'report-architecture.md',
+      'english-scientific-writing.md',
+      'pdf-layout-qa.md',
+      'runtime-boundaries.md'
+    ]) {
+      await expect(
+        readFile(
+          join(configDir, 'skills', 'os-pdf-report-generation', 'references', reference),
+          'utf8'
+        )
+      ).resolves.toContain('# ')
+    }
+    await expect(
+      readFile(
+        join(configDir, 'skills', 'os-pdf-report-generation', 'scripts', 'pdf_quality_gate.py'),
+        'utf8'
+      )
+    ).resolves.toContain('def main()')
+    await expect(
+      readFile(
+        join(
+          configDir,
+          'skills',
+          'os-pdf-report-generation',
+          'assets',
+          'reportlab-scientific-template.py'
+        ),
+        'utf8'
+      )
+    ).resolves.toContain('class ScientificReport')
   })
 
   it('lists skills merging manifest metadata with SKILL.md description', async () => {
