@@ -70,6 +70,17 @@ user's technical comfort.
 7. Re-read changed files, call `host.skills.validate(name)`, and show the user the important behavior
    and boundaries before publishing.
 
+When importing a package created outside the composer, upload a `.zip` or `.skill` archive containing
+the Skill directory, `SKILL.md`, and its `references/` files. Uploading a bare `SKILL.md` imports only
+that file; it cannot carry adjacent resources. After import, inspect the listed files and read a
+reference with `host.skills.read(name, 'references/file.md')`. Native OpenCode `Read` is also available
+for materialized Skill files in releases with the scoped Skill-directory permission rule. It does not
+grant native Shell execution. Read the helper, then run its adapted contents as a checked Notebook
+cell or have that cell write a session-local copy before running it. Do not use native Edit/Write to
+place the copy in the Notebook data directory: the kernel may write there even when the file-tool
+sandbox cannot. Never pass the materialized path to `subprocess`, `%run`, `importlib`, native Shell,
+or a Notebook `open()` call; copy the already-read contents first.
+
 Do not promise automatic kernel sidecars, per-Specialist environments, or connector tool patterns;
 those capabilities are not part of the current composer.
 
