@@ -98,6 +98,12 @@
       "updatedAt": "2026-07-14T00:00:00.000Z"
     },
     {
+      "id": "pdf-report-generation",
+      "name": "PDF Report Generation",
+      "source": "featured",
+      "updatedAt": "2026-09-16T00:00:00.000Z"
+    },
+    {
       "id": "env-management",
       "name": "Environment & Packages",
       "source": "featured",
