@@ -133,6 +133,8 @@ Describe the research question, source paper and datasets, required methods or t
 
 The agent can combine scientific skills, permissioned research connectors, searches, file operations, and Python or R code in the shared Notebook. Generated figures can be reviewed beside the research summary, while the artifact record exposes captured producer code and execution evidence for inspection.
 
+To create a Skill with supporting references, see [Skill packages and supporting files](docs/skill-packaging.md).
+
 <p align="center">
   <img src="docs/images/readme/product-tour-execute.png" alt="AIPOCH Open-Science bioinformatics analysis showing the research summary, generated figure, and captured producer code side by side" width="900">
 </p>
