@@ -241,6 +241,51 @@ Cover catalog/recipe/binding resolution and target lifecycle with unit tests. Fo
 also use a real Playwright right-click at non-100% Electron zoom and verify passthrough; a synthetic
 `webContents.emit()` event is not sufficient as the only regression test.
 
+## Mobius downstream overlay and upstream merge discipline
+
+This repository tracks `aipoch/open-science` as an upstream project. Treat every Mobius change as a
+downstream overlay whose first design goal is to remain easy to rebase and audit.
+
+### Physical isolation
+
+- Put downstream-only configuration, build scripts, generated brand assets, manifests, and release
+  checks under `mobius/`.
+- Put downstream TypeScript implementation under `src/mobius/`, organized into `main`, `shared`, and
+  `renderer` subdirectories. Keep tests beside that implementation.
+- In upstream-owned files, prefer one import, registration, factory substitution, or capability
+  switch. Do not place substantial Mobius behavior directly in an existing upstream module.
+- When an upstream seam does not exist, add the smallest general seam first, then implement Mobius
+  behavior behind it. Prefer composition, dependency injection, hooks, and factories over copying or
+  rewriting an upstream class.
+
+### Configuration and packaging
+
+- Keep Mobius product identity and policy in `mobius/config/`; do not overwrite the upstream default
+  configuration when a dedicated Mobius overlay can extend it.
+- Use Mobius-specific Electron Builder and workflow entry points that extend or compose the upstream
+  build. Limit changes to upstream `package.json` and workflows to additive script/dispatch entries.
+- Keep generated Mobius resources under `mobius/generated/`. Point packaging and the few central
+  runtime/renderer registration points at those resources instead of replacing upstream source
+  assets in place.
+- Never embed credentials. Environment variables and external config may override Mobius defaults;
+  legacy `OPEN_SCIENCE_*` variables may be read only through an explicit compatibility adapter.
+
+### Upstream touchpoint audit
+
+- Maintain `mobius/upstream-touchpoints.json`. Every intentional modification to an upstream-owned
+  production file must list the file, the minimal seam being changed, and why an overlay-only change
+  is insufficient.
+- A guard test must fail when an upstream-owned production file changes without appearing in that
+  manifest. Generated files and tests use explicit allowlists.
+- Before completing a task, inspect the diff against `upstream/main`, minimize touchpoints, and run
+  the Mobius overlay tests plus the affected upstream tests.
+- Preserve upstream-compatible persisted schemas and import paths unless a versioned migration is
+  required. Product-visible identity can change while internal compatibility identifiers remain
+  stable and documented.
+
+These rules are a standing project premise for all later changes, including branding, runtime
+bundling, UI removal, research workflows, and report generation.
+
 ## Known patterns
 
 ### Radix Tooltip + DropdownMenu/Dialog trigger: tooltip reopens after the menu closes

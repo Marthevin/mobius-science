@@ -399,7 +399,7 @@ describe('verified Skill Marketplace browsing', () => {
       const { revision: _revision, ...body } = testRoot
       void _revision
       testRoot.revision = sha256(json(body))
-      const assetUrl = `https://github.com/aipoch/openscience-skill-marketplace/releases/download/catalog-${testRoot.revision}/${sha256(Buffer.from(listing.artifact.path))}.zip`
+      const assetUrl = `https://github.com/${source.repository}/releases/download/catalog-${testRoot.revision}/${sha256(Buffer.from(listing.artifact.path))}.zip`
       const fetch = vi.fn<typeof globalThis.fetch>(async (url, init) => {
         const value = String(url)
         if (value.endsWith('/git/ref/heads/published'))

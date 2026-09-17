@@ -34,6 +34,7 @@ import type {
 } from '../../shared/notebook-env'
 import { chainFetchBundle, createLocalBundleAdapter, resolveBundleDir } from './bundle-local'
 import { createFetchBundleAdapter } from './language-pack-fetch'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 import { DEFAULT_MAX_ENV_RELATIVE_PATH, type PackPathBudget } from './bundle-manifest'
 import { withExclusiveCacheLocks, withSharedCacheLocks } from './pkgs-cache-lock'
 import { validateAndSeedPackIntoCache } from './pack-content'
@@ -151,31 +152,51 @@ export const DEFAULT_MANAGED_VERSION: Record<NotebookLanguage, string> = {
   r: '4.4'
 }
 
-// Default managed env package sets. These are now the MINIMAL kernel-protocol floor (interpreter +
-// matplotlib-base/nomkl for Python; r-jsonlite for R) — NOT a full scientific stack. The heavier
-// convenience packages (numpy/pandas/scipy/…) install on demand via manage_packages, matching the
-// curated language packs (which are likewise minimal). No Jupyter: code runs through the exec-loop
-// (python_loop.py / r_loop.R). matplotlib-base backs Python figure capture; r-jsonlite implements the
-// R loop's line-based JSON protocol.
+// Default managed env package sets. Mobius ships the analysis and publication floor exercised by
+// the end-to-end research workflow so first use remains offline and does not stop for a package
+// solve. No Jupyter server is required: code runs through the exec-loop protocol.
+const SCIENTIFIC_PYTHON_PACKAGES = [
+  'matplotlib-base',
+  'numpy',
+  'pandas',
+  'scipy',
+  'scikit-learn',
+  'statsmodels',
+  'seaborn',
+  'reportlab',
+  'pillow',
+  'pypdf',
+  'pymupdf',
+  'nomkl'
+] as const
+
+const SCIENTIFIC_R_PACKAGES = [
+  'r-jsonlite',
+  'r-biocmanager',
+  'r-ggplot2',
+  'r-dplyr',
+  'r-tidyr',
+  'r-readr',
+  'r-broom'
+] as const
+
 export const DEFAULT_PYTHON_SPEC: EnvSpec = {
   name: DEFAULT_PY_ENV,
   language: 'python',
   version: DEFAULT_MANAGED_VERSION.python,
-  packages: [`python=${DEFAULT_MANAGED_VERSION.python}`, 'matplotlib-base', 'nomkl']
+  packages: [`python=${DEFAULT_MANAGED_VERSION.python}`, ...SCIENTIFIC_PYTHON_PACKAGES]
 }
 export const DEFAULT_R_SPEC: EnvSpec = {
   name: DEFAULT_R_ENV,
   language: 'r',
   version: DEFAULT_MANAGED_VERSION.r,
-  packages: [`r-base=${DEFAULT_MANAGED_VERSION.r}`, 'r-jsonlite', 'r-biocmanager', 'r-ggplot2']
+  packages: [`r-base=${DEFAULT_MANAGED_VERSION.r}`, ...SCIENTIFIC_R_PACKAGES]
 }
 
-// Named-env base floor (design D2/OQ2): the minimal exec-loop-protocol requirement, distinct from the
-// richer DEFAULT_*_SPEC used for the two default envs. matplotlib backs figure capture; r-jsonlite
-// implements the R loop's line-based JSON framing. Deliberately lean — convenience packages (numpy,
-// pandas, …) are left to a follow-up manage_packages call.
-export const BASE_PYTHON_PACKAGES: string[] = ['python=3.12', 'matplotlib-base', 'nomkl']
-export const BASE_R_PACKAGES: string[] = ['r-base', 'r-jsonlite', 'r-biocmanager', 'r-ggplot2']
+// Named environments use the same dependable floor. Keep these arrays aligned with the staged
+// packs; scripts/stage-default-envs.test.ts guards against drift.
+export const BASE_PYTHON_PACKAGES: string[] = ['python=3.12', ...SCIENTIFIC_PYTHON_PACKAGES]
+export const BASE_R_PACKAGES: string[] = ['r-base', ...SCIENTIFIC_R_PACKAGES]
 
 // Injected dependencies so the orchestration unit-tests without network or real subprocesses
 // (mirrors globalenv.rs::provision_with).
@@ -2077,12 +2098,12 @@ export const createProductionProvisioner = (
   // CA-bundle vars injected into every provisioning subprocess (no-op when unset), so an online
   // create/verify behind an enterprise TLS proxy trusts the custom CA.
   const caEnv = caBundleEnv(opts.caBundle)
+  const localBundle = createLocalBundleAdapter(opts.root, bundleDir)
   const fetchBundle =
     deps.fetchBundle ??
-    chainFetchBundle([
-      createLocalBundleAdapter(opts.root, bundleDir),
-      createFetchBundleAdapter(opts.root, cdnBase)
-    ])
+    (MOBIUS_CAPABILITIES.remoteRuntimeDownloads && cdnBase
+      ? chainFetchBundle([localBundle, createFetchBundleAdapter(opts.root, cdnBase)])
+      : localBundle)
   return new DefaultRuntimeProvisioner({
     root: opts.root,
     mm: runner.initialPath,

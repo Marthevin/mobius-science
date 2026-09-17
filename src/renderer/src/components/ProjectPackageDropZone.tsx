@@ -4,6 +4,10 @@ import { PackageOpen, X } from 'lucide-react'
 import { Button } from './ui/button'
 import { sessionPackageImportAvailable } from './session-package-import-menu-model'
 import { importSessionPackage } from '@/lib/session-package-import'
+import {
+  SESSION_PACKAGE_EXTENSION,
+  isSessionPackagePath
+} from '../../../mobius/shared/session-package-branding'
 
 type Props = ComponentPropsWithRef<'main'> & {
   projectId: string
@@ -52,11 +56,16 @@ export const ProjectPackageDropZone = ({
         if (!isPageFileDrag(event)) return
         reset()
         const files = Array.from(event.dataTransfer.files)
-        if (!files.some((file) => /\.science$/i.test(file.name))) return
+        if (!files.some((file) => isSessionPackagePath(file.name))) return
         event.preventDefault()
         event.stopPropagation()
         if (files.length !== 1) {
-          setNotice(t('Drop one .science file at a time. No files were added.'))
+          setNotice(
+            t('Drop one .science file at a time. No files were added.').replaceAll(
+              '.science',
+              SESSION_PACKAGE_EXTENSION
+            )
+          )
           return
         }
         if (!canImport || !projectId) {
@@ -78,7 +87,9 @@ export const ProjectPackageDropZone = ({
             <PackageOpen className="size-5 shrink-0 text-primary" aria-hidden="true" />
             <span className="min-w-0 break-words">
               {notice ??
-                t('Drop a .science file to import into “{{project}}”', { project: projectName })}
+                t('Drop a .science file to import into “{{project}}”', {
+                  project: projectName
+                }).replaceAll('.science', SESSION_PACKAGE_EXTENSION)}
             </span>
             {notice && (
               <Button

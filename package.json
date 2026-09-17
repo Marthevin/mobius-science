@@ -1,15 +1,14 @@
 {
   "name": "open-science",
-  "productName": "Open-Science",
-  "desktopName": "open-science.desktop",
+  "productName": "Mobius Science",
+  "desktopName": "mobius-science.desktop",
   "version": "0.31.0",
-  "description": "Open-Science \u2014 an open-source, model-agnostic AI workbench for scientific discovery.",
+  "description": "Mobius Science \u2014 an AI research workbench for rigorous scientific discovery.",
   "main": "./out/main/index.js",
-  "author": "aipoch",
+  "author": "Mobius Science",
   "license": "Apache-2.0",
-  "homepage": "https://www.aipoch.com/open-science",
   "bin": {
-    "open-science": "cli/index.mjs"
+    "mobius-science": "cli/index.mjs"
   },
   "scripts": {
     "format": "prettier --write .",
@@ -59,7 +58,15 @@
     "build:mac": "npm run build:web && electron-vite build && electron-builder --mac",
     "build:linux": "npm run build:web && electron-vite build && electron-builder --linux",
     "build:win": "npm run build:web && electron-vite build && electron-builder --win",
+    "build:mobius": "npm run generate:brand-assets && npm run stage:mobius:runtimes && npm run build",
+    "build:mobius:unpack": "npm run build:mobius && electron-builder --config mobius/electron-builder.yml --dir",
+    "build:mobius:mac": "npm run generate:brand-assets && npm run build:web && electron-vite build && electron-builder --config mobius/electron-builder.yml --mac",
+    "build:mobius:linux": "npm run generate:brand-assets && npm run build:web && electron-vite build && electron-builder --config mobius/electron-builder.yml --linux",
+    "build:mobius:win": "npm run generate:brand-assets && npm run build:web && electron-vite build && electron-builder --config mobius/electron-builder.yml --win",
     "stage-default-envs": "node scripts/stage-default-envs.mjs",
+    "stage:mobius:runtimes": "node mobius/scripts/stage-managed-runtimes.mjs",
+    "generate:brand-assets": "node mobius/scripts/generate-brand-assets.mjs",
+    "check:mobius:touchpoints": "node mobius/scripts/check-upstream-touchpoints.mjs",
     "predev": "node scripts/check-prisma-client.mjs && node scripts/dev-app-branding.cjs",
     "test:e2e:browser": "playwright test --config playwright.browser.config.ts"
   },

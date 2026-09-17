@@ -6,7 +6,7 @@ export const skillMarketplaceCategories = [
   'Other'
 ] as const
 
-export const skillMarketplaceRepository = 'https://github.com/aipoch/openscience-skill-marketplace'
+export const skillMarketplaceRepository = ''
 
 // Catalogs may describe prereleases, but installation and updates offer stable releases only.
 export const skillMarketplaceStableVersionPattern =

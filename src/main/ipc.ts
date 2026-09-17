@@ -423,7 +423,12 @@ import {
   resolveDataRoot,
   samePath
 } from './storage-root'
-import { createUpdateCommandOwner, registerUpdateIpcHandlers } from './update/ipc'
+import {
+  createUpdateCommandOwner,
+  registerUpdateIpcHandlers,
+  type UpdateCommandOwner
+} from './update/ipc'
+import { createDisabledUpdateCommandOwner } from '../mobius/main/disabled-update-owner'
 import { createUpdateStrategy } from './update/create-strategy'
 import {
   createActiveResearchSafeInstallGate,
@@ -433,6 +438,7 @@ import {
 } from './update/strategy'
 import type { UpdateBlocker } from '../shared/update'
 import { startUpdateScheduler } from './update/scheduler'
+import { MOBIUS_CAPABILITIES } from '../mobius/shared/product-capabilities'
 import { createDefaultUploadRepository } from './uploads/ipc'
 import { createUploadElectronSurface } from './ipc-surfaces/uploads'
 import { createUploadCommandOwner } from './uploads/command-owner'
@@ -2235,7 +2241,9 @@ const createApplicationModules = async (
     operationCoordinator: marketplaceOperationCoordinator,
     packages: specialistPackageService,
     fetch: netFetchWithManualRedirect,
-    officialSource: OFFICIAL_MARKETPLACE_SOURCE,
+    officialSource: MOBIUS_CAPABILITIES.upstreamMarketplaces
+      ? OFFICIAL_MARKETPLACE_SOURCE
+      : undefined,
     getInstalledSpecialists: async () =>
       (await specialistService.list()).map((profile) => ({
         id: profile.id,
@@ -3895,48 +3903,51 @@ const createApplicationModules = async (
         return !blocked
       }
     )()
-  // Construct update handling only after its backend-shutdown gate exists. The in-place strategy owns
-  // this immutable dependency from construction; the manifest fallback ignores it because it does not
-  // quit the running app to install.
-  let releaseSettingsInstallAdmission: (() => void) | undefined
-  const abortUpdateHandoff = (): void => {
-    packageHandoffHeld = false
-    const releaseAdmission = releaseSettingsInstallAdmission
-    releaseSettingsInstallAdmission = undefined
-    releaseAdmission?.()
-    try {
-      sideChatRuntime.resumeAfterHandoff()
-    } finally {
-      notifyRendererDurabilityAborted()
+  let updateCommandOwner: UpdateCommandOwner = createDisabledUpdateCommandOwner()
+  if (MOBIUS_CAPABILITIES.automaticUpdates) {
+    // Construct update handling only after its backend-shutdown gate exists. The in-place strategy owns
+    // this immutable dependency from construction; the manifest fallback ignores it because it does not
+    // quit the running app to install.
+    let releaseSettingsInstallAdmission: (() => void) | undefined
+    const abortUpdateHandoff = (): void => {
+      packageHandoffHeld = false
+      const releaseAdmission = releaseSettingsInstallAdmission
+      releaseSettingsInstallAdmission = undefined
+      releaseAdmission?.()
+      try {
+        sideChatRuntime.resumeAfterHandoff()
+      } finally {
+        notifyRendererDurabilityAborted()
+      }
     }
+    const updateInstallGate = createActiveResearchSafeInstallGate(
+      detectResearchBlockers,
+      durableBackendHandoffGate,
+      () => isMigrationInProgress() || isMigrationPending()
+    )
+    const updateStrategy = createUpdateStrategy(process.platform, {
+      translate,
+      installGate: async (options) => {
+        packageHandoffHeld = true
+        if (sessionPackageDesktopLifecycle.isActive())
+          throw new Error('Wait for the Session package operation to finish before updating.')
+        releaseSettingsInstallAdmission = settingsService.holdInstallAdmission()
+        return updateInstallGate(options)
+      },
+      releaseInstallHandoff: abortUpdateHandoff
+    })
+    updateCommandOwner = createUpdateCommandOwner(updateStrategy)
+    let stopUpdateScheduler: (() => void) | undefined
+    await modules.add(undefined, () => ({
+      name: 'update-scheduler',
+      capability: undefined,
+      dispose: () => stopUpdateScheduler?.()
+    }))
+    declareElectronAdapter('update', () => {
+      registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
+      stopUpdateScheduler = startUpdateScheduler(updateStrategy)
+    })
   }
-  const updateInstallGate = createActiveResearchSafeInstallGate(
-    detectResearchBlockers,
-    durableBackendHandoffGate,
-    () => isMigrationInProgress() || isMigrationPending()
-  )
-  const updateStrategy = createUpdateStrategy(process.platform, {
-    translate,
-    installGate: async (options) => {
-      packageHandoffHeld = true
-      if (sessionPackageDesktopLifecycle.isActive())
-        throw new Error('Wait for the Session package operation to finish before updating.')
-      releaseSettingsInstallAdmission = settingsService.holdInstallAdmission()
-      return updateInstallGate(options)
-    },
-    releaseInstallHandoff: abortUpdateHandoff
-  })
-  const updateCommandOwner = createUpdateCommandOwner(updateStrategy)
-  let stopUpdateScheduler: (() => void) | undefined
-  await modules.add(undefined, () => ({
-    name: 'update-scheduler',
-    capability: undefined,
-    dispose: () => stopUpdateScheduler?.()
-  }))
-  declareElectronAdapter('update', () => {
-    registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
-    stopUpdateScheduler = startUpdateScheduler(updateStrategy)
-  })
   const permissionGrantProjection = await modules.add(
     {
       registry: permissionGrantRegistry,

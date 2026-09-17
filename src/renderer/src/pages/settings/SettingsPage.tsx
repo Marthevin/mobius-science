@@ -9,7 +9,6 @@ import {
   Archive,
   ArrowLeft,
   ArrowRight,
-  Bot,
   Brain,
   BrainCircuit,
   ChartNoAxesCombined,
@@ -19,7 +18,6 @@ import {
   LockKeyhole,
   Maximize2,
   Menu,
-  MessageSquare,
   Minimize2,
   MonitorSmartphone,
   ScrollText,
@@ -51,7 +49,6 @@ import {
   type ProviderView,
   type UpsertProviderRequest
 } from '../../../../shared/settings'
-import { APP } from '../../../../shared/app-config'
 import type { SpecialistListItem } from '../../../../shared/specialist'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -321,7 +318,6 @@ const SETTINGS_GROUPS: ReadonlyArray<SettingsGroup> = [
     labelKey: 'Intelligence',
     panels: [
       { id: 'model', labelKey: 'Model', Icon: Brain },
-      { id: 'agent', labelKey: 'Agent', Icon: Bot },
       { id: 'skills', labelKey: 'Skills', Icon: ScrollText },
       { id: 'specialists', labelKey: 'Specialists', Icon: Users },
       { id: 'memory', labelKey: 'Memory', Icon: BrainCircuit }
@@ -1390,23 +1386,6 @@ const SettingsPage = forwardRef<SettingsPageHandle, SettingsPageProps>(function 
                         </ul>
                       </div>
                     ))}
-                  </div>
-                  <div
-                    data-slot="settings-navigation-footer"
-                    className="shrink-0 border-t border-border px-3 py-2"
-                  >
-                    <a
-                      href={APP.links.githubFeedback}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                    >
-                      <MessageSquare
-                        className="size-4 shrink-0 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0 flex-1 truncate">{t('Feedback')}</span>
-                    </a>
                   </div>
                 </nav>
               </div>

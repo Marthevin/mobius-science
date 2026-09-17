@@ -1319,6 +1319,10 @@ class NotebookKernelExecutor implements NotebookExecutor {
         })
       )
     }
+    // The managed runtime sanitizes host user-state paths and supplies an isolated HOME. Kernel caches
+    // still belong in the disposable, sandbox-writable workload cache; reapply this projection so
+    // XDG consumers such as Fontconfig never fall back to the read-only managed HOME.
+    Object.assign(env, workloadCacheEnv)
     return kind === 'r' ? normalizeRProcessLocale(env, this.platform) : env
   }
 

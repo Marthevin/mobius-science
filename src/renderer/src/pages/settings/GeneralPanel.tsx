@@ -1,23 +1,13 @@
 import { Notice } from '@/components/notice'
 import { InlineNotice } from '@/components/ui/inline-notice'
-import {
-  Check,
-  CircleAlert,
-  ExternalLink,
-  FolderOpen,
-  Globe,
-  Terminal,
-  TriangleAlert
-} from 'lucide-react'
+import { Check, CircleAlert, ExternalLink, FolderOpen, Terminal, TriangleAlert } from 'lucide-react'
 import type { TFunction } from 'i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
-import { ExternalTextLink } from '@/components/ExternalTextLink'
 import { DiagnosticDetails } from '@/components/diagnostic-details'
 import { LanguageSelect } from '@/components/LanguageControls'
 import { ThemeSegmentedControl } from '@/components/ThemeControls'
-import { GitHubStarBadge } from '@/components/GitHubStarBadge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { errorDetail } from '@/lib/error-detail'
@@ -31,14 +21,10 @@ import type {
   NotificationDesktopAvailability,
   NotificationTestResult
 } from '../../../../shared/notifications'
+import { MobiusAppVersionSection } from '../../../../mobius/renderer/MobiusAppVersionSection'
+import { MOBIUS_CAPABILITIES } from '../../../../mobius/shared/product-capabilities'
 import { AppIconSection } from './AppIconSection'
-import { AppVersionSection } from './AppVersionSection'
 import { SettingsRow, SettingsSection, SettingsToggle } from './SettingsLayout'
-
-// Community entry links (Discord, X) share the GitHub badge's compact look so the row reads as one
-// set of "connect with the project" actions.
-const socialLinkClassName =
-  'inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2 text-xs font-medium text-muted-foreground transition-colors duration-150 motion-reduce:transition-none hover:bg-muted hover:text-foreground'
 
 type GeneralActionError = {
   action: 'cli' | 'cli-status' | 'open-log' | 'reveal-log'
@@ -72,20 +58,6 @@ const logFailureCopy = (category: LogWriteFailureCategory | null, t: TFunction):
       return ''
   }
 }
-
-// Discord and X are brand marks that lucide-react dropped in v1, so we inline the official SVGs.
-// currentColor lets them inherit the link's text color like the other icons.
-const DiscordMark = ({ className }: { className?: string }): React.JSX.Element => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
-    <path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" />
-  </svg>
-)
-
-const XMark = ({ className }: { className?: string }): React.JSX.Element => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
-    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
-  </svg>
-)
 
 // General app settings. Hosts the Diagnostics (log file) tools and the community/connect links. The log
 // file stays on this device and is never transmitted by the app.
@@ -160,9 +132,11 @@ const GeneralPanel = (): React.JSX.Element => {
   }
 
   useEffect(() => {
-    void window.api.cli.getStatus().then(setCli, (error) => {
-      setCliError({ action: 'cli-status', detail: errorDetail(error) })
-    })
+    if (MOBIUS_CAPABILITIES.commandLineTool) {
+      void window.api.cli.getStatus().then(setCli, (error) => {
+        setCliError({ action: 'cli-status', detail: errorDetail(error) })
+      })
+    }
     const getAvailability = window.api.notifications.getDesktopAvailability
     if (getAvailability) {
       void getAvailability()
@@ -242,7 +216,7 @@ const GeneralPanel = (): React.JSX.Element => {
 
   return (
     <div className="space-y-5 p-5">
-      <AppVersionSection />
+      <MobiusAppVersionSection />
 
       <SettingsSection
         title={t('Appearance')}
@@ -512,129 +486,81 @@ const GeneralPanel = (): React.JSX.Element => {
             <DiagnosticDetails detail={message.detail} />
           </Notice>
         ) : null}
-
-        <p className="mt-3 text-xs text-muted-foreground">
-          {/* Trans clones each component and injects the translated text as its children, so the
-              empty string here is only satisfying the required prop — it never renders. */}
-          <Trans
-            i18nKey="Something not working? <docsLink>Open an issue on GitHub</docsLink> and attach the log above. It stays on this device and is never sent automatically; it may contain local file paths, so review it before sharing."
-            components={{
-              // Named docsLink, not link: <link> is a void HTML element, so the parser Trans uses
-              // self-closes it and the label would render as a sibling of an empty anchor.
-              docsLink: <ExternalTextLink href={APP.links.githubIssues}>{''}</ExternalTextLink>
-            }}
-          />
-        </p>
       </SettingsSection>
 
-      <SettingsSection
-        title={t('Command line tool')}
-        description={
-          <Trans
-            i18nKey="Install the <code>open-science</code> command so you can start, stop, and check the backend from a terminal, then use it entirely from your browser."
-            components={{ code: <code className="font-mono" /> }}
-          />
-        }
-        aria-label={t('Command line tool')}
-      >
-        <SettingsRow label={t('open-science')} className="pt-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void handleCli(cli?.installed ? 'uninstall' : 'install')}
-            disabled={isUpdatingCli || cli === null}
+      {MOBIUS_CAPABILITIES.commandLineTool ? (
+        <SettingsSection
+          title={t('Command line tool')}
+          description={
+            <Trans
+              i18nKey="Install the <code>open-science</code> command so you can start, stop, and check the backend from a terminal, then use it entirely from your browser."
+              components={{ code: <code className="font-mono" /> }}
+            />
+          }
+          aria-label={t('Command line tool')}
+        >
+          <SettingsRow
+            label={t('open-science')}
+            controlClassName="w-auto justify-self-end"
+            className="pt-0"
           >
-            <Terminal className="size-4" aria-hidden="true" />
-            {isUpdatingCli
-              ? t('Working…')
-              : cli?.installed
-                ? t('Uninstall command')
-                : t('Install command')}
-          </Button>
-        </SettingsRow>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleCli(cli?.installed ? 'uninstall' : 'install')}
+              disabled={isUpdatingCli || cli === null}
+            >
+              <Terminal className="size-4" aria-hidden="true" />
+              {isUpdatingCli
+                ? t('Working…')
+                : cli?.installed
+                  ? t('Uninstall command')
+                  : t('Install command')}
+            </Button>
+          </SettingsRow>
 
-        {cli?.installed ? (
-          <pre
-            className="overflow-x-auto rounded-lg border border-border bg-muted/60 px-3 py-2.5 font-mono text-xs text-foreground"
-            aria-label={t('Command line tool path')}
-          >
-            {cli.target}
-          </pre>
-        ) : null}
+          {cli?.installed ? (
+            <pre
+              className="overflow-x-auto rounded-lg border border-border bg-muted/60 px-3 py-2.5 font-mono text-xs text-foreground"
+              aria-label={t('Command line tool path')}
+            >
+              {cli.target}
+            </pre>
+          ) : null}
 
-        {cli?.installed && cli.pathHint ? (
-          <p className="mt-2 text-xs text-muted-foreground">{cli.pathHint}</p>
-        ) : null}
+          {cli?.installed && cli.pathHint ? (
+            <p className="mt-2 text-xs text-muted-foreground">{cli.pathHint}</p>
+          ) : null}
 
-        {cliError ? (
-          <Notice
-            inline
-            level="error"
-            role="alert"
-            className="mt-2"
-            description={generalActionErrorCopy(cliError, t)}
-            primaryButton={
-              cliError.action === 'cli-status'
-                ? {
-                    label: isUpdatingCli ? t('Checking…') : t('Check again'),
-                    disabled: isUpdatingCli,
-                    onClick: () => void checkCliStatus()
-                  }
-                : undefined
-            }
-          >
-            <DiagnosticDetails detail={cliError.detail} />
-          </Notice>
-        ) : null}
+          {cliError ? (
+            <Notice
+              inline
+              level="error"
+              role="alert"
+              className="mt-2"
+              description={generalActionErrorCopy(cliError, t)}
+              primaryButton={
+                cliError.action === 'cli-status'
+                  ? {
+                      label: isUpdatingCli ? t('Checking…') : t('Check again'),
+                      disabled: isUpdatingCli,
+                      onClick: () => void checkCliStatus()
+                    }
+                  : undefined
+              }
+            >
+              <DiagnosticDetails detail={cliError.detail} />
+            </Notice>
+          ) : null}
 
-        <p className="mt-3 text-xs text-muted-foreground">
-          <Trans
-            i18nKey="Once installed, run <code>open-science start</code> to launch the backend and open the authenticated URL, then <code>open-science stop</code> to shut it down. <code>status</code> and <code>url</code> are also available."
-            components={{ code: <code className="font-mono" /> }}
-          />
-        </p>
-      </SettingsSection>
-
-      <SettingsSection
-        title={t('Enjoying {{appName}}?', { appName: APP.name })}
-        description={t(
-          "It's free and open source. Star it on GitHub to help others find it, and come build in public with us on Discord and X. Thanks for being here."
-        )}
-        aria-label={t('Community')}
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <GitHubStarBadge className="border border-border" />
-          <a
-            href={APP.links.discord}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('Join the {{appName}} community on Discord', { appName: APP.name })}
-            className={socialLinkClassName}
-          >
-            <DiscordMark className="size-4" />
-            Discord
-          </a>
-          <a
-            href={APP.links.x}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('Follow {{appName}} on X', { appName: APP.name })}
-            className={socialLinkClassName}
-          >
-            <XMark className="size-4" />X
-          </a>
-          <a
-            href={APP.links.website}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('Open the {{appName}} website', { appName: APP.name })}
-            className={socialLinkClassName}
-          >
-            <Globe className="size-4" strokeWidth={2} aria-hidden="true" />
-            {t('Website')}
-          </a>
-        </div>
-      </SettingsSection>
+          <p className="mt-3 text-xs text-muted-foreground">
+            <Trans
+              i18nKey="Once installed, run <code>open-science start</code> to launch the backend and open the authenticated URL, then <code>open-science stop</code> to shut it down. <code>status</code> and <code>url</code> are also available."
+              components={{ code: <code className="font-mono" /> }}
+            />
+          </p>
+        </SettingsSection>
+      ) : null}
     </div>
   )
 }

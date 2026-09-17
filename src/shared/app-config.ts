@@ -1,30 +1,28 @@
-// Single source of truth for project identity and external links. Shared by the main process
-// (GitHub star-count fetch) and the renderer (every entry-point link). Keep this UI-free — no
-// icons, no JSX — so both processes can import it and any screen reuses the same values.
+// Compatibility view for callers that have not moved to the product capability manifest yet.
+// Product identity comes from config/product.json; external links are removed with their owning
+// features during the Mobius distribution conversion.
 
-const GITHUB_OWNER = 'aipoch'
-const GITHUB_REPO = 'open-science'
-const GITHUB_REPO_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}`
+import { PRODUCT } from '../mobius/shared/product-config'
 
 export const APP = {
-  name: 'Open-Science',
-  githubOwner: GITHUB_OWNER,
-  githubRepo: GITHUB_REPO,
+  name: PRODUCT.displayName,
+  githubOwner: '',
+  githubRepo: '',
   links: {
-    website: 'https://www.aipoch.com/open-science',
-    docs: 'https://www.aipoch.com/docs/',
-    githubRepo: GITHUB_REPO_URL,
-    license: `${GITHUB_REPO_URL}/blob/main/LICENSE`,
-    githubReleases: `${GITHUB_REPO_URL}/releases`,
-    githubApi: `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`,
-    githubIssues: `${GITHUB_REPO_URL}/issues`,
-    githubFeedback: `${GITHUB_REPO_URL}/issues/new?template=feature_request.yml`,
-    discord: 'https://discord.gg/85dKfuGM9',
-    x: 'https://x.com/aipoch_ai'
+    website: '',
+    docs: '',
+    githubRepo: '',
+    license: '',
+    githubReleases: '',
+    githubApi: '',
+    githubIssues: '',
+    githubFeedback: '',
+    discord: '',
+    x: ''
   },
-  copyright: '© 2026 AIPOCH. All rights reserved.',
+  copyright: PRODUCT.copyright,
   update: {
-    manifestUrl: 'https://statics.aipoch.com/open-science/app/stable/version.json',
-    downloadPage: 'https://www.aipoch.com/open-science'
+    manifestUrl: '',
+    downloadPage: ''
   }
 } as const

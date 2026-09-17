@@ -19,7 +19,6 @@ import { PermissionUndoSnackbar } from '@/components/PermissionUndoSnackbar'
 import { SessionCatalogRecoveryAlert } from '@/components/SessionCatalogRecoveryAlert'
 import { SessionPersistenceAlert } from '@/components/SessionPersistenceAlert'
 import { StorageCleanupToast } from '@/components/StorageCleanupToast'
-import { UpdateDialog } from '@/components/UpdateDialog'
 import { WebEventRecoveryDialog } from '@/components/WebEventRecoveryDialog'
 import { useApplicationEventBindings } from '@/hooks/useApplicationEventBindings'
 import { useApplicationStartup } from '@/hooks/useApplicationStartup'
@@ -381,7 +380,6 @@ const ApplicationPresentationContent = ({
           blockedSessionIds={events.blockedApprovalSessionIds}
         />
       </Suspense>
-      <UpdateDialog active={activePresentation === 'update'} />
       <CloseConfirmModal
         active={activePresentation === 'closeConfirmation'}
         onOpenChange={events.closeConfirmation.setOpen}

@@ -64,7 +64,7 @@ describe('OnboardingWizard flow', () => {
     expect(layout?.className).toContain('md:grid-cols-[240px_minmax(0,1fr)]')
   })
 
-  it('walks all five steps forward in order, tracking progress', async () => {
+  it('walks all four managed-product steps forward in order, tracking progress', async () => {
     readyClaudeState()
 
     await renderWizard()
@@ -77,9 +77,8 @@ describe('OnboardingWizard flow', () => {
     expect(progressItems.map((item) => item.textContent)).toEqual([
       '1Environment',
       '2Data location',
-      '3Agent runtime',
-      '4Model provider',
-      '5Notebook runtime'
+      '3Model provider',
+      '4Notebook runtime'
     ])
     expect(progressItems[0].getAttribute('aria-current')).toBe('step')
 
@@ -89,15 +88,11 @@ describe('OnboardingWizard flow', () => {
     expect(window.api.storage.setDataRootAndRelaunch).not.toHaveBeenCalled()
     await clickButton(/^continue$/i)
 
-    // ③ Agent runtime.
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
+    // ③ Model provider. OpenCode is managed by the product and has no selection step.
+    expect(currentSection('Configure model')).not.toBeNull()
     expect(currentSection('Prepare environment')).toBeNull()
 
-    // ④ Model provider.
-    await clickButton(/^continue$/i)
-    expect(currentSection('Configure model')).not.toBeNull()
-
-    // A successful validation lands on ⑤ Notebook, which now owns final completion.
+    // A successful validation lands on ④ Notebook, which owns final completion.
     await fillRequiredProviderFields(container)
     await clickButton(/test & continue/i)
     expect(currentSection('Notebook runtime (optional)')).not.toBeNull()
@@ -254,12 +249,12 @@ describe('OnboardingWizard flow', () => {
 
     expect(container.textContent).toContain('C:\\Users\\researcher\\OpenScience')
     await clickButton(/continue/i)
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
+    expect(currentSection('Configure model')).not.toBeNull()
     expect(useSettingsStore.getState().completeOnboarding).not.toHaveBeenCalled()
     expect(window.api.storage.setDataRootAndRelaunch).not.toHaveBeenCalled()
   })
 
-  it('resumes at Agent when a non-default data root was persisted before relaunch', async () => {
+  it('resumes at Model when a non-default data root was persisted before relaunch', async () => {
     window.api.platform = 'win32'
     window.api.storage.getInfo = vi.fn().mockResolvedValue(
       storageInfo({
@@ -279,7 +274,7 @@ describe('OnboardingWizard flow', () => {
     await renderWizard()
 
     expect(window.api.localFs.listDrives).not.toHaveBeenCalled()
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
+    expect(currentSection('Configure model')).not.toBeNull()
     expect(currentSection('Choose data location')).toBeNull()
   })
 
@@ -389,7 +384,7 @@ describe('OnboardingWizard flow', () => {
     expect(findButton(/^continue$/i)?.disabled).toBe(false)
 
     await clickButton(/^continue$/i)
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
+    expect(currentSection('Configure model')).not.toBeNull()
   })
 
   it('stops a pending Windows recommendation when the user leaves Location', async () => {
@@ -531,7 +526,7 @@ describe('OnboardingWizard flow', () => {
 
     expect(findButton(/^continue$/i)?.disabled).toBe(false)
     await clickButton(/^continue$/i)
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
+    expect(currentSection('Configure model')).not.toBeNull()
   })
 
   it('does not let a late storage resume override a Browse interaction in flight', async () => {
@@ -600,18 +595,14 @@ describe('OnboardingWizard flow', () => {
 
     await clickButton(/^continue$/i)
     await clickButton(/^continue$/i)
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
-    await clickButton(/^continue$/i)
     expect(currentSection('Configure model')).not.toBeNull()
     await fillRequiredProviderFields(container)
     await clickButton(/test & continue/i)
     expect(currentSection('Notebook runtime (optional)')).not.toBeNull()
 
-    // Notebook → Provider → Agent → Location → Environment.
+    // Notebook → Provider → Location → Environment.
     await clickButton(/^back$/i)
     expect(currentSection('Configure model')).not.toBeNull()
-    await clickButton(/^back$/i)
-    expect(currentSection('Set up the agent runtime')).not.toBeNull()
     await clickButton(/^back$/i)
     expect(currentSection('Choose data location')).not.toBeNull()
     await clickButton(/^back$/i)
@@ -619,10 +610,7 @@ describe('OnboardingWizard flow', () => {
 
     await clickButton(/^continue$/i)
     await clickButton(/^continue$/i)
-    await clickButton(/^continue$/i)
-    expect(container.querySelector<HTMLInputElement>('#provider-base-url')?.value).toBe(
-      'https://gateway.example'
-    )
+    expect(container.querySelector<HTMLInputElement>('#provider-key')?.value).toBe('sk-test')
   })
 
   it('keeps a chosen data location after going Back and returning to Location', async () => {
@@ -643,7 +631,7 @@ describe('OnboardingWizard flow', () => {
 
     expect(currentSection('Choose data location')).not.toBeNull()
     expect(container.textContent).toContain('/mnt/data/OpenScience')
-    expect(container.textContent).toContain('Open-Science will restart to set this up')
+    expect(container.textContent).toContain('Mobius Science will restart to set this up')
   })
 
   it('initializes (detects) the env store on mount without auto-provisioning python', async () => {
@@ -748,7 +736,7 @@ it('regression: step changes move focus to the new heading', async () => {
   })
   await clickButton(/^continue$/i)
   expect(currentSection('Choose data location')).not.toBeNull()
-  expect(document.activeElement?.textContent).toBe('Where should Open-Science store your data?')
+  expect(document.activeElement?.textContent).toBe('Where should Mobius Science store your data?')
   expect(document.activeElement?.tagName).toBe('H2')
   act(() => {
     findButton(/^back$/i)!.focus()
@@ -766,9 +754,7 @@ it('regression: every setup step exposes and focuses its own level-two heading',
     expect(document.activeElement?.textContent).toBe(title)
   }
   await clickButton(/^continue$/i)
-  expectHeading('Where should Open-Science store your data?')
-  await clickButton(/^continue$/i)
-  expectHeading('Set up the agent runtime')
+  expectHeading('Where should Mobius Science store your data?')
   await clickButton(/^continue$/i)
   expectHeading('Connect a model')
   await fillRequiredProviderFields(container)
@@ -776,8 +762,7 @@ it('regression: every setup step exposes and focuses its own level-two heading',
   expectHeading('Notebook runtime (optional)')
   for (const title of [
     'Connect a model',
-    'Set up the agent runtime',
-    'Where should Open-Science store your data?',
+    'Where should Mobius Science store your data?',
     'Prepare environment'
   ]) {
     await clickButton(/^back$/i)
