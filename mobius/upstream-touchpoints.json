@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "comparisonBase": "d948cffde08eea67ab8c9f02846b03f59b3afa3e",
+  "productionFiles": [
+    { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
+    {
+      "path": "package-lock.json",
+      "seam": "Keeps the downstream CLI executable name in package metadata."
+    },
+    { "path": "tsconfig.node.json", "seam": "Includes isolated Mobius main/shared sources." },
+    { "path": "tsconfig.web.json", "seam": "Includes isolated Mobius renderer/shared sources." },
+    {
+      "path": "scripts/stage-default-envs.mjs",
+      "seam": "Adds generic output and pack-selection hooks."
+    },
+    {
+      "path": "src/shared/app-config.ts",
+      "seam": "Projects identity and removes upstream destinations."
+    },
+    {
+      "path": "src/shared/config-root.ts",
+      "seam": "Projects Mobius configuration directories while retaining explicit overrides."
+    },
+    { "path": "src/shared/i18n/core.ts", "seam": "Registers downstream brand post-processing." },
+    {
+      "path": "src/shared/session-package.ts",
+      "seam": "Accepts the downstream Session package extension."
+    },
+    {
+      "path": "src/shared/skill-marketplace.ts",
+      "seam": "Removes the upstream Marketplace destination."
+    },
+    {
+      "path": "src/main/index.ts",
+      "seam": "Registers native product identity and generated icons."
+    },
+    { "path": "src/main/ipc.ts", "seam": "Applies update and Marketplace capability policy." },
+    { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
+    {
+      "path": "src/main/agent-framework/registry.ts",
+      "seam": "Selects managed OpenCode as the fixed framework."
+    },
+    {
+      "path": "src/main/agent-framework/opencode.ts",
+      "seam": "Starts managed OpenCode without external plugins to keep first launch offline and fast."
+    },
+    {
+      "path": "src/main/acp/session-presentation-policy.ts",
+      "seam": "Projects the Mobius product identity into agent instructions."
+    },
+    {
+      "path": "src/main/ipc-surfaces/desktop-utilities.ts",
+      "seam": "Disables upstream GitHub utility IPC."
+    },
+    {
+      "path": "src/main/settings/agent-runtime-manager.ts",
+      "seam": "Detects packaged managed OpenCode."
+    },
+    {
+      "path": "src/main/session-persistence/paths.ts",
+      "seam": "Uses Mobius-owned configuration directories."
+    },
+    { "path": "src/main/storage-root.ts", "seam": "Uses Mobius-owned data directory names." },
+    {
+      "path": "src/main/session-package/desktop.ts",
+      "seam": "Exports .mobius and imports .mobius/.science."
+    },
+    {
+      "path": "src/main/session-package/file-open.ts",
+      "seam": "Accepts downstream and legacy package associations."
+    },
+    {
+      "path": "src/main/notebook/provisioner.ts",
+      "seam": "Uses bundled runtimes without upstream CDN fallback."
+    },
+    {
+      "path": "src/main/notebook/kernel-executor.ts",
+      "seam": "Keeps scientific-library caches inside the sandbox-writable managed runtime cache."
+    },
+    {
+      "path": "src/main/notebook/notebook-workload-cache-paths.ts",
+      "seam": "Routes XDG and Fontconfig caches into the disposable managed workload cache."
+    },
+    {
+      "path": "src/main/notebook/runtime-paths.ts",
+      "seam": "Removes the default upstream runtime CDN."
+    },
+    {
+      "path": "src/main/skills/marketplace-service.ts",
+      "seam": "Blocks upstream Skill Marketplace transport."
+    },
+    {
+      "path": "src/main/skills/marketplace-source.ts",
+      "seam": "Replaces the upstream Skill Marketplace transport locations."
+    },
+    {
+      "path": "src/main/specialist/marketplace/official-source.ts",
+      "seam": "Replaces the upstream Specialist Marketplace transport locations."
+    },
+    {
+      "path": "src/main/specialist/identity.ts",
+      "seam": "Projects the Mobius product identity into Specialist instructions."
+    },
+    { "path": "src/main/connectors/engine.ts", "seam": "Uses the downstream HTTP identity." },
+    {
+      "path": "src/main/connectors/descriptors/genes-reactome.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/main/connectors/descriptors/regulation.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/main/connectors/descriptors/zinc.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/main/literature/full-text-download.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/main/literature/metadata-enricher.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/main/literature/reference-resolver.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
+    {
+      "path": "src/renderer/src/ApplicationPresentationHost.tsx",
+      "seam": "Removes the update dialog host."
+    },
+    {
+      "path": "src/renderer/index.html",
+      "seam": "Sets the downstream browser and native window title."
+    },
+    {
+      "path": "src/renderer/src/components/AppLogo.tsx",
+      "seam": "Registers the generated Mobius logo."
+    },
+    {
+      "path": "src/renderer/src/components/ProjectPackageDropZone.tsx",
+      "seam": "Uses the downstream package extension."
+    },
+    {
+      "path": "src/renderer/src/components/database-startup-gate.tsx",
+      "seam": "Removes the public issue action."
+    },
+    {
+      "path": "src/renderer/src/hooks/useApplicationStartup.ts",
+      "seam": "Skips update-store startup."
+    },
+    {
+      "path": "src/renderer/src/installation-assistant.ts",
+      "seam": "Registers the generated Mobius logo."
+    },
+    {
+      "path": "src/renderer/src/lib/startup-issue.ts",
+      "seam": "Removes the upstream issue destination from the retained local helper."
+    },
+    {
+      "path": "src/renderer/src/pages/home/HomePage.tsx",
+      "seam": "Uses Mobius branding and removes Star/update controls."
+    },
+    {
+      "path": "src/renderer/src/pages/onboarding/OnboardingWizard.tsx",
+      "seam": "Uses fixed OpenCode and DeepSeek onboarding."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/GeneralPanel.tsx",
+      "seam": "Uses the local-only Mobius About surface."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/ScenarioModelList.tsx",
+      "seam": "Registers Mobius scenario icons."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/SettingsPage.tsx",
+      "seam": "Removes Agent selection from Settings."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/SkillsPanel.tsx",
+      "seam": "Hides the upstream Skill Marketplace entry."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/SpecialistsPanel.tsx",
+      "seam": "Hides the upstream Specialist Marketplace entry."
+    },
+    {
+      "path": "src/renderer/src/pages/settings/settings-navigation.ts",
+      "seam": "Routes repair to the managed runtime panel."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/ReportErrorDialog.tsx",
+      "seam": "Keeps diagnostics local."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/WorkspaceSidebar.tsx",
+      "seam": "Removes Star/update controls."
+    },
+    {
+      "path": "src/shared/i18n/locales/de.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/es.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/fr.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/ja.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/ko.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/ru.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/zh-Hans.json",
+      "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/shared/i18n/locales/zh-Hant.json",
+      "seam": "Removes obsolete upstream-only copy."
+    }
+  ]
+}

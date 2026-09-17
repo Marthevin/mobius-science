@@ -1,3 +1,5 @@
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
+import { createDisabledUpdateCommandOwner } from '../../mobius/main/disabled-update-owner'
 import type { UpdateBlocker } from '../../shared/update'
 import { createAcpRuntime } from '../acp/runtime-composition'
 import { type ApplicationModuleBuilder } from '../application-runtime'
@@ -18,7 +20,7 @@ import { detectActiveSessions } from '../storage/detect-active'
 import { registerStorageIpcHandlers } from '../storage/ipc'
 import { isMigrationInProgress, isMigrationPending } from '../storage/migration-state'
 import { createUpdateStrategy } from '../update/create-strategy'
-import { createUpdateCommandOwner, registerUpdateIpcHandlers } from '../update/ipc'
+import { createUpdateCommandOwner, registerUpdateIpcHandlers, type UpdateCommandOwner } from '../update/ipc'
 import { startUpdateScheduler } from '../update/scheduler'
 import {
   createActiveResearchSafeInstallGate,
@@ -148,48 +150,51 @@ export async function composeHandoff({
         return !blocked
       }
     )()
-  // Construct update handling only after its backend-shutdown gate exists. The in-place strategy owns
-  // this immutable dependency from construction; the manifest fallback ignores it because it does not
-  // quit the running app to install.
-  let releaseSettingsInstallAdmission: (() => void) | undefined
-  const abortUpdateHandoff = (): void => {
-    packageHandoffHeld.current = false
-    const releaseAdmission = releaseSettingsInstallAdmission
-    releaseSettingsInstallAdmission = undefined
-    releaseAdmission?.()
-    try {
-      sideChatRuntime.resumeAfterHandoff()
-    } finally {
-      notifyRendererDurabilityAborted()
+  let updateCommandOwner: UpdateCommandOwner = createDisabledUpdateCommandOwner()
+  if (MOBIUS_CAPABILITIES.automaticUpdates) {
+    // Construct update handling only after its backend-shutdown gate exists. The in-place strategy owns
+    // this immutable dependency from construction; the manifest fallback ignores it because it does not
+    // quit the running app to install.
+    let releaseSettingsInstallAdmission: (() => void) | undefined
+    const abortUpdateHandoff = (): void => {
+      packageHandoffHeld.current = false
+      const releaseAdmission = releaseSettingsInstallAdmission
+      releaseSettingsInstallAdmission = undefined
+      releaseAdmission?.()
+      try {
+        sideChatRuntime.resumeAfterHandoff()
+      } finally {
+        notifyRendererDurabilityAborted()
+      }
     }
+    const updateInstallGate = createActiveResearchSafeInstallGate(
+      detectResearchBlockers,
+      durableBackendHandoffGate,
+      () => isMigrationInProgress() || isMigrationPending()
+    )
+    const updateStrategy = createUpdateStrategy(process.platform, {
+      translate,
+      installGate: async (options) => {
+        packageHandoffHeld.current = true
+        if (sessionPackageDesktopLifecycle.isActive())
+          throw new Error('Wait for the Session package operation to finish before updating.')
+        releaseSettingsInstallAdmission = settingsService.holdInstallAdmission()
+        return updateInstallGate(options)
+      },
+      releaseInstallHandoff: abortUpdateHandoff
+    })
+    updateCommandOwner = createUpdateCommandOwner(updateStrategy)
+    let stopUpdateScheduler: (() => void) | undefined
+    await modules.add(undefined, () => ({
+      name: 'update-scheduler',
+      capability: undefined,
+      dispose: () => stopUpdateScheduler?.()
+    }))
+    declareElectronAdapter('update', () => {
+      registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
+      stopUpdateScheduler = startUpdateScheduler(updateStrategy)
+    })
   }
-  const updateInstallGate = createActiveResearchSafeInstallGate(
-    detectResearchBlockers,
-    durableBackendHandoffGate,
-    () => isMigrationInProgress() || isMigrationPending()
-  )
-  const updateStrategy = createUpdateStrategy(process.platform, {
-    translate,
-    installGate: async (options) => {
-      packageHandoffHeld.current = true
-      if (sessionPackageDesktopLifecycle.isActive())
-        throw new Error('Wait for the Session package operation to finish before updating.')
-      releaseSettingsInstallAdmission = settingsService.holdInstallAdmission()
-      return updateInstallGate(options)
-    },
-    releaseInstallHandoff: abortUpdateHandoff
-  })
-  const updateCommandOwner = createUpdateCommandOwner(updateStrategy)
-  let stopUpdateScheduler: (() => void) | undefined
-  await modules.add(undefined, () => ({
-    name: 'update-scheduler',
-    capability: undefined,
-    dispose: () => stopUpdateScheduler?.()
-  }))
-  declareElectronAdapter('update', () => {
-    registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
-    stopUpdateScheduler = startUpdateScheduler(updateStrategy)
-  })
   return {
     reviewerModelRuntimeShutdown,
     shutdownCoordinator,

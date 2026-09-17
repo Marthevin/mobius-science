@@ -6,9 +6,9 @@
 //   resources/default-envs/<packId>.tar.zst      (self-contained pack archive)
 //   resources/default-envs/manifest.json         (schema + envVersion + per-pack sha256/size)
 //
-// Each pack is the MINIMAL kernel-protocol floor for its version — NOT the full scientific stack (that
-// installs on demand later): Python -> [python=<v>, matplotlib-base, nomkl]; R -> [r-base=<v>,
-// r-jsonlite] (mirrors BASE_PYTHON_PACKAGES / BASE_R_PACKAGES in provisioner.ts). The lock is built
+// Each pack is the offline analysis and publication floor for its version. It mirrors
+// BASE_PYTHON_PACKAGES / BASE_R_PACKAGES in provisioner.ts so a new installation can execute the
+// standard research workflow without a first-run package solve. The lock is built
 // from a micromamba `create --dry-run --json` solve's actions.LINK (the COMPLETE resolved env) — NOT
 // actions.FETCH, which is only the subset the runner still needs to download (empty on a warm cache).
 // Solving with an explicit --platform lets a single host stage ANY subdir (e.g. osx-64 on an Apple
@@ -29,13 +29,15 @@ import {
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { createPackArchive } from './pack-archive.mjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
-const OUT = join(SCRIPT_DIR, '..', 'resources', 'default-envs')
+const OUT = process.env.RUNTIME_STAGE_OUT
+  ? resolve(process.env.RUNTIME_STAGE_OUT)
+  : join(SCRIPT_DIR, '..', 'resources', 'default-envs')
 const PKGS = join(OUT, 'pkgs')
 const CHANNEL = 'conda-forge'
 const MANIFEST_SCHEMA = 1
@@ -47,14 +49,38 @@ export const VERSIONS = {
   r: ['4.3', '4.4']
 }
 
-// The minimal kernel-protocol floor for a (language, version), version-pinned. Python: matplotlib
-// backs figure capture, nomkl avoids Intel MKL. R: r-jsonlite implements the loop's JSON framing.
+// The managed scientific floor for a (language, version), version-pinned. Python includes analysis,
+// plotting and PDF-generation/inspection libraries; nomkl avoids Intel MKL. R includes the core
+// tidy analysis/reporting stack. r-jsonlite implements the loop's JSON framing.
 // Package NAMES mirror BASE_PYTHON_PACKAGES / BASE_R_PACKAGES in provisioner.ts (a guard test enforces
 // the names stay equal); only the version pin is added here.
 export const floorPackages = (language, version) =>
   language === 'python'
-    ? [`python=${version}`, 'matplotlib-base', 'nomkl']
-    : [`r-base=${version}`, 'r-jsonlite', 'r-biocmanager', 'r-ggplot2']
+    ? [
+        `python=${version}`,
+        'matplotlib-base',
+        'numpy',
+        'pandas',
+        'scipy',
+        'scikit-learn',
+        'statsmodels',
+        'seaborn',
+        'reportlab',
+        'pillow',
+        'pypdf',
+        'pymupdf',
+        'nomkl'
+      ]
+    : [
+        `r-base=${version}`,
+        'r-jsonlite',
+        'r-biocmanager',
+        'r-ggplot2',
+        'r-dplyr',
+        'r-tidyr',
+        'r-readr',
+        'r-broom'
+      ]
 
 // packId = `<language>-<version>` (mirrors bundle-manifest.ts::packId). Keys the lock filename,
 // the CDN object and the manifest.packs map.
@@ -329,15 +355,24 @@ const main = async () => {
     subdir: platform,
     packs: {}
   }
-  for (const pack of packMatrix()) {
+  const requestedPackIds = new Set(
+    (process.env.RUNTIME_STAGE_PACKS ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+  )
+  const packs = packMatrix().filter(
+    (pack) => requestedPackIds.size === 0 || requestedPackIds.has(pack.id)
+  )
+  if (packs.length === 0) throw new Error('RUNTIME_STAGE_PACKS did not match a supported pack.')
+  for (const pack of packs) {
     manifest.packs[pack.id] = await stagePack(mm, stagingRoot, pack, platform)
   }
   rmSync(PKGS, { recursive: true, force: true })
   rmSync(stagingRoot, { recursive: true, force: true })
   writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
   console.log(
-    `[stage-default-envs] staged ${Object.keys(manifest.packs).length} packs + manifest into ` +
-      'resources/default-envs'
+    `[stage-default-envs] staged ${Object.keys(manifest.packs).length} packs + manifest into ` + OUT
   )
 }
 

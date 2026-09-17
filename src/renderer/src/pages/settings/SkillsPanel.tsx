@@ -54,6 +54,7 @@ import {
   ResourceSelectionCheckbox
 } from './ResourceCatalogSelection'
 import { SkillMarketplace, type SkillMarketplaceView } from './SkillMarketplace'
+import { MOBIUS_CAPABILITIES } from '../../../../mobius/shared/product-capabilities'
 import {
   ResourceTagBadges,
   ResourceTagMenu,
@@ -471,10 +472,12 @@ const SkillsPanel = ({
           </Badge>
         </h3>
         <div data-slot="skills-action-bar" className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => onNavigate({ kind: 'marketplace' })}>
-            <Store data-icon="inline-start" aria-hidden="true" />
-            {t('Browse Marketplace')}
-          </Button>
+          {MOBIUS_CAPABILITIES.upstreamMarketplaces ? (
+            <Button onClick={() => onNavigate({ kind: 'marketplace' })}>
+              <Store data-icon="inline-start" aria-hidden="true" />
+              {t('Browse Marketplace')}
+            </Button>
+          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="shrink-0" data-settings-anchor="skills.add">

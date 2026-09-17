@@ -25,6 +25,7 @@ import {
   type ErrorReportContext,
   type SessionReportSubject
 } from './error-report'
+import { MOBIUS_CAPABILITIES } from '../../../../mobius/shared/product-capabilities'
 
 type ReportErrorDialogProps = {
   open: boolean
@@ -166,9 +167,11 @@ const ReportErrorDialog = ({
             <div className="min-w-0">
               <Dialog.Title className={dialogTitleClassName}>{t('Report this error')}</Dialog.Title>
               <Dialog.Description className={dialogDescriptionClassName}>
-                {t(
-                  'This report is posted publicly on GitHub. Edit the error text below to remove anything sensitive before sharing. Your runtime log stays on this device and is never attached automatically.'
-                )}
+                {MOBIUS_CAPABILITIES.upstreamLinks
+                  ? t(
+                      'This report is posted publicly on GitHub. Edit the error text below to remove anything sensitive before sharing. Your runtime log stays on this device and is never attached automatically.'
+                    )
+                  : t('Error details')}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -208,7 +211,7 @@ const ReportErrorDialog = ({
               {environmentBlock}
             </pre>
 
-            {issuePrefill.truncatedFields.length > 0 ? (
+            {MOBIUS_CAPABILITIES.upstreamLinks && issuePrefill.truncatedFields.length > 0 ? (
               <>
                 <p className="mt-3 text-[11px] font-medium uppercase tracking-wide text-text-300">
                   {t('GitHub issue prefill')}
@@ -222,31 +225,33 @@ const ReportErrorDialog = ({
               </>
             ) : null}
 
-            <label className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-text-100">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 shrink-0 accent-primary"
-                checked={consented}
-                // Consent is granted for the payload on screen now; bind it to that exact URL.
-                onChange={(event) => setConsentedUrl(event.target.checked ? issueUrl : null)}
-              />
-              <span>
-                <Trans
-                  i18nKey="I've reviewed the details above and agree to share them in a public GitHub issue, subject to GitHub's <privacyLink>Privacy Statement</privacyLink>."
-                  components={{
-                    privacyLink: (
-                      <a
-                        href="https://docs.github.com/site-policy/privacy-policies/github-privacy-statement"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline hover:text-text-000"
-                        onClick={(event) => event.stopPropagation()}
-                      />
-                    )
-                  }}
+            {MOBIUS_CAPABILITIES.upstreamLinks ? (
+              <label className="mt-4 flex items-start gap-2 text-[13px] leading-5 text-text-100">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
+                  checked={consented}
+                  // Consent is granted for the payload on screen now; bind it to that exact URL.
+                  onChange={(event) => setConsentedUrl(event.target.checked ? issueUrl : null)}
                 />
-              </span>
-            </label>
+                <span>
+                  <Trans
+                    i18nKey="I've reviewed the details above and agree to share them in a public GitHub issue, subject to GitHub's <privacyLink>Privacy Statement</privacyLink>."
+                    components={{
+                      privacyLink: (
+                        <a
+                          href="https://docs.github.com/site-policy/privacy-policies/github-privacy-statement"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-text-000"
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      )
+                    }}
+                  />
+                </span>
+              </label>
+            ) : null}
 
             {revealMessage ? (
               <p className="mt-2 text-xs text-red-700 dark:text-red-400" role="alert">
@@ -278,23 +283,25 @@ const ReportErrorDialog = ({
                 {copied ? t('Copied') : t('Copy details')}
               </span>
             </button>
-            <a
-              href={consented ? issueUrl : undefined}
-              target="_blank"
-              rel="noreferrer"
-              aria-disabled={!consented}
-              tabIndex={consented ? undefined : -1}
-              onClick={(event) => {
-                if (!consented) event.preventDefault()
-                else handleOpenChange(false)
-              }}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border border-transparent bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 ${
-                consented ? '' : 'pointer-events-none opacity-50'
-              }`}
-            >
-              <ExternalLink className="size-4" aria-hidden="true" />
-              {t('Open GitHub issue')}
-            </a>
+            {MOBIUS_CAPABILITIES.upstreamLinks ? (
+              <a
+                href={consented ? issueUrl : undefined}
+                target="_blank"
+                rel="noreferrer"
+                aria-disabled={!consented}
+                tabIndex={consented ? undefined : -1}
+                onClick={(event) => {
+                  if (!consented) event.preventDefault()
+                  else handleOpenChange(false)
+                }}
+                className={`inline-flex h-8 items-center gap-1.5 rounded-lg border border-transparent bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 ${
+                  consented ? '' : 'pointer-events-none opacity-50'
+                }`}
+              >
+                <ExternalLink className="size-4" aria-hidden="true" />
+                {t('Open GitHub issue')}
+              </a>
+            ) : null}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

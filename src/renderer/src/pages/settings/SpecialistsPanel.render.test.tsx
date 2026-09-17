@@ -217,7 +217,7 @@ describe('SpecialistsPanel', () => {
     })
 
     expect(document.body.textContent).toContain(
-      'Open-Science could not load Specialists. Retry to continue.'
+      'Mobius Science could not load Specialists. Retry to continue.'
     )
     expect(document.body.textContent).not.toContain('Loading…')
 
@@ -1055,7 +1055,7 @@ describe('SpecialistsPanel', () => {
     },
     {
       code: 'recovery-failed' as const,
-      copy: 'Open-Science could not recover an earlier package operation. Restart the app before trying again.',
+      copy: 'Mobius Science could not recover an earlier package operation. Restart the app before trying again.',
       action: 'Open data folder'
     },
     {
@@ -1324,7 +1324,7 @@ describe('SpecialistsPanel', () => {
     )
     expect(marketplaceGroup?.textContent).toContain('RNA Reviewer')
     expect(document.body.textContent).toContain('Marketplace')
-    expect(document.body.textContent).toContain('Publisher: Open-Science')
+    expect(document.body.textContent).toContain('Publisher: Mobius Science')
     expect(document.body.textContent).toContain('Version 1.0.1')
     expect(document.body.textContent).not.toContain('Unchanged locally')
     expect(document.body.textContent).not.toContain('Imported ZIP')
@@ -1442,7 +1442,7 @@ describe('SpecialistsPanel', () => {
     expect(document.body.querySelector('[aria-label="Filter by Tag"]')).toBeNull()
   })
 
-  it('separates Marketplace acquisition from creation and matches the Skill row action order', async () => {
+  it('hides Marketplace acquisition, preserves creation, and matches the Skill row action order', async () => {
     const onNavigate = vi.fn()
     await act(async () => {
       root.render(<SpecialistsPanel view={{ kind: 'list' }} onNavigate={onNavigate} />)
@@ -1466,10 +1466,8 @@ describe('SpecialistsPanel', () => {
     const addButton = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
       (button) => button.textContent?.includes('Add specialist')
     )
-    expect(browseButton).not.toBeNull()
+    expect(browseButton).toBeUndefined()
     expect(addButton).not.toBeNull()
-    await act(async () => fireEvent.click(browseButton!))
-    expect(onNavigate).toHaveBeenCalledWith({ kind: 'marketplace' })
 
     const toggle = document.body.querySelector<HTMLButtonElement>(
       '[aria-label="Toggle RNA Reviewer"]'

@@ -9,6 +9,8 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
+    "src/mobius/main/**/*",
+    "src/mobius/shared/**/*",
     "playwright.browser.config.ts",
     "vite.browser-test.config.ts"
   ],

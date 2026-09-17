@@ -1,5 +1,6 @@
 import i18next, { type i18n, type Resource } from 'i18next'
 
+import { mobiusProductBrandPostProcessor } from '../../mobius/shared/i18n-branding'
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '../locale'
 
 export const COMMON_NAMESPACE = 'common'
@@ -199,7 +200,7 @@ export const initializeI18nInstance = (
     fallbackNamespaces?: readonly string[]
   }
 ): i18n => {
-  instance.use(englishSourceFallbackPostProcessor)
+  instance.use(englishSourceFallbackPostProcessor).use(mobiusProductBrandPostProcessor)
   void instance.init({
     lng: options.locale,
     fallbackLng,
@@ -211,7 +212,7 @@ export const initializeI18nInstance = (
     keySeparator: false,
     nsSeparator: false,
     interpolation: { escapeValue: false },
-    postProcess: [englishSourceFallbackPostProcessor.name],
+    postProcess: [englishSourceFallbackPostProcessor.name, mobiusProductBrandPostProcessor.name],
     postProcessPassResolved: true,
     returnNull: false,
     initAsync: false

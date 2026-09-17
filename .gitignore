@@ -5,6 +5,9 @@ node_modules
 # Build outputs
 dist/
 out/
+/output/
+/tmp/
+/index.js
 dist-e2e-mac/
 dist-e2e-win/
 release/
@@ -111,6 +114,10 @@ resources/bin/
 # Offline default-env bundle (locks + ~350MB pkgs cache) is produced by `npm run stage-default-envs`
 # before packaging and published to the CDN; staged at build time, never committed.
 resources/default-envs/
+
+# Mobius release inputs are reproducibly staged from pinned versions before packaging.
+mobius/runtime/default-envs/
+mobius/runtime/opencode/
 
 # Python bytecode cache generated when the notebook kernel loop scripts are imported/run locally.
 __pycache__/
