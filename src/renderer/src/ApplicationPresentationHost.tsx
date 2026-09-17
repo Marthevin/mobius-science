@@ -444,10 +444,6 @@ const ApplicationPresentationContent = ({
           />
         )}
       </DeferredPresentationOwner>
-      <RuntimeUpdateOutcomeNotice />
-      <DeferredPresentationOwner active={activePresentation === 'update'}>
-        {(active) => <UpdateDialog active={active} />}
-      </DeferredPresentationOwner>
       <CloseConfirmModal
         active={activePresentation === 'closeConfirmation'}
         onOpenChange={events.closeConfirmation.setOpen}

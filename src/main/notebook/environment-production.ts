@@ -1,3 +1,4 @@
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 import { basename, dirname } from 'node:path'
 import { createWindowsExecutableVerifier } from '../windows-executable-trust'
 
@@ -119,7 +120,7 @@ export const createProductionProvisioner = (
     deps.fetchBundle ??
     chainFetchBundle([
       createLocalBundleAdapter(opts.root, bundleDir),
-      createFetchBundleAdapter(opts.root, cdnBase)
+      ...(MOBIUS_CAPABILITIES.remoteRuntimeDownloads && cdnBase ? [createFetchBundleAdapter(opts.root, cdnBase)] : [])
     ])
   return new DefaultRuntimeProvisioner<EnvironmentRequestContext>({
     root: opts.root,

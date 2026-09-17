@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SESSION_PACKAGE_FILE_PATTERN } from '../mobius/shared/session-package-branding'
 import { PROJECT_NAME_MAX_LENGTH } from './projects'
 import { defineApplicationCommandContract, validationCodec } from './application-command-contract'
 
@@ -503,12 +504,7 @@ export const sessionPackageCommandContracts = {
         sessionPackageRequestSchema,
         // Headless callers (CLI / local Web RPC) name the destination explicitly; desktop
         // renderers omit it and keep the native save dialog.
-        z
-          .string()
-          .min(1)
-          .max(32768)
-          .regex(/\.science$/i)
-          .optional()
+        z.string().min(1).max(32768).regex(SESSION_PACKAGE_FILE_PATTERN).optional()
       ])
     ),
     validationCodec(exportResultSchema)
@@ -518,12 +514,7 @@ export const sessionPackageCommandContracts = {
       z
         .tuple([
           sessionPackageImportRequestSchema.optional(),
-          z
-            .string()
-            .min(1)
-            .max(32768)
-            .regex(/\.science$/i)
-            .optional(),
+          z.string().min(1).max(32768).regex(SESSION_PACKAGE_FILE_PATTERN).optional(),
           z
             .object({ nonInteractive: z.literal(true) })
             .strict()

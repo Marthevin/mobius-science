@@ -52,21 +52,21 @@ describe('dataFolderName', () => {
     appMock.isPackaged = false
   })
 
-  it('is Open-Science when packaged', () => {
+  it('is MobiusScience when packaged', () => {
     appMock.isPackaged = true
-    expect(dataFolderName()).toBe('Open-Science')
+    expect(dataFolderName()).toBe('MobiusScience')
   })
 
-  it('is Open-Science-DEV in dev (not packaged)', () => {
+  it('is MobiusScience-DEV in dev (not packaged)', () => {
     appMock.isPackaged = false
-    expect(dataFolderName()).toBe('Open-Science-DEV')
+    expect(dataFolderName()).toBe('MobiusScience-DEV')
   })
 })
 
 describe('dataRootForParent', () => {
   it('joins the parent with the data folder name', () => {
     appMock.isPackaged = true
-    expect(dataRootForParent('/mnt/data')).toBe(join('/mnt/data', 'Open-Science'))
+    expect(dataRootForParent('/mnt/data')).toBe(join('/mnt/data', 'MobiusScience'))
   })
 })
 
@@ -86,30 +86,30 @@ describe('dataRootForPicked', () => {
     const picked = '/mnt/data'
     // Expected is derived with the host's own resolve/join so the assertion holds on Windows too
     // (where resolve() prepends a drive letter and uses backslashes).
-    expect(dataRootForPicked(picked)).toBe(join(resolve(picked), 'Open-Science'))
+    expect(dataRootForPicked(picked)).toBe(join(resolve(picked), 'MobiusScience'))
   })
 
   it('uses the picked folder as-is when it IS already the data folder (no doubling)', () => {
-    // Selecting the Open-Science folder itself must not derive <picked>/Open-Science/Open-Science.
+    // Selecting the MobiusScience folder itself must not derive <picked>/MobiusScience/MobiusScience.
     appMock.isPackaged = true
-    const picked = '/mnt/data/Open-Science'
+    const picked = '/mnt/data/MobiusScience'
     expect(dataRootForPicked(picked)).toBe(resolve(picked))
   })
 
   it('respects the dev folder name for the no-double check', () => {
     appMock.isPackaged = false
-    const devFolder = '/mnt/data/Open-Science-DEV'
+    const devFolder = '/mnt/data/MobiusScience-DEV'
     expect(dataRootForPicked(devFolder)).toBe(resolve(devFolder))
     const parent = '/mnt/data'
-    expect(dataRootForPicked(parent)).toBe(join(resolve(parent), 'Open-Science-DEV'))
+    expect(dataRootForPicked(parent)).toBe(join(resolve(parent), 'MobiusScience-DEV'))
   })
 
   it('matches the folder name case-insensitively on Windows (no doubling on differing case)', () => {
-    // Windows filesystems are case-insensitive, so a differently-cased Open-Science folder must
+    // Windows filesystems are case-insensitive, so a differently-cased MobiusScience folder must
     // still be recognized as the data folder rather than getting a second one appended.
     setPlatform('win32')
     appMock.isPackaged = true
-    const lower = '/mnt/data/open-science'
+    const lower = '/mnt/data/mobiusscience'
     expect(dataRootForPicked(lower)).toBe(resolve(lower))
     const upper = '/mnt/data/OPENSCIENCE'
     expect(dataRootForPicked(upper)).toBe(resolve(upper))
@@ -118,8 +118,8 @@ describe('dataRootForPicked', () => {
   it('is case-sensitive off Windows (a differently-cased folder is not the data folder)', () => {
     setPlatform('linux')
     appMock.isPackaged = true
-    const lower = '/mnt/data/open-science'
-    expect(dataRootForPicked(lower)).toBe(join(resolve(lower), 'Open-Science'))
+    const lower = '/mnt/data/mobiusscience'
+    expect(dataRootForPicked(lower)).toBe(join(resolve(lower), 'MobiusScience'))
   })
 })
 
@@ -137,8 +137,8 @@ describe('samePath / isPathInsideOrEqual (platform-aware)', () => {
 
   it('compares case-insensitively on win32 (NTFS is case-insensitive)', () => {
     setPlatform('win32')
-    expect(samePath(p('Data', 'Open-Science'), p('data', 'open-science'))).toBe(true)
-    expect(isPathInsideOrEqual(p('Data'), p('data', 'Open-Science'))).toBe(true)
+    expect(samePath(p('Data', 'MobiusScience'), p('data', 'mobiusscience'))).toBe(true)
+    expect(isPathInsideOrEqual(p('Data'), p('data', 'MobiusScience'))).toBe(true)
   })
 
   it('compares case-sensitively off win32', () => {
@@ -171,9 +171,9 @@ describe('computeDefaultDataRoot', () => {
     await rm(homeDir, { recursive: true, force: true })
   })
 
-  it('defaults to <home>/Open-Science for a fresh config root', () => {
+  it('defaults to <home>/MobiusScience for a fresh config root', () => {
     // resolveConfigRoot() resolves under homeDir but nothing has been created there.
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'MobiusScience'))
   })
 
   it('keeps packaged E2E config and data under the disposable certification root', () => {
@@ -181,7 +181,7 @@ describe('computeDefaultDataRoot', () => {
     vi.stubEnv('OPEN_SCIENCE_E2E_STORAGE_ROOT', e2eRoot)
 
     expect(resolveConfigRoot()).toBe(e2eRoot)
-    expect(computeDefaultDataRoot()).toBe(join(e2eRoot, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(e2eRoot, 'MobiusScience'))
   })
 
   it('offers the branded default regardless of data in the config root', async () => {
@@ -190,18 +190,18 @@ describe('computeDefaultDataRoot', () => {
     await writeFile(join(configRoot, 'notebooks', 'history.json'), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'MobiusScience' : 'MobiusScience-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('does not treat a config root with an Open-Science subdir as legacy', async () => {
+  it('does not treat a config root with an MobiusScience subdir as legacy', async () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
-    await mkdir(join(configRoot, 'Open-Science'), { recursive: true })
+    await mkdir(join(configRoot, 'MobiusScience'), { recursive: true })
 
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'MobiusScience'))
 
     await rm(configRoot, { recursive: true, force: true })
   })
@@ -212,7 +212,7 @@ describe('computeDefaultDataRoot', () => {
       await mkdir(join(configRoot, marker), { recursive: true })
       await writeFile(join(configRoot, marker, 'history.json'), '{}')
 
-      expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+      expect(computeDefaultDataRoot()).toBe(join(homeDir, 'MobiusScience'))
 
       await rm(configRoot, { recursive: true, force: true })
     }
@@ -224,7 +224,7 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'runtime'), { recursive: true })
 
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'MobiusScience'))
 
     await rm(configRoot, { recursive: true, force: true })
   })
@@ -234,12 +234,12 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'MobiusScience')
     await mkdir(homeDefault, { recursive: true })
     await writeFile(join(homeDefault, MIGRATION_MARKER_FILENAME), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'MobiusScience' : 'MobiusScience-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
@@ -249,18 +249,18 @@ describe('computeDefaultDataRoot', () => {
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
-    await mkdir(join(homeDir, 'Open-Science', 'artifacts'), { recursive: true })
+    await mkdir(join(homeDir, 'MobiusScience', 'artifacts'), { recursive: true })
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'MobiusScience' : 'MobiusScience-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('treats an explicitly configured <home>/Open-Science as the committed default', async () => {
+  it('treats an explicitly configured <home>/MobiusScience as the committed default', async () => {
     const configRoot = resolveConfigRoot()
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'MobiusScience')
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     initDataRoot(homeDefault)
@@ -272,7 +272,7 @@ describe('computeDefaultDataRoot', () => {
 
   it('keeps an explicitly configured default committed while its cleanup marker remains', async () => {
     const configRoot = resolveConfigRoot()
-    const homeDefault = join(homeDir, 'Open-Science')
+    const homeDefault = join(homeDir, 'MobiusScience')
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     await writeFile(join(homeDefault, MIGRATION_MARKER_FILENAME), '{}')
@@ -303,24 +303,24 @@ describe('computeDefaultDataRoot (dev mode)', () => {
     await writeFile(join(configRoot, 'artifacts', 'history.json'), '{}')
 
     expect(computeDefaultDataRoot()).toBe(
-      join(homeDir, appMock.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+      join(homeDir, appMock.isPackaged ? 'MobiusScience' : 'MobiusScience-DEV')
     )
 
     await rm(configRoot, { recursive: true, force: true })
   })
 
-  it('defaults to <home>/Open-Science-DEV for a fresh (dev) config root', () => {
+  it('defaults to <home>/MobiusScience-DEV for a fresh (dev) config root', () => {
     // resolveConfigRoot() resolves under homeDir but nothing has been created there.
-    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'Open-Science-DEV'))
+    expect(computeDefaultDataRoot()).toBe(join(homeDir, 'MobiusScience-DEV'))
   })
 
-  it('prefers an explicitly configured <home>/Open-Science-DEV over legacy data', async () => {
+  it('prefers an explicitly configured <home>/MobiusScience-DEV over legacy data', async () => {
     // A relocated legacy install: leftover markers linger in the config root, but the modern data
     // folder already exists (and is in use). It must win, or isDefault/return-to-default would keep
     // pointing at the stale legacy path.
     const configRoot = resolveConfigRoot()
     await mkdir(join(configRoot, 'artifacts'), { recursive: true })
-    const homeDefault = join(homeDir, 'Open-Science-DEV')
+    const homeDefault = join(homeDir, 'MobiusScience-DEV')
     await mkdir(join(homeDefault, 'artifacts'), { recursive: true })
     initDataRoot(homeDefault)
 
@@ -354,8 +354,8 @@ describe('resolveDataRoot / initDataRoot', () => {
   })
 
   it('prefers an explicit settings.dataRoot over the computed default', () => {
-    initDataRoot('/mnt/data/open-science')
-    expect(resolveDataRoot()).toBe('/mnt/data/open-science')
+    initDataRoot('/mnt/data/mobiusscience')
+    expect(resolveDataRoot()).toBe('/mnt/data/mobiusscience')
   })
 
   it('resolves via computeDefaultDataRoot() before initDataRoot has ever run', async () => {
@@ -380,7 +380,7 @@ describe('resolveConfigRoot', () => {
   })
 
   it('uses the normal development directory by default', () => {
-    expect(resolveConfigRoot()).toBe(join('/Users/tester', '.open-science-project'))
+    expect(resolveConfigRoot()).toBe(join('/Users/tester', '.mobius-science-project'))
   })
 
   it('uses an absolute development preview override without changing HOME', () => {
@@ -416,7 +416,7 @@ describe('resolveConfigRoot', () => {
     appMock.isPackaged = true
     vi.stubEnv('OPEN_SCIENCE_STORAGE_ROOT', '/tmp/ignored')
 
-    expect(resolveConfigRoot()).toBe(join('/Users/tester', '.open-science'))
+    expect(resolveConfigRoot()).toBe(join('/Users/tester', '.mobius-science'))
   })
 
   it('keeps resolveStorageRoot as a compatibility alias', () => {
@@ -447,7 +447,7 @@ describe('bootstrap and runtime config root agreement', () => {
         const expected =
           start < 2 || (start === 2 && !packaged)
             ? join(home, 'root-' + start)
-            : join(home, packaged ? '.open-science' : '.open-science-project')
+            : join(home, packaged ? '.mobius-science' : '.mobius-science-project')
         expect(resolveConfigRoot()).toBe(expected)
         expect(resolveBootstrapConfigRoot(home, packaged)).toBe(expected)
       }

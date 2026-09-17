@@ -9,6 +9,7 @@ import type { NamedElectronSurfaceAdapter } from '../runtime-electron-wiring'
 import { registerWindowFindIpcHandlers } from '../window-find-ipc'
 import { registerWindowCloseIpcHandler } from '../window-ipc'
 import { createElectronSurfaceAdapter } from './adapter'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 
 type DesktopUtilitiesOwners = {
   fileSaveCommands?: import('../file-save').FileSaveCommands
@@ -48,7 +49,7 @@ export const createDesktopUtilitiesElectronSurface = ({
       fileSaveCommands
     )
     registerLogsIpcHandlers(logs)
-    registerGithubIpcHandlers({}, github)
+    if (MOBIUS_CAPABILITIES.upstreamLinks) registerGithubIpcHandlers({}, github)
     registerCliInstallIpcHandlers(cli)
     registerWindowCloseIpcHandler()
     return registerWindowFindIpcHandlers()

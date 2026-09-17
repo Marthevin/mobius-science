@@ -1,5 +1,6 @@
 import { createHostSpecialistPackages } from '../specialist/package/environment'
 import { resolveBundledSpecialistsRoot } from '../specialist/builtin-resource-path'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 import { runtimeMetadata } from '../runtime-metadata'
 import { SPECIALIST_IPC } from '../../shared/specialist'
 import { createAcpRuntime } from '../acp/runtime-composition'
@@ -210,7 +211,9 @@ export async function composeSpecialistPackages({
     operationCoordinator: marketplaceOperationCoordinator,
     packages: specialistPackageService,
     fetch: netFetchWithManualRedirect,
-    officialSource: OFFICIAL_MARKETPLACE_SOURCE,
+    officialSource: MOBIUS_CAPABILITIES.upstreamMarketplaces
+      ? OFFICIAL_MARKETPLACE_SOURCE
+      : undefined,
     getInstalledSpecialists: async () =>
       (await specialistService.list()).map((profile) => ({
         id: profile.id,

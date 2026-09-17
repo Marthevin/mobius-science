@@ -128,7 +128,7 @@ export const downloadFullText = async (
           ...(agent ? { agent } : {}),
           headers: {
             Accept: options.accept ?? 'application/pdf',
-            'User-Agent': 'Open-Science/1.0'
+            'User-Agent': 'MobiusScience/1.0'
           },
           lookup: (hostname, options, callback) => {
             void lookup(hostname, { all: true }).then(

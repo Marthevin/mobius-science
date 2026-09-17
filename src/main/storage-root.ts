@@ -2,6 +2,7 @@ import { runtimeMetadata } from './runtime-metadata'
 import { existsSync, lstatSync } from 'node:fs'
 import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 
+import { PRODUCT } from '../mobius/shared/product-config'
 import { directoryHasFiles } from './storage/location-evidence'
 import { MANAGED_WORKSPACE_OWNERSHIP_DIR } from './storage/managed-workspace-ownership-dir'
 import { MIGRATABLE_DATA_DIRS } from './storage/data-directories'
@@ -21,9 +22,8 @@ const resolveStorageRoot = resolveConfigRoot
 // Visible, no-space data folder name. NO space: runtime/ holds conda/venv whose tools break on
 // spaced paths. dev gets a suffix so it never shares data with a packaged build.
 const dataFolderName = (): string =>
-  runtimeMetadata().packaged ? 'Open-Science' : 'Open-Science-DEV'
-const legacyDataFolderName = (): string =>
-  runtimeMetadata().packaged ? 'OpenScience' : 'OpenScience-DEV'
+  runtimeMetadata().packaged ? PRODUCT.dataDirectory : PRODUCT.developmentDataDirectory
+const legacyDataFolderName = (): string => (runtimeMetadata().packaged ? 'OpenScience' : 'OpenScience-DEV')
 
 // The data root the app derives from a user-picked (or default) parent directory: always
 // `<parent>/<dataFolderName()>` for a new location. Verified existing roots are adopted directly

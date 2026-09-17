@@ -1,7 +1,7 @@
 import './assets/installation-assistant.css'
 
-import darkAppIconUrl from './assets/logo-dark.png'
-import lightAppIconUrl from './assets/logo.png'
+import darkAppIconUrl from '../../../mobius/generated/renderer/logo-dark.png'
+import lightAppIconUrl from '../../../mobius/generated/renderer/logo.png'
 import { initI18n, prepareI18nLocale } from './i18n'
 import { applyHtmlLang, resolveInitialLocale } from './lib/locale-preference'
 
