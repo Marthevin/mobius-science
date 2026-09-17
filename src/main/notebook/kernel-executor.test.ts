@@ -3800,6 +3800,7 @@ describe('NotebookKernelExecutor spawn env', () => {
     for (const kind of ['python', 'r', 'repl'] as const) {
       expect(buildEnv(kind, request, '/tmp/figs')).toMatchObject({
         OPEN_SCIENCE_NOTEBOOK_CACHE_DIR: cacheRoot,
+        XDG_CACHE_HOME: cacheRoot,
         PIP_CACHE_DIR: join(cacheRoot, 'pip'),
         UV_CACHE_DIR: join(cacheRoot, 'uv'),
         HF_HUB_CACHE: join(cacheRoot, 'huggingface', 'hub'),

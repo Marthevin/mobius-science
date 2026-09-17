@@ -1,6 +1,7 @@
 import { basename, isAbsolute, join, resolve, sep } from 'node:path'
 
 import { app } from 'electron'
+import { PRODUCT } from '../mobius/shared/product-config'
 import { directoryHasFiles } from './storage/location-evidence'
 import { MANAGED_WORKSPACE_OWNERSHIP_DIR } from './storage/managed-workspace-ownership-dir'
 
@@ -17,7 +18,8 @@ const resolveStorageRoot = resolveConfigRoot
 
 // Visible, no-space data folder name. NO space: runtime/ holds conda/venv whose tools break on
 // spaced paths. dev gets a suffix so it never shares data with a packaged build.
-const dataFolderName = (): string => (app.isPackaged ? 'Open-Science' : 'Open-Science-DEV')
+const dataFolderName = (): string =>
+  app.isPackaged ? PRODUCT.dataDirectory : PRODUCT.developmentDataDirectory
 const legacyDataFolderName = (): string => (app.isPackaged ? 'OpenScience' : 'OpenScience-DEV')
 
 // The data root the app derives from a user-picked (or default) parent directory: always

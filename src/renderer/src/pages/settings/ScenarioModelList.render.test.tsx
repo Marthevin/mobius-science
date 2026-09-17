@@ -80,6 +80,16 @@ describe('ScenarioModelList', () => {
       'Expand Vision settings',
       'Expand Session details settings'
     ])
+    expect(
+      Array.from(document.body.querySelectorAll<HTMLImageElement>('[data-scenario-icon]')).map(
+        (icon) => icon.dataset.scenarioIcon
+      )
+    ).toEqual(['subagent', 'reviewer', 'vision', 'session-details'])
+    expect(
+      Array.from(document.body.querySelectorAll<HTMLImageElement>('[data-scenario-icon]')).every(
+        (icon) => icon.alt === '' && icon.getAttribute('aria-hidden') === 'true'
+      )
+    ).toBe(true)
 
     expect(sessionDetailsRow?.textContent).toContain('Same as main model')
     expect(sessionDetailsRow?.textContent).toContain('Low')

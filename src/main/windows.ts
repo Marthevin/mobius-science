@@ -16,6 +16,8 @@ import { is } from '@electron-toolkit/utils'
 import iconPng from '../../resources/icon.png?asset'
 import iconWindows from '../../resources/icon-light.ico?asset'
 import { createFrameNavigationGuard, isAllowedExternalNavigation } from './navigation-policy'
+import { isOriginalProductUrl } from '../mobius/main/external-navigation'
+import { PRODUCT } from '../mobius/shared/product-config'
 import { createFindOverlayManager, type FindOverlayDeps } from './find-overlay'
 import { registerFindOverlayOwner } from './find-overlay-registry'
 import { createLogger, diagnosticErrorFields } from './logger'
@@ -114,7 +116,7 @@ const createAppWindow = (options: BrowserWindowConstructorOptions): BrowserWindo
   })
 
   window.webContents.setWindowOpenHandler((details) => {
-    if (isAllowedExternalNavigation(details.url)) {
+    if (isAllowedExternalNavigation(details.url) && !isOriginalProductUrl(details.url)) {
       void shell.openExternal(details.url).catch((error) => {
         log.warn('external link open failed', diagnosticErrorFields(error))
       })
@@ -279,7 +281,7 @@ const createMainWindow = (
     height: 960,
     minWidth: 1100,
     minHeight: 720,
-    title: 'Open-Science'
+    title: PRODUCT.displayName
   })
   if (opts) configureMainWindow(window, opts)
 
@@ -384,7 +386,7 @@ const createMainWindow = (
         buttons: [translate('Reload', { context: 'window' }), translate('Close window')],
         defaultId: 0,
         cancelId: 1,
-        title: 'Open-Science',
+        title: PRODUCT.displayName,
         message: translate('The app window stopped responding repeatedly.'),
         detail: translate(
           'Automatic recovery has been paused. Reloading returns this window to the home screen; background work may still be running.'

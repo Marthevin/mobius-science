@@ -2096,7 +2096,6 @@ describe('mandatory product glossary', () => {
   it('uses the chosen French runtime term for environment surfaces', () => {
     // These keys refer to an executable environment, not elapsed time or an individual run.
     const runtimeEnvironmentKeys = [
-      'Agent runtime',
       'Agent runtime repair issues',
       "Choose which coding-agent backend drives your sessions. Select a card to switch; switching starts a fresh agent session, and open conversations have their transcript replayed to the new backend. The active runtime can't be uninstalled — switch to the other one first.",
       'Could not change that runtime.',
@@ -2747,7 +2746,6 @@ describe('Russian catalog quality', () => {
       'Пользовательский коннектор с таким именем уже существует.'
     ],
     ['Agent installation blockers', 'Причины блокировки установки агента'],
-    ['Agent runtime', 'Среда выполнения агента'],
     ['Agent runtime repair issues', 'Проблемы восстановления среды выполнения агента'],
     ['Auto-discover from MCP server', 'Автоматически обнаруживать на сервере MCP'],
     ['Auto-review', 'Автопроверка'],
@@ -2903,11 +2901,6 @@ describe('Russian catalog quality', () => {
     ],
     ['Why this happened', 'Почему это произошло'],
     ['How to fix', 'Как исправить'],
-    ['Still stuck? Create an issue for help', 'Проблема не решена? Создать обращение'],
-    [
-      'Review and edit the redacted report in Open-Science before opening GitHub.',
-      'Просмотрите и отредактируйте обезличенный отчёт в Open-Science перед открытием GitHub.'
-    ],
     ['Skill import menu — 8 states', 'Меню импорта навыков — 8 состояний'],
     ['Import', 'Импортировать'],
     ['Upload skills', 'Загрузить навыки'],

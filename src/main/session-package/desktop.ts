@@ -6,6 +6,12 @@ import { dialog, shell, type BrowserWindow } from 'electron'
 import { mkdtemp, realpath, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, extname, isAbsolute, join } from 'node:path'
+import { PRODUCT } from '../../mobius/shared/product-config'
+import {
+  SESSION_PACKAGE_DIALOG_EXTENSIONS,
+  SESSION_PACKAGE_EXTENSION,
+  isSessionPackagePath
+} from '../../mobius/shared/session-package-branding'
 import type {
   SessionPackageExportResult,
   SessionPackageImportResult,
@@ -459,7 +465,7 @@ export class SessionPackageDesktop {
         const release = await this.options.reserveExport?.(request, signal)
         try {
           return await this.staged(async (directory) => {
-            const archive = join(directory, 'session.science')
+            const archive = join(directory, `session${SESSION_PACKAGE_EXTENSION}`)
             let filePath: string | undefined
             await this.options.withDataRootWrite(() =>
               this.acceptCleanup(() =>
@@ -478,8 +484,13 @@ export class SessionPackageDesktop {
                     ].join('-')
                     const options = {
                       title: this.options.translate('Export Session package'),
-                      defaultPath: `${sanitizeExportFilename(title || 'Session', 220)}-${date}.science`,
-                      filters: [{ name: 'Open-Science Session', extensions: ['science'] }]
+                      defaultPath: `${sanitizeExportFilename(title || 'Session', 220)}-${date}${SESSION_PACKAGE_EXTENSION}`,
+                      filters: [
+                        {
+                          name: `${PRODUCT.displayName} Session`,
+                          extensions: [...SESSION_PACKAGE_DIALOG_EXTENSIONS]
+                        }
+                      ]
                     }
                     const selected = await this.nativeDialog(
                       parent
@@ -544,10 +555,7 @@ export class SessionPackageDesktop {
         undefined,
         async (signal) => {
           operationSignal = signal
-          if (
-            sourcePath &&
-            (!isAbsolute(sourcePath) || extname(sourcePath).toLowerCase() !== '.science')
-          )
+          if (sourcePath && (!isAbsolute(sourcePath) || !isSessionPackagePath(extname(sourcePath))))
             throw new Error('Invalid Session package path.')
           if (sourcePath) rememberSource(sourcePath)
           if (!sourcePath || target.projectId || target.projectName) this.options.assertCanStart?.()
@@ -569,7 +577,12 @@ export class SessionPackageDesktop {
               const options = {
                 title: this.options.translate('Import Session package'),
                 properties: ['openFile'] as ['openFile'],
-                filters: [{ name: 'Open-Science Session', extensions: ['science'] }]
+                filters: [
+                  {
+                    name: `${PRODUCT.displayName} Session`,
+                    extensions: [...SESSION_PACKAGE_DIALOG_EXTENSIONS]
+                  }
+                ]
               }
               const selected = sourcePath
                 ? { canceled: false, filePaths: [sourcePath] }
@@ -594,7 +607,7 @@ export class SessionPackageDesktop {
               })
               if (!info.isFile() || info.size > PACKAGE_MAX_BYTES)
                 throw new Error('Session package exceeds the archive limit.')
-              const archive = join(directory, 'session.science')
+              const archive = join(directory, `session${SESSION_PACKAGE_EXTENSION}`)
               await this.copyArchive(input, archive, 'copying', signal)
               this.operations.report({ phase: 'validating' })
               const result = await this.options.withDataRootWrite(() =>

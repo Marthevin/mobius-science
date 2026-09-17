@@ -45,13 +45,11 @@ import { useArchiveUndoStore } from '@/stores/archive-undo-store'
 import { useSettingsStore } from '@/stores/settings-store'
 import { useProjectFormDialog } from '@/hooks/useProjectFormDialog'
 import { startWslSetupConversation } from '@/lib/wsl-support-handoff'
-import { GitHubStarBadge } from '@/components/GitHubStarBadge'
 import { NetworkStatusIndicator } from '@/components/NetworkStatusIndicator'
 import { NotificationBell } from '@/components/NotificationBell'
 import { ProjectDeletionCleanupNotice } from '@/components/ProjectDeletionCleanupNotice'
-import { UpdateCapsule } from '@/components/UpdateCapsule'
 import { sessionWaitReasonLabelKeys } from '@/lib/session-wait-reason-labels'
-import { APP } from '../../../../shared/app-config'
+import { ProductWordmark } from '../../../../mobius/renderer/ProductWordmark'
 import { earliestCurrentDelegatedAttemptStartedAt } from '../../../../shared/delegated-work-projection'
 import type { Project } from '../../../../shared/projects'
 import type { EnvironmentCheckItem, EnvironmentCheckResult } from '../../../../shared/settings'
@@ -646,14 +644,7 @@ const HomePage = ({
           <header className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <a
-                  href={APP.links.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-serif text-[26px] font-medium leading-none tracking-[-0.02em] text-text-000 hover:text-text-100"
-                >
-                  Open-Science
-                </a>
+                <ProductWordmark className="font-serif text-[26px] font-medium leading-none tracking-[-0.02em] text-text-000" />
                 {hasCompleteSessionCatalog &&
                 (activeSessionCounts.waiting > 0 || activeSessionCounts.running > 0) ? (
                   <div className="flex items-center gap-1.5 text-xs font-medium">
@@ -699,9 +690,6 @@ const HomePage = ({
                 </button>
               ) : null}
               <NetworkStatusIndicator variant="pill" />
-              <span className="hidden sm:inline-flex">
-                <GitHubStarBadge variant="home" />
-              </span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -731,7 +719,6 @@ const HomePage = ({
               >
                 <Settings className="size-4" strokeWidth={2} aria-hidden="true" />
               </button>
-              <UpdateCapsule />
               {/* Account button hidden for now; restore when the account flow lands. */}
               <Button
                 variant="outline"

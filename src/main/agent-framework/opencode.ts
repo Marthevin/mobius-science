@@ -29,6 +29,8 @@ import type {
 } from './types'
 import { isProductionDelegatedWorkFramework } from '../delegation/production-readiness'
 import { renderAppMcpToolReferences } from './app-mcp-names'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
+import { managedOpencodeOfflineConfigFiles } from '../../mobius/main/opencode-offline-config'
 
 type SpawnProcess = (
   command: string,
@@ -40,6 +42,7 @@ type OpencodeFrameworkDeps = {
   platform?: NodeJS.Platform
   sourceEnv?: NodeJS.ProcessEnv
   spawnProcess?: SpawnProcess
+  externalPluginsEnabled?: boolean
 }
 
 // opencode speaks ACP over `opencode acp` (stdio JSON-RPC). Only the shapes that differ from Claude
@@ -458,7 +461,8 @@ export { buildOpencodeConfig }
 export const createOpencodeFramework = ({
   platform = process.platform,
   sourceEnv = process.env,
-  spawnProcess = spawn as SpawnProcess
+  spawnProcess = spawn as SpawnProcess,
+  externalPluginsEnabled = MOBIUS_CAPABILITIES.opencodeExternalPlugins
 }: OpencodeFrameworkDeps = {}): AgentFramework => ({
   id: 'opencode',
   displayName: 'OpenCode',
@@ -489,7 +493,7 @@ export const createOpencodeFramework = ({
 
     return spawnProcess(
       needsShell ? `"${input.executablePath}"` : input.executablePath,
-      ['acp', ...input.args],
+      ['acp', ...(externalPluginsEnabled ? [] : ['--pure']), ...input.args],
       {
         env: { ...augmentedPathEnv(sourceEnv), ...input.env },
         stdio: 'pipe',
@@ -507,9 +511,12 @@ export const createOpencodeFramework = ({
     const dataHome = opencodeDataHome(ctx.storageRoot)
     const opencodeDir = join(configHome, 'opencode')
     const configPath = join(opencodeDir, 'opencode.json')
-    const configFiles = [
-      { path: configPath, content: '' },
-      {
+    const configFiles = [{ path: configPath, content: '' }]
+    if (!externalPluginsEnabled) {
+      configFiles.push(...managedOpencodeOfflineConfigFiles(opencodeDir))
+    }
+    if (externalPluginsEnabled) {
+      configFiles.push({
         path: join(opencodeDir, 'plugins', OPENCODE_GO_SESSION_PLUGIN),
         // Always rewrite the app-owned plugin, including with an empty provider set, so switching
         // away from Go cannot leave a previously generated provider match active on disk.
@@ -518,8 +525,8 @@ export const createOpencodeFramework = ({
           ctx.reasoningEffort,
           ctx.providerModelCatalog ?? []
         )
-      }
-    ]
+      })
+    }
 
     // Stable app guidance belongs in OpenCode's native instructions layer, never ordinary user prompt
     // history. Keep connector conventions separate so their independent lifecycle remains explicit;

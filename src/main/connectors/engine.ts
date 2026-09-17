@@ -13,8 +13,7 @@ const DEFAULT_RETRIES = 2
 const DEFAULT_BACKOFF_MS = 400
 
 // Some public APIs (e.g. AlphaFold EBI) reject requests without a User-Agent; send a stable one.
-const USER_AGENT =
-  'Mozilla/5.0 (compatible; Open-Science/1.0; +https://github.com/aipoch/open-science)'
+const USER_AGENT = 'Mozilla/5.0 (compatible; MobiusScience/1.0)'
 
 // Builds the NCBI E-utilities etiquette query suffix; empty when unset (calls still work).
 export function ncbiEtiquette(credentials: ConnectorCredentials): string {

@@ -42,9 +42,11 @@ import {
   createRendererFailureReporter,
   registerRendererDiagnosticsIpc
 } from './renderer-diagnostics'
+import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
+import { allowMobiusMultiInstance } from '../mobius/main/single-instance-isolation'
 
-const APP_NAME = 'Open-Science'
-const APP_USER_MODEL_ID = 'com.aipoch.open-science'
+const APP_NAME = MOBIUS_NATIVE_IDENTITY.name
+const APP_USER_MODEL_ID = MOBIUS_NATIVE_IDENTITY.appUserModelId
 const shouldRunArtifactMcpServer = process.argv.includes(ARTIFACT_MCP_SERVER_ARG)
 const shouldRunNotebookMcpServer = process.argv.includes(NOTEBOOK_MCP_SERVER_ARG)
 const shouldRunReviewerMcpProxy = process.argv.includes(REVIEWER_MCP_PROXY_ARG)
@@ -214,8 +216,12 @@ async function startElectronApp(mainEntryPath: string): Promise<void> {
     process.env.OPEN_SCIENCE_E2E_STORAGE_ROOT ||
     (!app.isPackaged && process.env.OPEN_SCIENCE_STORAGE_ROOT)
   )
-  const allowMultiInstance =
-    !app.isPackaged && process.env.OPEN_SCIENCE_ALLOW_MULTI_INSTANCE === '1'
+  const allowMultiInstance = allowMobiusMultiInstance({
+    isPackaged: app.isPackaged,
+    allowMultiInstance: process.env.OPEN_SCIENCE_ALLOW_MULTI_INSTANCE,
+    e2eStorageRoot: process.env.OPEN_SCIENCE_E2E_STORAGE_ROOT,
+    userDataOverride: process.env.OPEN_SCIENCE_USER_DATA
+  })
   const pendingSecondInstances: Array<[string[], string]> = []
   let relaySecondInstance = (argv: string[], cwd: string): void => {
     pendingSecondInstances.push([argv, cwd])
@@ -235,7 +241,7 @@ async function startElectronApp(mainEntryPath: string): Promise<void> {
   electronInitializationStarted = true
   bootstrapPhase = 'electron-ready'
   await app.whenReady()
-  app.setName(app.isPackaged ? APP_NAME : `${APP_NAME} (DEV)`)
+  app.setName(app.isPackaged ? APP_NAME : MOBIUS_NATIVE_IDENTITY.developmentName)
   bootstrapPhase = 'credential-ciphertext-validation'
   validateCredentials(safeStorage, (error) => {
     if (!credentialRecoveryPresented) {
