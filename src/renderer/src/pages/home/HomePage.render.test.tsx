@@ -492,7 +492,7 @@ describe('HomePage environment repair notice', () => {
 
     await act(async () => repairButton?.click())
 
-    expect(openSettingsToPanel).toHaveBeenCalledWith('agent')
+    expect(openSettingsToPanel).toHaveBeenCalledWith('runtimes')
   })
 
   it('opens Storage before Agent when both required checks fail', async () => {
@@ -576,7 +576,7 @@ describe('HomePage environment repair notice', () => {
       container.querySelector<HTMLButtonElement>('[aria-label="Open environment repair"]')?.click()
     )
 
-    expect(openSettingsToPanel).toHaveBeenCalledWith('agent')
+    expect(openSettingsToPanel).toHaveBeenCalledWith('runtimes')
   })
 
   it('opens Agent settings for a system compatibility blocker', async () => {
@@ -602,7 +602,7 @@ describe('HomePage environment repair notice', () => {
       container.querySelector<HTMLButtonElement>('[aria-label="Open environment repair"]')?.click()
     )
 
-    expect(openSettingsToPanel).toHaveBeenCalledWith('agent')
+    expect(openSettingsToPanel).toHaveBeenCalledWith('runtimes')
   })
 })
 
@@ -869,7 +869,7 @@ describe('HomePage activity overview', () => {
     expect(document.querySelector('[role="menu"]')).toBeNull()
   })
 
-  it('places the update action beside Settings and before New project', async () => {
+  it('omits the upstream update action while keeping Settings before New project', async () => {
     await act(async () =>
       root.render(
         <HomePage canDeleteProjects hasCompleteSessionCatalog onOpenGlobalSearch={vi.fn()} />
@@ -883,10 +883,9 @@ describe('HomePage activity overview', () => {
     })
 
     expect(settings).not.toBeNull()
-    expect(update).not.toBeNull()
+    expect(update).toBeNull()
     expect(newProject).toBeDefined()
-    expect(settings?.compareDocumentPosition(update!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-    expect(update?.compareDocumentPosition(newProject!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(settings?.compareDocumentPosition(newProject!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
   it('prioritizes waiting cards with exact reasons and keeps aggregate activity counts', async () => {
@@ -2108,7 +2107,7 @@ describe('HomePage activity overview', () => {
     )
     expect(retry).toBeDefined()
     expect(container.querySelector('[role="alert"] p')?.textContent).toBe(
-      'Open-Science could not load projects. Retry to continue.'
+      'Mobius Science could not load projects. Retry to continue.'
     )
     expect(container.textContent).not.toContain('database is locked')
     const section = container.querySelector<HTMLElement>('[aria-label="Projects"]')!

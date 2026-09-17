@@ -97,9 +97,13 @@ import {
   registerRendererDiagnosticsIpc
 } from './renderer-diagnostics'
 import type { DiagnosticOperation } from '@aipoch/diagnostics/node'
+import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
+import { allowMobiusMultiInstance } from '../mobius/main/single-instance-isolation'
+import { MOBIUS_CAPABILITIES } from '../mobius/shared/product-capabilities'
+import { createDisabledUpdateCommandOwner } from '../mobius/main/disabled-update-owner'
 
-const APP_NAME = 'Open-Science'
-const APP_USER_MODEL_ID = 'com.aipoch.open-science'
+const APP_NAME = MOBIUS_NATIVE_IDENTITY.name
+const APP_USER_MODEL_ID = MOBIUS_NATIVE_IDENTITY.appUserModelId
 const bootstrapLog = createLogger('desktop-bootstrap')
 const webServiceLog = createLogger('web-service')
 let startupDiagnostics: DiagnosticOperation | undefined
@@ -248,7 +252,7 @@ async function startDesktop(): Promise<void> {
   app.setPath('userData', profilePath)
   app.setPath('sessionData', profilePath)
   if (
-    !(!app.isPackaged && process.env.OPEN_SCIENCE_ALLOW_MULTI_INSTANCE === '1') &&
+    !allowMobiusMultiInstance({ isPackaged: app.isPackaged, allowMultiInstance: process.env.OPEN_SCIENCE_ALLOW_MULTI_INSTANCE, e2eStorageRoot: process.env.OPEN_SCIENCE_E2E_STORAGE_ROOT, userDataOverride: process.env.OPEN_SCIENCE_USER_DATA }) &&
     !app.requestSingleInstanceLock()
   ) {
     app.quit()
@@ -338,7 +342,7 @@ async function startDesktop(): Promise<void> {
     prefetchSystemBootIdentity().catch((error: unknown) =>
       bootstrapLog.warn('boot identity prefetch failed', { error: String(error) })
     )
-  app.setName(app.isPackaged ? APP_NAME : `${APP_NAME} (DEV)`)
+  app.setName(app.isPackaged ? APP_NAME : MOBIUS_NATIVE_IDENTITY.developmentName)
   app.setAppLogsPath(join(profilePath, 'desktop-logs'))
   const diagnostics = initializeApplicationDiagnostics({
     logDir: app.getPath('logs'),
@@ -1218,13 +1222,13 @@ async function startDesktop(): Promise<void> {
   }))
   registerCliInstallIpcHandlers(cliOwner)
   void cliOwner.ensureCurrent()
-  const { createUpdateStrategy } = await import('./update/create-strategy')
   const { registerUpdateIpcHandlers } = await import('./update/ipc')
-  const { startUpdateScheduler } = await import('./update/scheduler')
   const { installElectronNetwork } = await import('./runtime-network-electron')
   const { installElectronBroadcast } = await import('./renderer-broadcast-electron')
   installElectronNetwork()
   const removeNativeBroadcast = installElectronBroadcast()
+  let stopUpdates = (): void => {}
+  if (MOBIUS_CAPABILITIES.automaticUpdates) {
   let preparedMacInstallation: PreparedMacInstallation | undefined
   const isLegacyInstall = (status: { localPath?: string }): boolean =>
     !status.localPath || !usesSupervisedInstall(process.platform, status.localPath)
@@ -1432,7 +1436,11 @@ async function startDesktop(): Promise<void> {
       : {})
   })
   registerUpdateIpcHandlers(update, undefined, requireRecoveryFrame)
-  const stopUpdates = startUpdateScheduler(update)
+  stopUpdates = startUpdateScheduler(update)
+  } else {
+    const disabledUpdates = createDisabledUpdateCommandOwner()
+    registerUpdateIpcHandlers(disabledUpdates, disabledUpdates)
+  }
   app.once('will-quit', () => {
     stopUpdates()
     removeNativeBroadcast()

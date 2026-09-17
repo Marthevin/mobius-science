@@ -1,4 +1,6 @@
 import { projectUpdateBlockedTasks } from '../update/blocked-tasks'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
+import { createDisabledUpdateCommandOwner } from '../../mobius/main/disabled-update-owner'
 import {
   registerStorageIpcHandlers,
   registerUpdateIpcHandlers
@@ -231,22 +233,26 @@ export async function composeHandoff({
       blockedTasks: projectUpdateBlockedTasks(active, summaries, result.blockedBy)
     }
   }
-  const updateStrategy = createRuntimeUpdateStrategy(process.platform, {
-    translate,
-    installGate: prepareDesktopUpdate,
-    releaseInstallHandoff: abortUpdateHandoff
-  })
-  const updateCommandOwner = createUpdateCommandOwner(updateStrategy)
-  let stopUpdateScheduler: (() => void) | undefined
-  await modules.add(undefined, () => ({
-    name: 'update-scheduler',
-    capability: undefined,
-    dispose: () => stopUpdateScheduler?.()
-  }))
-  declareElectronAdapter('update', () => {
-    registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
-    stopUpdateScheduler = startUpdateScheduler(updateStrategy)
-  })
+  let updateCommandOwner: ReturnType<typeof createUpdateCommandOwner> =
+    createDisabledUpdateCommandOwner()
+  if (MOBIUS_CAPABILITIES.automaticUpdates) {
+    const updateStrategy = createRuntimeUpdateStrategy(process.platform, {
+      translate,
+      installGate: prepareDesktopUpdate,
+      releaseInstallHandoff: abortUpdateHandoff
+    })
+    updateCommandOwner = createUpdateCommandOwner(updateStrategy)
+    let stopUpdateScheduler: (() => void) | undefined
+    await modules.add(undefined, () => ({
+      name: 'update-scheduler',
+      capability: undefined,
+      dispose: () => stopUpdateScheduler?.()
+    }))
+    declareElectronAdapter('update', () => {
+      registerUpdateIpcHandlers(updateStrategy, updateCommandOwner)
+      stopUpdateScheduler = startUpdateScheduler(updateStrategy)
+    })
+  }
   return {
     reviewerModelRuntimeShutdown,
     shutdownCoordinator,

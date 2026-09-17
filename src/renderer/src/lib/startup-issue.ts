@@ -6,7 +6,7 @@ export type StartupIssueDetails = Omit<DatabaseStartupError, 'code'> & { code: s
 // whole draft (title + body) so no app-side permissions or tokens are involved; GitHub renders the
 // pre-filled form and only asks for an account when the user actually submits.
 
-const ISSUE_BASE_URL = 'https://github.com/aipoch/open-science/issues/new'
+const ISSUE_BASE_URL = 'about:blank'
 
 // GitHub's issues/new query stays reliable well under ~8KB; leave headroom for percent-encoding.
 const MAX_URL_LENGTH = 7800

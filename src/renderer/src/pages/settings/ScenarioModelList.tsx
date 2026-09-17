@@ -27,8 +27,12 @@ import {
 } from './SubagentModelSelect'
 import { providerKindKey } from './provider-form-value'
 import { ProviderKindIcon } from './provider-icons'
+import {
+  MobiusScenarioIcon,
+  type MobiusScenarioIconId
+} from '../../../../mobius/renderer/scenario-icons'
 
-type ScenarioId = 'session-details' | 'subagent' | 'reviewer' | 'vision'
+type ScenarioId = MobiusScenarioIconId
 
 // One-line summary of a scenario's routing policy, derived from the same catalog the in-row
 // selectors use so the row and the expanded selector never disagree on availability.
@@ -202,7 +206,7 @@ const ScenarioRowCluster = ({ summary }: { summary: ScenarioSummary }): React.JS
 
 type Scenario = Readonly<{
   id: ScenarioId
-  icon: LucideIcon
+  icon: MobiusScenarioIconId
   name: string
   description: string
   summary: ScenarioSummary
@@ -221,8 +225,6 @@ const ScenarioModelRow = ({
   const { t } = useTranslation()
   const panelId = `scenario-model-panel-${scenario.id}`
   const summaryId = `scenario-model-summary-${scenario.id}`
-  const Icon = scenario.icon
-
   return (
     <div>
       <button
@@ -239,9 +241,12 @@ const ScenarioModelRow = ({
         // keeps the current model/effort/provider summary audible to screen readers.
         aria-describedby={summaryId}
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 motion-reduce:transition-none hover:bg-muted/60"
+        className="group flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 motion-reduce:transition-none hover:bg-muted/60"
       >
-        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <MobiusScenarioIcon
+          id={scenario.icon}
+          className="size-5 shrink-0 object-contain opacity-85 drop-shadow-[0_0_5px_rgba(85,210,255,0.38)] transition-opacity group-hover:opacity-100 motion-reduce:transition-none"
+        />
         <span className="shrink-0 text-sm font-medium text-foreground">{scenario.name}</span>
         <span id={summaryId} className="ml-auto flex min-w-0 items-center justify-end gap-2">
           <ScenarioRowCluster summary={scenario.summary} />
@@ -299,7 +304,7 @@ const ScenarioModelList = (): React.JSX.Element => {
   const scenarios: readonly Scenario[] = [
     {
       id: 'subagent',
-      icon: Workflow,
+      icon: 'subagent',
       name: t('Subagent'),
       description: t('Runs delegated tasks spawned by the main agent.'),
       summary:
@@ -310,7 +315,7 @@ const ScenarioModelList = (): React.JSX.Element => {
     },
     {
       id: 'reviewer',
-      icon: SearchCheck,
+      icon: 'reviewer',
       name: t('Reviewer'),
       description: t('Reviews plans and code changes before they land.'),
       summary:
@@ -321,7 +326,7 @@ const ScenarioModelList = (): React.JSX.Element => {
     },
     {
       id: 'vision',
-      icon: Eye,
+      icon: 'vision',
       name: t('Vision'),
       description: t(
         "Describes images when the main model can't see them. Only models with image input are listed."
@@ -333,7 +338,7 @@ const ScenarioModelList = (): React.JSX.Element => {
     },
     {
       id: 'session-details',
-      icon: Captions,
+      icon: 'session-details',
       name: t('Session details'),
       description:
         sessionDetailsModel.mode === 'disabled'

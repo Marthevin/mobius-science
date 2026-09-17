@@ -92,6 +92,7 @@ import {
   uninstallManagedOpencode,
   type InstallManagedOpencodeOptions
 } from './managed-opencode'
+import { resolveBundledOpenCodeDir } from '../../mobius/main/bundled-opencode'
 import {
   installManagedCodeBuddy,
   isManagedCodeBuddyPath,
@@ -403,9 +404,14 @@ export class AgentRuntimeManager {
     }
 
     const baseOpencodeDetectDeps = options.opencodeDetectDeps ?? createOpencodeDetectDeps()
+    const bundledOpencodeDir = resolveBundledOpenCodeDir()
     this.opencodeDetectDeps = {
       ...baseOpencodeDetectDeps,
-      extraDirs: [...(baseOpencodeDetectDeps.extraDirs ?? []), managedOpencodeDir(this.configRoot)]
+      extraDirs: [
+        ...(baseOpencodeDetectDeps.extraDirs ?? []),
+        ...(bundledOpencodeDir ? [bundledOpencodeDir] : []),
+        managedOpencodeDir(this.configRoot)
+      ]
     }
     const baseCodeBuddyDetectDeps = options.codebuddyDetectDeps ?? createOpencodeDetectDeps()
     this.codebuddyDetectDeps = {

@@ -1,0 +1,164 @@
+extends: ./electron-builder.yml
+appId: com.mobius.science
+productName: Mobius Science
+copyright: Copyright © 2026 Mobius Science
+fileAssociations:
+  - ext: mobius
+    name: Mobius Science Session package
+    description: Mobius Science Session package
+    mimeType: application/x-mobius-science-session
+    role: Viewer
+    rank: Default
+directories:
+  buildResources: build
+afterPack: build/adhoc-sign.cjs
+files:
+  - '!**/.vscode/*'
+  - '!.claude{,/**/*}'
+  - '!.codex{,/**/*}'
+  - '!**/{.worktree,.worktrees,.codegraph,.agents}{,/**/*}'
+  - '!.github{,/**/*}'
+  - '!AGENTS.md'
+  - '!docs{,/**/*}'
+  - '!output{,/**/*}'
+  - '!index.js'
+  - '!mobius{,/**/*}'
+  - '!cli{,/**/*}'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!packages/open-science{,/**/*}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!node_modules/@prisma/client{,/**/*}'
+  - '!node_modules/.prisma{,/**/*}'
+  - '!node_modules/@anthropic-ai/claude-agent-sdk-*{,/**/*}'
+  - '!node_modules/@aipoch/notebook-network-sandbox{,/**/*}'
+  - '!packages/notebook-network-sandbox{,/**/*}'
+  - '!node_modules/pdfjs-dist/build{,/**/*}'
+  - '!node_modules/pdfjs-dist/web{,/**/*}'
+  - '!node_modules/pdfjs-dist/image_decoders{,/**/*}'
+  - '!node_modules/pdfjs-dist/types{,/**/*}'
+  - '!node_modules/pdfjs-dist/**/*.map'
+  - '!**/*.{test,spec}.{js,jsx,ts,tsx,mjs,cjs}'
+  - '!**/__fixtures__{,/**/*}'
+asarUnpack:
+  - resources/**
+  - node_modules/@aipoch/process-tree-native/build/Release/*.node
+  - node_modules/@aipoch/safe-file-publisher-native/build/Release/*.node
+  - node_modules/pdfjs-dist/**
+  - node_modules/@napi-rs/**
+  - node_modules/detect-libc/**
+  - node_modules/semver/**
+  - node_modules/sharp/**
+  - node_modules/@img/**
+  - node_modules/@agentclientprotocol/claude-agent-acp/**
+extraResources:
+  - from: LICENSE
+    to: LICENSE.txt
+  - from: node_modules/.prisma
+    to: node_modules/.prisma
+  - from: node_modules/@prisma/client
+    to: node_modules/@prisma/client
+  - from: mobius/runtime/default-envs
+    to: resources/default-envs
+win:
+  executableName: mobius-science
+  icon: mobius/generated/app/icon.ico
+  artifactName: mobius-science-${version}-win-${arch}.${ext}
+  target:
+    - nsis
+  extraResources:
+    - from: resources/bin/win/${arch}/micromamba.exe
+      to: micromamba.exe
+    - from: resources/bin/win/${arch}/micromamba-compat.exe
+      to: micromamba-compat.exe
+    - from: build/windows-runtime-cache-uninstall.ps1
+      to: windows-runtime-cache-uninstall.ps1
+    - from: build/windows-notebook-sandbox-uninstall.ps1
+      to: windows-notebook-sandbox-uninstall.ps1
+    - from: packages/notebook-network-sandbox/vendor/windows/${arch}/notebook-appcontainer-host.exe
+      to: notebook-network-sandbox/windows/${arch}/notebook-appcontainer-host.exe
+    - from: packages/notebook-network-sandbox/vendor/wsl2/manifest.json
+      to: notebook-network-sandbox/wsl2/manifest.json
+    - from: mobius/runtime/opencode/win32/${arch}
+      to: managed-runtimes/opencode
+nsis:
+  artifactName: mobius-science-${version}-win-${arch}-setup.${ext}
+  shortcutName: Mobius Science
+  uninstallDisplayName: Mobius Science
+  createDesktopShortcut: always
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  license: LICENSE
+  include: build/installer-license.nsh
+mac:
+  icon: mobius/generated/app/icon.icon
+  darkModeSupport: true
+  artifactName: mobius-science-${version}-mac-${arch}.${ext}
+  minimumSystemVersion: '12.0.0'
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    CFBundleName: Mobius Science
+    CFBundleDisplayName: Mobius Science
+    NSCameraUsageDescription: Mobius Science requests access to the device's camera.
+    NSMicrophoneUsageDescription: Mobius Science requests access to the device's microphone.
+    NSDocumentsFolderUsageDescription: Mobius Science requests access to the user's Documents folder.
+    NSDownloadsFolderUsageDescription: Mobius Science requests access to the user's Downloads folder.
+  notarize: false
+  extraResources:
+    - from: resources/bin/mac/${arch}/micromamba
+      to: micromamba
+    - from: mobius/runtime/opencode/darwin/${arch}
+      to: managed-runtimes/opencode
+dmg:
+  title: Mobius Science
+  icon: mobius/generated/app/icon.icns
+  artifactName: mobius-science-${version}-mac-${arch}.${ext}
+  contents:
+    - x: 130
+      y: 286
+      name: Mobius Science.app
+    - x: 530
+      y: 286
+      type: link
+      path: /Applications
+    - x: 530
+      y: 75
+      type: file
+      path: LICENSE
+      name: LICENSE.txt
+linux:
+  executableName: mobius-science
+  syncDesktopName: true
+  target:
+    - AppImage
+    - deb
+  maintainer: Mobius Science
+  category: Science
+  extraResources:
+    - from: resources/bin/linux/${arch}/micromamba
+      to: micromamba
+    - from: build/deb-cli-launcher
+      to: mobius-science-cli
+    - from: mobius/runtime/opencode/linux/${arch}
+      to: managed-runtimes/opencode
+appImage:
+  artifactName: mobius-science-${version}-linux-${arch}.${ext}
+deb:
+  artifactName: mobius-science_${version}_${arch}.${ext}
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+    - libsecret-1-0
+    - bubblewrap
+npmRebuild: false
+publish: null

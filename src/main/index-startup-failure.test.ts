@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { CredentialIdentityError } from './credential-identity/selection'
+import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
 
 // Exercise the real production entry up to the process boundary. Database/runtime failures belong
 // to Node's startup owner; Electron must not construct a second store while handling those failures.
@@ -211,6 +212,8 @@ it.each(['mac-keychain', 'windows-dpapi'] as const)(
     f.select.mockReturnValue({ backend, appName: 'Open-Science (DEV)', exists: true })
     await import('./index')
     await vi.waitFor(() => expect(f.app.exit).toHaveBeenCalledWith(1))
+    expect(f.app.setName).toHaveBeenNthCalledWith(1, 'Open-Science (DEV)')
+    expect(f.app.setName).toHaveBeenLastCalledWith(MOBIUS_NATIVE_IDENTITY.developmentName)
     expect(f.validate).toHaveBeenCalledWith(expect.objectContaining({ backend }), {
       configRoot: '/test/config',
       profilePath: '/test/profile'
@@ -248,6 +251,10 @@ it('releases credential preflight and exits without yielding or initializing the
   expect(f.key).not.toHaveBeenCalled()
   expect(f.launch).not.toHaveBeenCalled()
   expect(f.diagnostics).not.toHaveBeenCalled()
+  expect(f.dialog.showErrorBox).toHaveBeenCalledWith(
+    MOBIUS_NATIVE_IDENTITY.name,
+    expect.stringContaining('windows-profile-key-unavailable')
+  )
   expect(f.log.error.mock.invocationCallOrder[0]).toBeLessThan(
     f.dialog.showErrorBox.mock.invocationCallOrder[0]
   )
@@ -273,6 +280,10 @@ it('flushes startup diagnostics before presenting a post-ready failure and exiti
   expect(f.app.exit).not.toHaveBeenCalled()
   finish()
   await vi.waitFor(() => expect(f.app.exit).toHaveBeenCalledWith(1))
+  expect(f.dialog.showErrorBox).toHaveBeenCalledWith(
+    MOBIUS_NATIVE_IDENTITY.name,
+    'authenticated backend refused the connection'
+  )
 })
 
 it.each(['win32', 'linux', 'darwin'] as const)(
