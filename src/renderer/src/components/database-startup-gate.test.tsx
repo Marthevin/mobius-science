@@ -59,7 +59,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -69,7 +69,7 @@ describe('DatabaseStartupGate', () => {
     const application = screen.getByText('Business application')
     await act(async () => resolveRetry({ phase: 'starting' }))
     expect(screen.queryByText('Business application')).toBe(application)
-    expect(screen.queryByText('Starting Open-Science…')).toBeNull()
+    expect(screen.queryByText('Starting Mobius Science…')).toBeNull()
   })
 
   it.each(['ready', 'blocked'] as const)(
@@ -93,7 +93,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       }
@@ -101,7 +101,9 @@ describe('DatabaseStartupGate', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
       act(() => publish(phase === 'ready' ? { phase } : blocked))
       await act(async () => rejectRetry(new Error('late failure')))
-      expect(screen.queryByText('Open-Science could not finish checking its database.')).toBeNull()
+      expect(
+        screen.queryByText('Mobius Science could not finish checking its database.')
+      ).toBeNull()
       expect(
         screen.getByText(phase === 'ready' ? 'Business application' : blocked.error.message)
       ).toBeTruthy()
@@ -128,7 +130,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -167,19 +169,19 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
     )
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     await act(async () => resolveRetry({ phase: 'starting' }))
-    expect(screen.getByText('Starting Open-Science…')).toBeTruthy()
+    expect(screen.getByText('Starting Mobius Science…')).toBeTruthy()
     act(() => publish({ phase: 'ready' }))
     expect(screen.getByText('Business application')).toBeTruthy()
     view.unmount()
     act(() => publish({ phase: 'starting' }))
-    expect(screen.queryByText('Starting Open-Science…')).toBeNull()
+    expect(screen.queryByText('Starting Mobius Science…')).toBeNull()
   })
 
   it('ignores a retry from an unmounted StrictMode gate after a new gate is ready', async () => {
@@ -202,7 +204,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -222,7 +224,7 @@ describe('DatabaseStartupGate', () => {
     const application = screen.getByText('New application')
     await act(async () => resolveRetry({ phase: 'starting' }))
     expect(screen.getByText('New application')).toBe(application)
-    expect(screen.queryByText('Starting Open-Science…')).toBeNull()
+    expect(screen.queryByText('Starting Mobius Science…')).toBeNull()
   })
 
   it('reuses the branded startup loader while checking and migrating the database', () => {
@@ -246,15 +248,15 @@ describe('DatabaseStartupGate', () => {
     const updatingLabel = screen.getByText('Updating database…')
     expect(updatingLabel.tagName).toBe('SPAN')
     expect(updatingLabel.className).toBe(checkingLabel.className)
-    expect(screen.getByText('Keep Open-Science open while this finishes.')).toBeTruthy()
+    expect(screen.getByText('Keep Mobius Science open while this finishes.')).toBeTruthy()
     expect(screen.getByTestId('open-science-logo-loader')).toBe(startupLoader)
 
     act(() => publish({ phase: 'starting' }))
 
-    const startingLabel = screen.getByText('Starting Open-Science…')
+    const startingLabel = screen.getByText('Starting Mobius Science…')
     expect(startingLabel.tagName).toBe('SPAN')
     expect(startingLabel.className).toBe(checkingLabel.className)
-    expect(screen.getByText('Keep Open-Science open while this finishes.')).toBeTruthy()
+    expect(screen.getByText('Keep Mobius Science open while this finishes.')).toBeTruthy()
     expect(screen.queryByText('Checking database…')).toBeNull()
     expect(screen.getByTestId('open-science-logo-loader')).toBe(startupLoader)
   })
@@ -274,13 +276,13 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_newer_than_app',
-          message: 'This database was updated by a newer version of Open-Science.',
+          message: 'This database was updated by a newer version of Mobius Science.',
           migrationId: '0002_future_schema',
           retryable: false
         }
       })
     )
-    expect(screen.getByText("Open-Science couldn't start")).toBeTruthy()
+    expect(screen.getByText("Mobius Science couldn't start")).toBeTruthy()
     expect(screen.getByText(/database_newer_than_app/)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull()
 
@@ -311,9 +313,9 @@ describe('DatabaseStartupGate', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("Open-Science couldn't start")).toBeTruthy()
+      expect(screen.getByText("Mobius Science couldn't start")).toBeTruthy()
     })
-    expect(screen.getByText('Open-Science could not finish checking its database.')).toBeTruthy()
+    expect(screen.getByText('Mobius Science could not finish checking its database.')).toBeTruthy()
     expect(screen.getByText(/database_startup_unavailable/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Quit' })).toBeTruthy()
@@ -340,7 +342,7 @@ describe('DatabaseStartupGate', () => {
     })
 
     expect(screen.getByText('Business application')).toBeTruthy()
-    expect(screen.queryByText("Open-Science couldn't start")).toBeNull()
+    expect(screen.queryByText("Mobius Science couldn't start")).toBeNull()
   })
 
   it('restores retry after a retry IPC rejection', async () => {
@@ -358,7 +360,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -366,8 +368,8 @@ describe('DatabaseStartupGate', () => {
 
     await act(async () => screen.getByRole('button', { name: 'Retry' }).click())
 
-    expect(screen.getByText("Open-Science couldn't start")).toBeTruthy()
-    expect(screen.getByText('Open-Science could not finish checking its database.')).toBeTruthy()
+    expect(screen.getByText("Mobius Science couldn't start")).toBeTruthy()
+    expect(screen.getByText('Mobius Science could not finish checking its database.')).toBeTruthy()
     expect(screen.getByText(/database_startup_unavailable/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(screen.queryByText('Checking database…')).toBeNull()
@@ -393,7 +395,7 @@ describe('DatabaseStartupGate', () => {
     })
 
     expect(screen.getByText('Business application')).toBeTruthy()
-    expect(screen.queryByText("Open-Science couldn't start")).toBeNull()
+    expect(screen.queryByText("Mobius Science couldn't start")).toBeNull()
     expect(getState).toHaveBeenCalledOnce()
   })
 
@@ -407,14 +409,16 @@ describe('DatabaseStartupGate', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Open-Science could not finish checking its database.')).toBeTruthy()
+      expect(
+        screen.getByText('Mobius Science could not finish checking its database.')
+      ).toBeTruthy()
     })
 
     await act(async () => {
       await i18next.changeLanguage('zh-Hans')
     })
 
-    expect(screen.getByText('Open-Science 无法完成数据库检查。')).toBeTruthy()
+    expect(screen.getByText('Mobius Science 无法完成数据库检查。')).toBeTruthy()
     expect(screen.getByRole('button', { name: '重试' })).toBeTruthy()
     expect(screen.queryByText('Business application')).toBeNull()
   })
@@ -431,7 +435,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -441,8 +445,7 @@ describe('DatabaseStartupGate', () => {
     expect(retry).toHaveBeenCalledOnce()
   })
 
-  it('renders per-error guidance and requires review before exposing the GitHub issue URL', async () => {
-    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+  it('renders per-error guidance without an external issue action', () => {
     render(
       <DatabaseStartupGate>
         <div>Business application</div>
@@ -453,7 +456,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_newer_than_app',
-          message: 'The database was updated by a newer version of Open-Science.',
+          message: 'The database was updated by a newer version of Mobius Science.',
           migrationId: '0009_vision_evidence',
           retryable: false,
           diagnostics: 'App version: 0.9.2 (darwin-arm64)\n\nError: boom'
@@ -467,39 +470,8 @@ describe('DatabaseStartupGate', () => {
     expect(screen.getByText(/database_newer_than_app/)).toBeTruthy()
     expect(screen.getByText(/0009_vision_evidence/)).toBeTruthy()
 
-    await act(async () => screen.getByRole('button', { name: /Create an issue for help/ }).click())
-
-    expect(open).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog')).toBeTruthy()
-    const details = screen.getByLabelText('Error details') as HTMLTextAreaElement
-    expect(details.value).toContain('Error: boom')
-    const issueLink = document.body.querySelector<HTMLAnchorElement>('a[aria-disabled]')!
-    expect(issueLink.textContent).toContain('Open GitHub issue')
-    expect(issueLink.getAttribute('aria-disabled')).toBe('true')
-    expect(issueLink.getAttribute('href')).toBeNull()
-
-    fireEvent.change(details, { target: { value: 'Error: reviewed and edited' } })
-    await act(async () => screen.getByRole('checkbox').click())
-
-    expect(issueLink.getAttribute('aria-disabled')).toBe('false')
-    const url = issueLink.getAttribute('href') ?? ''
-    expect(url).toContain('https://github.com/aipoch/open-science/issues/new?title=')
-    expect(decodeURIComponent(url)).toContain('Startup blocked: database_newer_than_app')
-    expect(decodeURIComponent(url)).toContain('Error: reviewed and edited')
-
-    fireEvent.change(details, { target: { value: '' } })
-    expect(issueLink.getAttribute('aria-disabled')).toBe('true')
-    expect(issueLink.getAttribute('href')).toBeNull()
-
-    await act(async () => screen.getByRole('checkbox').click())
-    const clearedUrl = issueLink.getAttribute('href') ?? ''
-    expect(issueLink.getAttribute('aria-disabled')).toBe('false')
-    expect(decodeURIComponent(clearedUrl)).not.toContain('Error: boom')
-    expect(decodeURIComponent(clearedUrl)).not.toContain('## Error stack')
-
-    fireEvent.change(details, { target: { value: 'Error: edited again' } })
-    expect(issueLink.getAttribute('aria-disabled')).toBe('true')
-    expect(issueLink.getAttribute('href')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Create an issue for help/ })).toBeNull()
+    expect(document.body.querySelector('a[href*="github.com"]')).toBeNull()
   })
   it('shows storage recovery guidance for a retryable validation-query failure', () => {
     render(
@@ -512,7 +484,7 @@ describe('DatabaseStartupGate', () => {
         phase: 'blocked',
         error: {
           code: 'database_open_failed',
-          message: 'Open-Science could not open its database.',
+          message: 'Mobius Science could not open its database.',
           retryable: true
         }
       })
@@ -520,7 +492,7 @@ describe('DatabaseStartupGate', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
     expect(
       screen.getByText(
-        'Quit other copies of Open-Science, check free disk space and folder permissions, then retry.'
+        'Quit other copies of Mobius Science, check free disk space and folder permissions, then retry.'
       )
     ).toBeTruthy()
     expect(screen.queryByText(/Part of the stored data doesn't match/)).toBeNull()

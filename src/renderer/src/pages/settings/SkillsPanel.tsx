@@ -48,6 +48,7 @@ import {
 import { SkillUsageAgents } from './SkillUsageAgents'
 import { RequiredSkillToggle } from './RequiredSkillToggle'
 import { SkillMarketplace, type SkillMarketplaceView } from './SkillMarketplace'
+import { MOBIUS_CAPABILITIES } from '../../../../mobius/shared/product-capabilities'
 import {
   ResourceTagBadges,
   ResourceTagMenu,
@@ -399,10 +400,12 @@ const SkillsPanel = ({
           </Badge>
         </h3>
         <div data-slot="skills-action-bar" className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => onNavigate({ kind: 'marketplace' })}>
-            <Store data-icon="inline-start" aria-hidden="true" />
-            {t('Browse Marketplace')}
-          </Button>
+          {MOBIUS_CAPABILITIES.upstreamMarketplaces ? (
+            <Button onClick={() => onNavigate({ kind: 'marketplace' })}>
+              <Store data-icon="inline-start" aria-hidden="true" />
+              {t('Browse Marketplace')}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"

@@ -56,9 +56,32 @@ describe('curated version matrix', () => {
     ])
     const py311 = matrix.find((p) => p.id === 'python-3.11')
     expect(py311).toMatchObject({ language: 'python', version: '3.11' })
-    expect(py311?.packages).toEqual(['python=3.11', 'matplotlib-base', 'nomkl'])
+    expect(py311?.packages).toEqual([
+      'python=3.11',
+      'matplotlib-base',
+      'numpy',
+      'pandas',
+      'scipy',
+      'scikit-learn',
+      'statsmodels',
+      'seaborn',
+      'reportlab',
+      'pillow',
+      'pypdf',
+      'pymupdf',
+      'nomkl'
+    ])
     const r43 = matrix.find((p) => p.id === 'r-4.3')
-    expect(r43?.packages).toEqual(['r-base=4.3', 'r-jsonlite', 'r-biocmanager', 'r-ggplot2'])
+    expect(r43?.packages).toEqual([
+      'r-base=4.3',
+      'r-jsonlite',
+      'r-biocmanager',
+      'r-ggplot2',
+      'r-dplyr',
+      'r-tidyr',
+      'r-readr',
+      'r-broom'
+    ])
   })
 })
 
@@ -74,10 +97,24 @@ describe('floor package sync with provisioner base floor', () => {
   it('R floor names match BASE_R_PACKAGES', () => {
     expect(stripPin(floorPackages('r', '4.4'))).toEqual(stripPin(BASE_R_PACKAGES))
   })
-  it('the floor is minimal (no scientific stack)', () => {
-    expect(floorPackages('python', '3.11')).not.toContain('numpy')
-    expect(floorPackages('python', '3.11')).not.toContain('pandas')
-    expect(floorPackages('python', '3.11')).not.toContain('matplotlib')
+  it('ships an offline scientific and publication stack', () => {
+    expect(floorPackages('python', '3.11')).toEqual(
+      expect.arrayContaining([
+        'numpy',
+        'pandas',
+        'scipy',
+        'scikit-learn',
+        'statsmodels',
+        'seaborn',
+        'reportlab',
+        'pillow',
+        'pypdf',
+        'pymupdf'
+      ])
+    )
+    expect(floorPackages('r', '4.3')).toEqual(
+      expect.arrayContaining(['r-ggplot2', 'r-dplyr', 'r-tidyr', 'r-readr', 'r-broom'])
+    )
   })
 })
 

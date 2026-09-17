@@ -4,36 +4,30 @@ import { useTranslation } from 'react-i18next'
 
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { APP } from '../../../../shared/app-config'
-import { isSupportedCodexAcpVersion } from '../../../../shared/codex-runtime'
-import type { AgentFrameworkId } from '../../../../shared/settings'
+import { ProductWordmark } from '../../../../mobius/renderer/ProductWordmark'
+import { createMobiusProviderFormValue } from '../../../../mobius/renderer/provider-default'
 import type { StorageInfo } from '../../../../shared/storage'
 import { useNotebookEnvStore } from '@/stores/notebook-env-store'
 import { useSettingsStore } from '@/stores/settings-store'
-import {
-  createEmptyProviderFormValue,
-  type ProviderFormValue
-} from '../settings/provider-form-value'
-import { AgentStep } from './AgentStep'
+import type { ProviderFormValue } from '../settings/provider-form-value'
 import { EnvironmentStep } from './EnvironmentStep'
 import { LocationStep, type LocationDraft } from './LocationStep'
 import { NotebookStep } from './NotebookStep'
 import { onboardingErrorMessage } from './onboarding-error'
 import { ProviderStep } from './ProviderStep'
 
-type WizardStep = 'environment' | 'agent' | 'provider' | 'notebook' | 'location'
+type WizardStep = 'environment' | 'provider' | 'notebook' | 'location'
 type OnboardingWizardProps = {
   loadStorageInfo?: () => Promise<StorageInfo>
 }
 
 // Storage is chosen before either runtime step so a recommended Windows data drive is active when
 // the app-managed Notebook environment is installed.
-const STEP_ORDER: WizardStep[] = ['environment', 'location', 'agent', 'provider', 'notebook']
+const STEP_ORDER: WizardStep[] = ['environment', 'location', 'provider', 'notebook']
 
 // The step id is a runtime value, so it can't be interpolated into a natural-language key.
 const STEP_LABELS = {
   environment: 'Environment',
-  agent: 'Agent runtime',
   provider: 'Model provider',
   notebook: 'Notebook runtime',
   location: 'Data location'
@@ -127,7 +121,7 @@ const resolveWindowsStorageDefault = async (
   }
 }
 
-// Keeps the five-step sequence visible without turning the lightweight setup flow into navigation.
+// Keeps the four-step sequence visible without turning the lightweight setup flow into navigation.
 const OnboardingProgress = ({ step }: { step: WizardStep }): React.JSX.Element => {
   const { t } = useTranslation()
   const currentIndex = STEP_ORDER.indexOf(step)
@@ -167,9 +161,8 @@ const OnboardingProgress = ({ step }: { step: WizardStep }): React.JSX.Element =
   )
 }
 
-// First-run gate: inspect the host, choose where data lives, install the agent runtime, configure
-// and validate a model provider, then optionally set up the notebook runtime — one focused step
-// each. Completed users repair later environment regressions from the relevant Settings panel.
+// First-run gate: inspect the host, choose where data lives, configure and validate a model provider,
+// then optionally set up the notebook runtime. The managed OpenCode runtime is fixed by the product.
 const OnboardingWizard = ({
   loadStorageInfo = loadStorageInfoFromBridge
 }: OnboardingWizardProps): React.JSX.Element => {
@@ -178,11 +171,6 @@ const OnboardingWizard = ({
   const environmentCheckError = useSettingsStore((state) => state.environmentCheckError)
   const isCheckingEnvironment = useSettingsStore((state) => state.isCheckingEnvironment)
   const checkEnvironment = useSettingsStore((state) => state.checkEnvironment)
-  const agentFrameworkId = useSettingsStore((state) => state.agentFrameworkId)
-  const agentFrameworks = useSettingsStore((state) => state.agentFrameworks)
-  const preflight = useSettingsStore((state) => state.preflight)
-  const codexVersion = useSettingsStore((state) => state.codex.version)
-  const setAgentFramework = useSettingsStore((state) => state.setAgentFramework)
 
   // First-time setup always starts on the visible environment summary, even when every check has
   // already passed. The user explicitly continues to agent setup after reviewing it.
@@ -208,7 +196,7 @@ const OnboardingWizard = ({
     value: ProviderFormValue
     providerId?: string
     generation: number
-  }>(() => ({ value: createEmptyProviderFormValue(), generation: 0 }))
+  }>(() => ({ value: createMobiusProviderFormValue(), generation: 0 }))
   const setFormValue = useCallback<React.Dispatch<React.SetStateAction<ProviderFormValue>>>(
     (update) => {
       setProviderDraft((current) => {
@@ -250,11 +238,11 @@ const OnboardingWizard = ({
   const suppressStorageResume = useCallback((): void => {
     didResolveStorageResume.current = true
   }, [])
-  const leaveLocation = useCallback((nextStep: 'environment' | 'agent'): void => {
+  const leaveLocation = useCallback((nextStep: 'environment' | 'provider'): void => {
     // Leaving freezes the displayed choice. The effect cleanup stops the renderer-side probe, and
     // marking it resolved prevents Back/return loops from accumulating uncancellable IPC requests.
     didResolveStorageResume.current = true
-    if (nextStep === 'agent') locationDraftTouched.current = true
+    if (nextStep === 'provider') locationDraftTouched.current = true
     setDidResolveStorageDefault(true)
     setStep(nextStep)
   }, [])
@@ -265,85 +253,17 @@ const OnboardingWizard = ({
 
   const didRequestCheck = useRef(false)
   const didKickEnv = useRef(false)
-  const didSelectInitialAgent = useRef(false)
-  const [isSelectingInitialAgent, setIsSelectingInitialAgent] = useState(false)
-
-  useEffect(() => {
-    if (step !== 'environment') {
-      didSelectInitialAgent.current = true
-      return
-    }
-    if (
-      didSelectInitialAgent.current ||
-      isCheckingEnvironment ||
-      !environmentCheck ||
-      environmentCheck.agentFrameworkId !== agentFrameworkId ||
-      environmentCheck.runtime.found ||
-      !['system', 'storage'].every((id) =>
-        environmentCheck.checks.some((check) => check.id === id && check.status === 'passed')
-      ) ||
-      environmentCheck.checks.some(
-        (check) =>
-          check.status === 'failed' && check.id !== 'agent' && check.id !== 'install-network'
-      )
-    ) {
-      return
-    }
-    // Match AgentPanel's installed-runtime ordering and Codex adapter compatibility guard.
-    const ready: Record<AgentFrameworkId, boolean> = {
-      'claude-code': preflight.claudeReady,
-      opencode: preflight.opencodeReady,
-      codex: preflight.codexReady && (!codexVersion || isSupportedCodexAcpVersion(codexVersion)),
-      codebuddy: preflight.codebuddyReady
-    }
-    if (ready[agentFrameworkId]) return
-    const installed = agentFrameworks.find((framework) => ready[framework.id])
-    if (!installed) return
-
-    didSelectInitialAgent.current = true
-    didRequestCheck.current = true
-    useSettingsStore.setState({ environmentCheck: undefined, environmentCheckError: undefined })
-    void Promise.resolve().then(async () => {
-      setIsSelectingInitialAgent(true)
-      try {
-        await setAgentFramework(installed.id)
-        await checkEnvironment({ force: true })
-      } catch (error) {
-        didSelectInitialAgent.current = false
-        useSettingsStore.setState({
-          environmentCheckError:
-            error instanceof Error
-              ? error.message
-              : t('Could not switch to {{name}}', { name: installed.displayName })
-        })
-      } finally {
-        setIsSelectingInitialAgent(false)
-      }
-    })
-  }, [
-    step,
-    isCheckingEnvironment,
-    environmentCheck,
-    agentFrameworkId,
-    agentFrameworks,
-    preflight,
-    codexVersion,
-    setAgentFramework,
-    checkEnvironment,
-    t
-  ])
-
   // Fetch the current data location once, up front, for Location display and relaunch resume.
   const handleDataRootInfoSuccess = useCallback((info: StorageInfo): void => {
     setDataRootInfo(info)
     setDataRootError(undefined)
     // A non-default root is the durable resume signal after Location persisted the selected drive
-    // and relaunched. No separate onboarding-step field is needed: continue at Agent, after the two
+    // and relaunched. No separate onboarding-step field is needed: continue at Provider, after the two
     // steps the user already completed before the restart.
     if (!didResolveStorageResume.current) {
       didResolveStorageResume.current = true
       if (!info.isDefault && !info.dataRootMissing && !locationDraftTouched.current) {
-        setStep('agent')
+        setStep('provider')
       }
     }
   }, [])
@@ -429,14 +349,7 @@ const OnboardingWizard = ({
   return (
     <main className="h-svh overflow-y-auto bg-bg-10 text-text-000">
       <div className="mx-auto min-h-full w-full max-w-[1040px] px-4 py-5 sm:px-8 sm:py-7">
-        <a
-          href={APP.links.website}
-          target="_blank"
-          rel="noreferrer"
-          className="font-serif text-[26px] font-medium leading-none tracking-[-0.02em] text-text-000 transition-colors duration-150 ease-out hover:text-text-100"
-        >
-          Open-Science
-        </a>
+        <ProductWordmark className="font-serif text-[26px] font-medium leading-none tracking-[-0.02em] text-text-000" />
 
         <div
           data-onboarding-layout="split"
@@ -466,10 +379,7 @@ const OnboardingWizard = ({
             {/* Each step owns its validation gate and advances only through its callback. The shell
                 owns cross-step drafts so Back/Continue never discards provider or location input. */}
             {step === 'environment' ? (
-              <EnvironmentStep
-                isSelectingAgent={isSelectingInitialAgent}
-                onContinue={() => setStep('location')}
-              />
+              <EnvironmentStep isSelectingAgent={false} onContinue={() => setStep('location')} />
             ) : step === 'location' ? (
               <LocationStep
                 dataRootInfo={dataRootInfo}
@@ -481,14 +391,9 @@ const OnboardingWizard = ({
                 onRetryDataRootInfo={retryDataRootInfo}
                 onInteractionStart={suppressStorageResume}
                 onBack={() => leaveLocation('environment')}
-                onContinue={() => leaveLocation('agent')}
+                onContinue={() => leaveLocation('provider')}
                 isResolvingDefaultLocation={isResolvingStorageDefault}
                 setIsRelaunching={setIsRelaunching}
-              />
-            ) : step === 'agent' ? (
-              <AgentStep
-                onBack={() => setStep('location')}
-                onContinue={() => setStep('provider')}
               />
             ) : step === 'provider' ? (
               <ProviderStep
@@ -496,7 +401,7 @@ const OnboardingWizard = ({
                 setFormValue={setFormValue}
                 providerId={providerDraft.providerId}
                 onProviderSaved={recordSavedProvider}
-                onBack={() => setStep('agent')}
+                onBack={() => setStep('location')}
                 onAdvance={() =>
                   setStep((current) => (current === 'provider' ? 'notebook' : current))
                 }

@@ -586,7 +586,7 @@ it.each(['insufficient', 'exact', 'unavailable'] as const)(
     }
     expect(dialog.showSaveDialog).toHaveBeenCalledWith(
       expect.objectContaining({
-        defaultPath: expect.stringMatching(/^Capacity-\d{4}-\d{2}-\d{2}\.science$/)
+        defaultPath: expect.stringMatching(/^Capacity-\d{4}-\d{2}-\d{2}\.mobius$/)
       })
     )
     expect(capacity).toHaveBeenCalledTimes(4)

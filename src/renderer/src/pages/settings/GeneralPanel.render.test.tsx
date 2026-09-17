@@ -154,7 +154,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('GeneralPanel command line tool', () => {
+describe.skip('GeneralPanel command line tool', () => {
   it('recovers when the initial command status check fails', async () => {
     cliApi.getStatus
       .mockRejectedValueOnce(new Error('command status unavailable'))
@@ -253,6 +253,17 @@ describe('GeneralPanel command line tool', () => {
 })
 
 describe('GeneralPanel About', () => {
+  it('omits the legacy command-line launcher in the Mobius distribution', async () => {
+    await act(async () => {
+      root.render(<GeneralPanel />)
+    })
+    await flush()
+
+    expect(findButton(/install command/i)).toBeUndefined()
+    expect(container.textContent).not.toContain('open-science')
+    expect(cliApi.getStatus).not.toHaveBeenCalled()
+  })
+
   it('keeps app identity and resources at the top of General settings', async () => {
     await act(async () => {
       root.render(<GeneralPanel />)

@@ -1,4 +1,5 @@
 import type { CredentialIdentity } from './credential-identity/selection'
+import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
 vi.mock('./credential-identity/bootstrap', () => ({
   selectStartupCredentialIdentity: (...args: unknown[]) =>
     fixture.selectCredentialIdentity(...args),
@@ -75,7 +76,7 @@ it.each([
     await import('./index')
     await Promise.race([fixture.ready, fixture.exited])
     expect.soft(fixture.configureDesktop).toHaveBeenCalledOnce()
-    expect.soft(fixture.electron.app.setName).toHaveBeenLastCalledWith('Open-Science')
+    expect.soft(fixture.electron.app.setName).toHaveBeenLastCalledWith(MOBIUS_NATIVE_IDENTITY.name)
     expect.soft(fixture.electron.dialog.showErrorBox).not.toHaveBeenCalled()
     expect.soft(fixture.electron.app.relaunch).not.toHaveBeenCalled()
     expect.soft(fixture.electron.app.exit).not.toHaveBeenCalled()
@@ -803,7 +804,7 @@ it.each([
       await import('./index')
       await fixture.exited
       expect(fixture.electron.dialog.showErrorBox).toHaveBeenCalledWith(
-        'Open-Science',
+        MOBIUS_NATIVE_IDENTITY.name,
         expect.stringContaining(path)
       )
       expect(fixture.electron.dialog.showErrorBox.mock.calls[0][1]).toMatch(/restore|recover/i)
@@ -876,7 +877,7 @@ it('stops synchronously on a failed credential preflight before Electron ready o
     expect(readiness).not.toHaveBeenCalled()
     expect(fixture.prepareLocations).not.toHaveBeenCalled()
     expect(fixture.electron.dialog.showErrorBox).toHaveBeenCalledWith(
-      'Open-Science',
+      MOBIUS_NATIVE_IDENTITY.name,
       expect.stringContaining('windows-profile-key-unavailable')
     )
   } finally {
@@ -959,13 +960,13 @@ it.each([
       if (['fresh', 'existing'].includes(scenario)) {
         expect(fixture.configureDesktop).toHaveBeenCalledOnce()
         expect(fixture.electron.app.setName).toHaveBeenNthCalledWith(1, 'Open Science')
-        expect(fixture.electron.app.setName).toHaveBeenLastCalledWith('Open-Science')
+        expect(fixture.electron.app.setName).toHaveBeenLastCalledWith(MOBIUS_NATIVE_IDENTITY.name)
         expect(fixture.electron.dialog.showErrorBox).not.toHaveBeenCalled()
         if (scenario === 'existing')
           expect(cipher.decryptString).toHaveBeenCalledWith(Buffer.from('v11original'))
       } else {
         expect(fixture.electron.dialog.showErrorBox).toHaveBeenCalledWith(
-          'Open-Science',
+          MOBIUS_NATIVE_IDENTITY.name,
           expect.stringContaining('CREDENTIAL_IDENTITY')
         )
         expect(fixture.prepareLocations).not.toHaveBeenCalled()

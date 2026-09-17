@@ -29,9 +29,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 import { cn } from '@/lib/utils'
-import { GitHubStarBadge } from '@/components/GitHubStarBadge'
 import { NetworkStatusIndicator } from '@/components/NetworkStatusIndicator'
-import { UpdateCapsule } from '@/components/UpdateCapsule'
 import { sessionWaitReasonLabelKeys } from '@/lib/session-wait-reason-labels'
 import type { ChatSession, SessionStatus } from '@/stores/session-store'
 import { NotificationBell } from '@/components/NotificationBell'
@@ -403,7 +401,6 @@ const WorkspaceSidebarView = ({
   projectName,
   otherProjects = [],
   onOpenProject,
-  starNudgeKey,
   sessions,
   credentialPendingSessionIds = EMPTY_CREDENTIAL_SESSION_IDS,
   activeSessionId,
@@ -463,9 +460,6 @@ const WorkspaceSidebarView = ({
       .map((session, index) => [session.id, index + 1])
   )
   const isMac = window.api?.platform === 'darwin'
-  const activeStarNudgeKey = (mobileMode ? isMobileOpen : sidebarToggle?.state !== 'collapsed')
-    ? starNudgeKey
-    : undefined
   const projectMatches = providedProjectMatches ?? matchProjects(otherProjects, projectQuery)
   const visibleProjectMatches = showAllProjects
     ? projectMatches
@@ -1140,7 +1134,6 @@ const WorkspaceSidebarView = ({
               aria-hidden="true"
               className="pointer-events-none absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-rail-card-bg to-rail-card-bg/0"
             />
-            <UpdateCapsule variant="session" className="mb-1.5" />
             <div className="flex items-center gap-1 pb-2">
               <button
                 type="button"
@@ -1158,11 +1151,6 @@ const WorkspaceSidebarView = ({
                 align="start"
                 className="size-8 rounded-md"
                 onOpen={mobileMode ? onMobileClose : undefined}
-              />
-              <GitHubStarBadge
-                key={activeStarNudgeKey}
-                variant="workspace"
-                nudgeKey={activeStarNudgeKey}
               />
               <NetworkStatusIndicator variant="icon" />
             </div>

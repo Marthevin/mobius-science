@@ -450,7 +450,7 @@ class LiteratureMetadataEnricher {
     const response = await this.fetchFn(sourceUrl, {
       headers: {
         Accept: 'application/json',
-        'User-Agent': 'Open-Science/1.0 (+https://github.com/aipoch/open-science)'
+        'User-Agent': 'MobiusScience/1.0'
       },
       signal: AbortSignal.timeout(15_000)
     })

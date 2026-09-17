@@ -1390,21 +1390,41 @@ describe('DefaultRuntimeProvisioner.provisionR', () => {
 })
 
 describe('default specs', () => {
-  it('are the MINIMAL protocol floor, pinned to the default managed version (extras install on demand)', () => {
-    // The default managed envs are no longer a full scientific stack — just the interpreter + the
-    // kernel-protocol floor, matching the curated language packs. numpy/pandas/ggplot2/… install on
-    // demand via manage_packages. Pinned to DEFAULT_MANAGED_VERSION for reproducibility.
+  it('include the offline scientific floor, pinned to the default managed version', () => {
     expect(DEFAULT_PYTHON_SPEC).toEqual({
       name: DEFAULT_PY_ENV,
       language: 'python',
       version: '3.12',
-      packages: ['python=3.12', 'matplotlib-base', 'nomkl']
+      packages: [
+        'python=3.12',
+        'matplotlib-base',
+        'numpy',
+        'pandas',
+        'scipy',
+        'scikit-learn',
+        'statsmodels',
+        'seaborn',
+        'reportlab',
+        'pillow',
+        'pypdf',
+        'pymupdf',
+        'nomkl'
+      ]
     })
     expect(DEFAULT_R_SPEC).toEqual({
       name: DEFAULT_R_ENV,
       language: 'r',
       version: '4.4',
-      packages: ['r-base=4.4', 'r-jsonlite', 'r-biocmanager', 'r-ggplot2']
+      packages: [
+        'r-base=4.4',
+        'r-jsonlite',
+        'r-biocmanager',
+        'r-ggplot2',
+        'r-dplyr',
+        'r-tidyr',
+        'r-readr',
+        'r-broom'
+      ]
     })
     expect(DEFAULT_MANAGED_VERSION).toEqual({ python: '3.12', r: '4.4' })
     // version drives the packId-keyed offline lock the local bundle adapter looks up.
@@ -1412,9 +1432,32 @@ describe('default specs', () => {
     expect(DEFAULT_R_SPEC.version).toBe(DEFAULT_MANAGED_VERSION.r)
   })
 
-  it('the named-env base floor constants stay lean', () => {
-    expect(BASE_PYTHON_PACKAGES).toEqual(['python=3.12', 'matplotlib-base', 'nomkl'])
-    expect(BASE_R_PACKAGES).toEqual(['r-base', 'r-jsonlite', 'r-biocmanager', 'r-ggplot2'])
+  it('the named-env base floor constants match the default scientific stack', () => {
+    expect(BASE_PYTHON_PACKAGES).toEqual([
+      'python=3.12',
+      'matplotlib-base',
+      'numpy',
+      'pandas',
+      'scipy',
+      'scikit-learn',
+      'statsmodels',
+      'seaborn',
+      'reportlab',
+      'pillow',
+      'pypdf',
+      'pymupdf',
+      'nomkl'
+    ])
+    expect(BASE_R_PACKAGES).toEqual([
+      'r-base',
+      'r-jsonlite',
+      'r-biocmanager',
+      'r-ggplot2',
+      'r-dplyr',
+      'r-tidyr',
+      'r-readr',
+      'r-broom'
+    ])
   })
 })
 
