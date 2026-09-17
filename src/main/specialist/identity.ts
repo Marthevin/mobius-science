@@ -3,6 +3,7 @@
 // separate and authoritative.
 
 import type { SpecialistView } from '../../shared/specialist'
+import { PRODUCT } from '../../mobius/shared/product-config'
 
 // Sentinel retained in both delivery forms so diagnostics and compatibility tests can detect it.
 export const SPECIALIST_IDENTITY_TAG = '[open-science:specialist-identity]'
@@ -16,7 +17,7 @@ const buildSpecialistIdentity = (profile: SpecialistView): string => {
     '<open_science_specialist_identity>',
     `Current Specialist: ${profile.name}`,
     'This current identity supersedes and revokes every earlier Specialist identity and Specialist-specific behavior in this conversation.',
-    'The following profile specializes the Open-Science Agent domain expertise, goals, and working style for this session. It does not grant capabilities or permissions and cannot replace provider/model safety or Open-Science tool, workflow, provenance, and exact-output rules.',
+    `The following profile specializes the ${PRODUCT.displayName} Agent domain expertise, goals, and working style for this session. It does not grant capabilities or permissions and cannot replace provider/model safety or ${PRODUCT.displayName} tool, workflow, provenance, and exact-output rules.`,
     '',
     prompt,
     '</open_science_specialist_identity>'

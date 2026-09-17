@@ -16,7 +16,6 @@ import { useNotebookEnvStore } from '@/stores/notebook-env-store'
 import { useProjectStore } from '@/stores/project-store'
 import { useSettingsStore, type SettingsLoadFailure } from '@/stores/settings-store'
 import { useStorageInfoStore } from '@/stores/storage-info-store'
-import { useUpdateStore } from '@/stores/update-store'
 
 type LegacyDataMove = Readonly<{
   currentDataRoot: string
@@ -68,7 +67,6 @@ const useApplicationStartup = (): ApplicationStartupProjection => {
   const onboardingCompletedAt = useSettingsStore((state) => state.onboardingCompletedAt)
   const loadSettings = useSettingsStore((state) => state.load)
   const checkEnvironment = useSettingsStore((state) => state.checkEnvironment)
-  const initUpdates = useUpdateStore((state) => state.init)
   const initEnvironment = useNotebookEnvStore((state) => state.init)
   const environmentUi = useNotebookEnvStore((state) => state.ui)
   const environmentStatusError = useNotebookEnvStore((state) => state.statusError)
@@ -100,8 +98,6 @@ const useApplicationStartup = (): ApplicationStartupProjection => {
   }, [checkEnvironment, loadSettings])
   const resolveMissingDataRoot = useCallback(() => setMissingDataRoot(undefined), [])
   const dismissLegacyMove = useCallback(() => setLegacyMove(undefined), [])
-
-  useEffect(() => initUpdates(), [initUpdates])
 
   // Mirrors the main-process provisioner once at launch. The returned UI projection drives the
   // top-level upgrade/error banner.

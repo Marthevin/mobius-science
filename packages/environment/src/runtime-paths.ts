@@ -16,7 +16,7 @@ import type { NotebookLanguage } from './contracts'
 //   3. run stage-runtime-bundle with the matching explicit version before releasing the app. A
 //      deliberate republish replaces that version, and build.yml verifies the matching platform
 //      manifest is live before packaging an installer.
-export const DEFAULT_ENV_VERSION = 2
+export const DEFAULT_ENV_VERSION = 3
 
 // The runtime bundle publisher and consumer must agree on the conda platform segment. Keep this
 // mapping here rather than letting each caller infer a CDN key independently.

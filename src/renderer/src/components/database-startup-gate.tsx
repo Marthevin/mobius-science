@@ -13,7 +13,6 @@ import {
 
 import { ErrorNotice, type ErrorNoticeTone } from '@/components/error-notice'
 import { OpenScienceLogoLoader } from '@/components/OpenScienceLogoLoader'
-import { StartupIssueDialog } from '@/components/startup-issue-dialog'
 import type {
   DatabaseStartupErrorCode,
   DatabaseStartupState
@@ -99,7 +98,6 @@ const DatabaseStartupGate = ({ children }: DatabaseStartupGateProps): React.JSX.
     databaseStartup ? { phase: 'checking' } : { phase: 'ready' }
   )
   const [retrying, setRetrying] = useState(false)
-  const [issueDraftOpen, setIssueDraftOpen] = useState(false)
   const subscription = useRef<{ events: number } | null>(null)
 
   useEffect(() => {
@@ -148,11 +146,6 @@ const DatabaseStartupGate = ({ children }: DatabaseStartupGateProps): React.JSX.
       .finally(() => {
         if (subscription.current === owner) setRetrying(false)
       })
-  }
-
-  const openIssueDraft = (): void => {
-    if (state.phase !== 'blocked') return
-    setIssueDraftOpen(true)
   }
 
   if (state.phase !== 'blocked') {
@@ -209,11 +202,6 @@ const DatabaseStartupGate = ({ children }: DatabaseStartupGateProps): React.JSX.
               }
             : undefined
         }
-        issueLink={{
-          label: t('Still stuck? Create an issue for help'),
-          tooltip: t('Review and edit the redacted report in Open-Science before opening GitHub.'),
-          onClick: openIssueDraft
-        }}
         secondaryButton={{
           label: t('Quit', { context: 'verb', ns: 'common' }),
           onClick: () => void databaseStartup?.quit()
@@ -228,9 +216,6 @@ const DatabaseStartupGate = ({ children }: DatabaseStartupGateProps): React.JSX.
             : undefined
         }
       />
-      {issueDraftOpen ? (
-        <StartupIssueDialog error={error} onClose={() => setIssueDraftOpen(false)} />
-      ) : null}
     </main>
   )
 }

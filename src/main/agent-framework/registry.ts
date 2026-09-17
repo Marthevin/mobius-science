@@ -4,6 +4,7 @@ import { codeBuddyFramework } from './codebuddy'
 import { codexFramework } from './codex'
 import { opencodeFramework } from './opencode'
 import type { AgentFramework } from './types'
+import { PRODUCT } from '../../mobius/shared/product-config'
 
 const FRAMEWORKS: Record<AgentFrameworkId, AgentFramework> = {
   'claude-code': claudeCodeFramework,
@@ -13,7 +14,7 @@ const FRAMEWORKS: Record<AgentFrameworkId, AgentFramework> = {
 }
 
 // Fallback for settings documents created before framework selection was persisted.
-export const DEFAULT_AGENT_FRAMEWORK_ID: AgentFrameworkId = 'claude-code'
+export const DEFAULT_AGENT_FRAMEWORK_ID: AgentFrameworkId = PRODUCT.agentFrameworkId
 
 // Resolves a framework by id for the runtime/settings; ids come from a fixed union so this is total.
 export const getAgentFramework = (id: AgentFrameworkId): AgentFramework => FRAMEWORKS[id]

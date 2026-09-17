@@ -5,17 +5,17 @@ import { describe, expect, it } from 'vitest'
 import { OFFICIAL_MARKETPLACE_SOURCE } from './official-source'
 
 describe('official Specialist Marketplace source', () => {
-  it('pins the production repository, CDN fallback order, and Ed25519 key', () => {
+  it('keeps the distribution-local disabled source deterministic and the Ed25519 key valid', () => {
     expect(OFFICIAL_MARKETPLACE_SOURCE).toEqual({
-      id: 'openscience-official',
-      name: 'Open-Science Specialist Marketplace',
-      repositoryUrl: 'https://github.com/aipoch/openscience-specialist-marketplace',
+      id: 'mobius-disabled-official',
+      name: 'Mobius Science Specialist Marketplace',
+      repositoryUrl: 'https://github.com/mobius/disabled-specialist-marketplace',
       ref: 'published',
       metadataBaseUrls: [
-        'https://statics.aipoch.com/open-science/specialist-marketplace/v1/',
-        'https://raw.githubusercontent.com/aipoch/openscience-specialist-marketplace/published/'
+        'https://disabled.mobius.invalid/specialist-marketplace/v1/',
+        'https://raw.githubusercontent.com/mobius/disabled-specialist-marketplace/published/'
       ],
-      artifactBaseUrls: ['https://statics.aipoch.com/open-science/specialist-marketplace/v1/'],
+      artifactBaseUrls: ['https://disabled.mobius.invalid/specialist-marketplace/v1/'],
       trustedKeys: {
         'openscience-marketplace-2026-08':
           'MCowBQYDK2VwAyEAKOudx9NtRJakg0xAQFzVdz/5+T/X/xG0F6pCwUu8SQk='

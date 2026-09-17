@@ -8,7 +8,11 @@
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
-    "test/config/electron.vite.config.test.ts"
+    "test/config/electron.vite.config.test.ts",
+    "src/mobius/main/**/*",
+    "src/mobius/shared/**/*",
+    "playwright.browser.config.ts",
+    "vite.browser-test.config.ts"
   ],
   "compilerOptions": {
     "composite": true,

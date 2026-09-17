@@ -194,7 +194,7 @@ class LiteratureReferenceResolver {
     const response = await this.fetchFn(url, {
       headers: {
         Accept: accept,
-        'User-Agent': 'Open-Science/1.0 (+https://github.com/aipoch/open-science)'
+        'User-Agent': 'MobiusScience/1.0'
       },
       signal: signal
         ? AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
@@ -233,7 +233,7 @@ class LiteratureReferenceResolver {
       id: pmids.join(','),
       rettype: 'medline',
       retmode: 'text',
-      tool: 'OpenScience'
+      tool: 'MobiusScience'
     })
     const parsed = await this.formatter.parseReferences(
       await this.read(`${PUBMED_BASE}?${params}`, 'text/plain', signal, PUBMED_MAX_RESPONSE_BYTES)
