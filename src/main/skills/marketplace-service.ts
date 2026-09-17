@@ -23,6 +23,7 @@ import {
 } from './marketplace-protocol'
 import { sha256 } from './marketplace-protocol'
 import { OFFICIAL_SKILL_MARKETPLACE_SOURCE as source } from './marketplace-source'
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 
 const CATALOG_TTL_MS = 5 * 60 * 1000
 const DETAIL_CACHE_LIMIT = 128
@@ -56,7 +57,11 @@ export class SkillMarketplaceService {
     Promise<SkillMarketplaceResult<SkillMarketplaceDetail>>
   >()
 
-  constructor(private readonly fetch: typeof globalThis.fetch = netFetchWithManualRedirect) {}
+  constructor(
+    private readonly fetch: typeof globalThis.fetch = netFetchWithManualRedirect,
+    private readonly enabled = fetch !== netFetchWithManualRedirect ||
+      MOBIUS_CAPABILITIES.upstreamMarketplaces
+  ) {}
 
   retainSnapshot(request: SkillMarketplaceBatchRequest): (() => void) | undefined {
     const root = this.snapshots.get(request.snapshotId)
@@ -93,6 +98,9 @@ export class SkillMarketplaceService {
     signal = AbortSignal.timeout(15000),
     githubAsset = false
   ): Promise<Uint8Array> {
+    if (!this.enabled) {
+      throw new NetworkError('Marketplace is disabled for this distribution')
+    }
     try {
       // Leave time within the operation deadline for the other mirror to answer.
       const binary = githubAsset || url.endsWith('.zip')

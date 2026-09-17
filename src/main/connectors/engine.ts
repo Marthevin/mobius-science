@@ -13,8 +13,7 @@ const DEFAULT_RETRIES = 2
 const DEFAULT_BACKOFF_MS = 400
 
 // Some public APIs (e.g. AlphaFold EBI) reject requests without a User-Agent; send a stable one.
-const USER_AGENT =
-  'Mozilla/5.0 (compatible; Open-Science/1.0; +https://github.com/aipoch/open-science)'
+const USER_AGENT = 'Mozilla/5.0 (compatible; MobiusScience/1.0)'
 
 // Strips credential query params (NCBI email/api_key) from a URL before it can land in an error
 // message or log. Falls back to the raw string if it doesn't parse as a URL.

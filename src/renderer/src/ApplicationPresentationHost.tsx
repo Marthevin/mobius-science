@@ -79,10 +79,6 @@ const GlobalSearchDialog = lazy(() =>
     default: GlobalSearchDialog
   }))
 )
-const UpdateDialog = lazy(() =>
-  import('@/components/UpdateDialog').then(({ UpdateDialog }) => ({ default: UpdateDialog }))
-)
-
 const ApplicationPresentationHost = (): React.JSX.Element => {
   const startup = useApplicationStartup()
   return (
@@ -411,9 +407,6 @@ const ApplicationPresentationContent = ({
             blockedSessionIds={events.blockedApprovalSessionIds}
           />
         )}
-      </DeferredPresentationOwner>
-      <DeferredPresentationOwner active={activePresentation === 'update'}>
-        {(active) => <UpdateDialog active={active} />}
       </DeferredPresentationOwner>
       <CloseConfirmModal
         active={activePresentation === 'closeConfirmation'}

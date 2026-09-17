@@ -6,6 +6,10 @@ import { FileDropOverlay } from './FileDropOverlay'
 import { sessionPackageImportAvailable } from './session-package-import-menu-model'
 import { importSessionPackage } from '@/lib/session-package-import'
 import { useFileDropZone } from '@/hooks/useFileDropZone'
+import {
+  SESSION_PACKAGE_EXTENSION,
+  isSessionPackagePath
+} from '../../../mobius/shared/session-package-branding'
 
 type Props = ComponentPropsWithRef<'section'> & {
   projectId: string
@@ -33,9 +37,14 @@ export const ProjectPackageDropZone = ({
     // Even a disabled target consumes native drops to prevent browser navigation.
     enabled: true,
     onFiles: (files) => {
-      if (importAvailable && files.some((file) => /\.science$/i.test(file.name))) {
+      if (importAvailable && files.some((file) => isSessionPackagePath(file.name))) {
         if (files.length !== 1) {
-          setNotice(t('Drop one .science file at a time. No files were added.'))
+          setNotice(
+            t('Drop one .science file at a time. No files were added.').replaceAll(
+              '.science',
+              SESSION_PACKAGE_EXTENSION
+            )
+          )
           return
         }
         if (!importEnabled) {
@@ -83,9 +92,13 @@ export const ProjectPackageDropZone = ({
           label={
             canAttach
               ? importEnabled
-                ? t('Drop files to attach or import a .science package')
+                ? t('Drop files to attach or import a .science package').replaceAll(
+                    '.science', SESSION_PACKAGE_EXTENSION
+                  )
                 : t('Drop files to attach')
-              : t('Drop a .science file to import into “{{project}}”', { project: projectName })
+              : t('Drop a .science file to import into “{{project}}”', { project: projectName }).replaceAll(
+                  '.science', SESSION_PACKAGE_EXTENSION
+                )
           }
           className="rounded-lg px-6 text-center"
         />

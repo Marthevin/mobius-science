@@ -1,3 +1,4 @@
+import { MOBIUS_CAPABILITIES } from '../../mobius/shared/product-capabilities'
 import { app } from 'electron'
 import { SPECIALIST_IPC } from '../../shared/specialist'
 import { createAcpRuntime } from '../acp/runtime-composition'
@@ -210,7 +211,9 @@ export async function composeSpecialistPackages({
     operationCoordinator: marketplaceOperationCoordinator,
     packages: specialistPackageService,
     fetch: netFetchWithManualRedirect,
-    officialSource: OFFICIAL_MARKETPLACE_SOURCE,
+    officialSource: MOBIUS_CAPABILITIES.upstreamMarketplaces
+      ? OFFICIAL_MARKETPLACE_SOURCE
+      : undefined,
     getInstalledSpecialists: async () =>
       (await specialistService.list()).map((profile) => ({
         id: profile.id,

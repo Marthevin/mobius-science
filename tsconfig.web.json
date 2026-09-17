@@ -7,6 +7,8 @@
     "src/renderer/web/**/*",
     "src/preload/*.d.ts",
     "src/shared/**/*",
+    "src/mobius/renderer/**/*",
+    "src/mobius/shared/**/*",
     "e2e/browser/fixture/**/*"
   ],
   "compilerOptions": {

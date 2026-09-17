@@ -3,6 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it, vi } from 'vitest'
 
+import { PRODUCT } from '../../mobius/shared/product-config'
 import { buildOpencodeConfig, createOpencodeFramework, opencodeFramework } from './opencode'
 
 const fakeChild = {} as ChildProcessWithoutNullStreams
@@ -38,7 +39,7 @@ describe('opencodeFramework spawn seam', () => {
     ).toBe(fakeChild)
     expect(spawnProcess).toHaveBeenCalledWith(
       testCase.expectedCommand,
-      ['acp', '--verbose'],
+      ['acp', '--pure', '--verbose'],
       expect.objectContaining({
         env: expect.objectContaining({
           PATH: expect.stringContaining('/parent-bin'),
@@ -54,6 +55,47 @@ describe('opencodeFramework spawn seam', () => {
 })
 
 describe('opencodeFramework.prepareModelConfig', () => {
+  it('preseeds the managed config dependency check without downloading the plugin SDK', () => {
+    const config = opencodeFramework.prepareModelConfig(
+      { type: 'custom', baseUrl: 'https://gw/v1', model: 'm', key: 'k' },
+      { storageRoot: '/data', executablePath: '/bin/opencode' }
+    )
+
+    const packageJson = JSON.parse(
+      config.configFiles?.find((file) => file.path.endsWith('/package.json'))?.content ?? '{}'
+    )
+    const packageLock = JSON.parse(
+      config.configFiles?.find((file) => file.path.endsWith('/package-lock.json'))?.content ?? '{}'
+    )
+    const marker = config.configFiles?.find((file) =>
+      file.path.endsWith('/node_modules/.mobius-managed-offline')
+    )
+
+    expect(packageJson).toMatchObject({
+      private: true,
+      dependencies: { '@opencode-ai/plugin': PRODUCT.managedOpencodeVersion }
+    })
+    expect(packageLock.packages[''].dependencies).toEqual({
+      '@opencode-ai/plugin': PRODUCT.managedOpencodeVersion
+    })
+    expect(marker?.content).toContain('external OpenCode plugins are disabled')
+  })
+
+  it('does not preseed the dependency check when external plugins are enabled', () => {
+    const framework = createOpencodeFramework({ externalPluginsEnabled: true })
+    const config = framework.prepareModelConfig(
+      { type: 'custom', baseUrl: 'https://gw/v1', model: 'm', key: 'k' },
+      { storageRoot: '/data', executablePath: '/bin/opencode' }
+    )
+
+    expect(
+      config.configFiles?.some((file) =>
+        file.path.endsWith('/node_modules/.mobius-managed-offline')
+      )
+    ).toBe(false)
+    expect(config.configFiles?.some((file) => file.path.endsWith('/package-lock.json'))).toBe(false)
+  })
+
   it('writes connector conventions and wires them into opencode.json instructions', () => {
     const config = opencodeFramework.prepareModelConfig(
       { type: 'custom', baseUrl: 'https://gw/v1', model: 'm', key: 'k' },
@@ -215,6 +257,7 @@ describe('opencodeFramework.prepareModelConfig', () => {
   })
 
   it('injects the native session id as x-opencode-session only for OpenCode Go providers', () => {
+    const pluginEnabledFramework = createOpencodeFramework({ externalPluginsEnabled: true })
     const goProvider = {
       type: 'official' as const,
       vendorId: 'opencode-go' as const,
@@ -233,7 +276,7 @@ describe('opencodeFramework.prepareModelConfig', () => {
       model: 'deepseek-v4-flash',
       key: 'local-deepseek-token'
     }
-    const config = opencodeFramework.prepareModelConfig(goProvider, {
+    const config = pluginEnabledFramework.prepareModelConfig(goProvider, {
       storageRoot: '/data',
       executablePath: '/bin/opencode',
       providerModelCatalog: [{ provider: goProvider }, { provider: otherProvider }]
@@ -249,7 +292,8 @@ describe('opencodeFramework.prepareModelConfig', () => {
   })
 
   it('rewrites the OpenCode Go session plugin as an inert module for other vendors', () => {
-    const config = opencodeFramework.prepareModelConfig(
+    const pluginEnabledFramework = createOpencodeFramework({ externalPluginsEnabled: true })
+    const config = pluginEnabledFramework.prepareModelConfig(
       {
         type: 'official',
         vendorId: 'deepseek',
@@ -266,6 +310,27 @@ describe('opencodeFramework.prepareModelConfig', () => {
       file.path.endsWith(join('plugins', 'open-science-opencode-go-session.js'))
     )
     expect(plugin?.content).toContain('new Set([])')
+  })
+
+  it('omits external plugin files when the product disables OpenCode plugins', () => {
+    const config = opencodeFramework.prepareModelConfig(
+      {
+        type: 'official',
+        vendorId: 'deepseek',
+        agentProviderId: 'open-science-deepseek-model',
+        baseUrl: 'http://127.0.0.1:41002/v1',
+        apiEndpoints: ['openai'],
+        model: 'deepseek-v4-flash',
+        key: 'local-deepseek-token'
+      },
+      { storageRoot: '/data', executablePath: '/bin/opencode' }
+    )
+
+    expect(
+      config.configFiles?.some((file) =>
+        file.path.endsWith(join('plugins', 'open-science-opencode-go-session.js'))
+      )
+    ).toBe(false)
   })
 
   it('pins the authoritative provider/model/baseURL (not just permission) in OPENCODE_CONFIG_CONTENT', () => {
