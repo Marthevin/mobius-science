@@ -88,9 +88,9 @@ export const isAgentRepairCheck = (id: EnvironmentCheckId): boolean =>
 
 export const getEnvironmentRepairPanel = (
   failures: readonly EnvironmentCheckItem[]
-): Extract<SettingsPanelId, 'agent' | 'storage'> | undefined => {
+): Extract<SettingsPanelId, 'runtimes' | 'storage'> | undefined => {
   // Storage must be writable before runtime repair can persist its result, so it always wins.
   if (failures.some((failure) => failure.id === 'storage')) return 'storage'
 
-  return failures.some((failure) => isAgentRepairCheck(failure.id)) ? 'agent' : undefined
+  return failures.some((failure) => isAgentRepairCheck(failure.id)) ? 'runtimes' : undefined
 }

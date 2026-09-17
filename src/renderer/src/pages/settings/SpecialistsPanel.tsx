@@ -70,6 +70,7 @@ import type {
 import { SpecialistEditor } from './SpecialistEditor'
 import { MarketplaceManagedSpecialistDetail } from './MarketplaceManagedSpecialistDetail'
 import { SpecialistMarketplace, type SpecialistMarketplaceView } from './SpecialistMarketplace'
+import { MOBIUS_CAPABILITIES } from '../../../../mobius/shared/product-capabilities'
 import { SettingsSearchInput } from './SettingsSearchInput'
 import { SpecialistAppearancePicker } from './SpecialistAppearancePicker'
 import { SpecialistAvatar } from './specialist-avatar'
@@ -1502,16 +1503,18 @@ const InstalledSpecialistsPanel = ({
             ) : null}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              data-settings-anchor="specialists.marketplace"
-              disabled={webPackageImport && !window.api.specialist.listMarketplace}
-              onClick={() => onNavigate({ kind: 'marketplace' })}
-              className="whitespace-nowrap"
-            >
-              <Store data-icon="inline-start" aria-hidden="true" />
-              {t('Browse Marketplace')}
-            </Button>
+            {MOBIUS_CAPABILITIES.upstreamMarketplaces ? (
+              <Button
+                type="button"
+                data-settings-anchor="specialists.marketplace"
+                disabled={webPackageImport && !window.api.specialist.listMarketplace}
+                onClick={() => onNavigate({ kind: 'marketplace' })}
+                className="whitespace-nowrap"
+              >
+                <Store data-icon="inline-start" aria-hidden="true" />
+                {t('Browse Marketplace')}
+              </Button>
+            ) : null}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

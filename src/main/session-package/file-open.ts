@@ -1,5 +1,6 @@
 import { extname, resolve } from 'node:path'
 import { parseWebModeOptions } from '../web-service/options'
+import { isSessionPackagePath } from '../../mobius/shared/session-package-branding'
 
 // Installed file associations forward local paths, never URLs or shell command strings.
 export const packagePathsFromArgv = (argv: string[], cwd: string): string[] => {
@@ -7,8 +8,7 @@ export const packagePathsFromArgv = (argv: string[], cwd: string): string[] => {
   return argv
     .slice(1)
     .filter(
-      (arg) =>
-        !arg.startsWith('-') && !arg.includes('://') && extname(arg).toLowerCase() === '.science'
+      (arg) => !arg.startsWith('-') && !arg.includes('://') && isSessionPackagePath(extname(arg))
     )
     .map((arg) => resolve(cwd, arg))
 }
@@ -22,7 +22,7 @@ export class PackageFileOpenRelay {
   constructor(private readonly onOverflow: () => void) {}
 
   receive(path: string): void {
-    if (extname(path).toLowerCase() !== '.science') return
+    if (!isSessionPackagePath(extname(path))) return
     if (this.handler) this.handler(path)
     else if (this.pending.has(path)) return
     else if (this.pending.size < 16) this.pending.add(path)

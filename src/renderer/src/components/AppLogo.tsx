@@ -1,12 +1,12 @@
 import type { ComponentPropsWithoutRef } from 'react'
 
-import darkLogoUrl from '@/assets/logo-dark.png'
-import lightLogoUrl from '@/assets/logo.png'
+import darkLogoUrl from '../../../../mobius/generated/renderer/logo-dark.png'
+import lightLogoUrl from '../../../../mobius/generated/renderer/logo.png'
 import { useThemeStore } from '@/stores/theme-store'
 
 type AppLogoProps = Omit<ComponentPropsWithoutRef<'img'>, 'src'>
 
-// The single renderer-facing Open-Science logo. Consumers only describe presentation (size, class,
+// The single renderer-facing product logo. Consumers only describe presentation (size, class,
 // accessible name); the effective General > Theme decides the asset here. Reading resolvedTheme is
 // important: it covers both an explicit Light/Dark choice and live OS changes while following System.
 const AppLogo = ({ alt = '', ...props }: AppLogoProps): React.JSX.Element => {

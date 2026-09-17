@@ -75,12 +75,6 @@ const renderDialog = (
 }
 
 // Radix renders the dialog into document.body via a portal, so query the whole document.
-const issueLink = (): HTMLAnchorElement | null =>
-  document.body.querySelector('a[aria-disabled]') as HTMLAnchorElement | null
-
-const consentCheckbox = (): HTMLInputElement =>
-  document.body.querySelector('input[type="checkbox"]') as HTMLInputElement
-
 const textarea = (): HTMLTextAreaElement =>
   document.body.querySelector('textarea[aria-label="Error details"]') as HTMLTextAreaElement
 
@@ -129,62 +123,13 @@ describe('ReportErrorDialog', () => {
     expect(textarea()?.value).not.toContain('App version')
   })
 
-  it('gates the GitHub issue action behind the consent checkbox', () => {
+  it('keeps diagnostics local without external issue or privacy links', () => {
     renderDialog()
-    expect(issueLink()?.getAttribute('aria-disabled')).toBe('true')
-    expect(issueLink()?.getAttribute('href')).toBeNull()
-
-    act(() => {
-      consentCheckbox().click()
-    })
-
-    expect(issueLink()?.getAttribute('aria-disabled')).toBe('false')
-    expect(issueLink()?.getAttribute('href')).toContain('/issues/new?')
-    expect(issueLink()?.getAttribute('href')).toContain('template=bug_report.yml')
-  })
-
-  it('renders the GitHub privacy statement as a working link inside the consent copy', () => {
-    renderDialog()
-
-    const privacyLink = Array.from(document.body.querySelectorAll<HTMLAnchorElement>('a')).find(
-      (link) => link.textContent === 'Privacy Statement'
-    )
-    expect(privacyLink?.href).toBe(
-      'https://docs.github.com/site-policy/privacy-policies/github-privacy-statement'
-    )
-    expect(privacyLink?.target).toBe('_blank')
-  })
-
-  it('resets consent when the user edits the textarea', () => {
-    renderDialog()
-    act(() => {
-      consentCheckbox().click()
-    })
-    expect(issueLink()?.getAttribute('aria-disabled')).toBe('false')
-
-    act(() => {
-      const ta = textarea()
-      // React tracks the controlled value internally; set via the native setter so onChange fires.
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        'value'
-      )?.set
-      setter?.call(ta, 'redacted content')
-      ta.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-
-    expect(issueLink()?.getAttribute('aria-disabled')).toBe('true')
-  })
-
-  it('carries framework/runtime into the logs field without duplicating structured fields', () => {
-    renderDialog()
-    act(() => {
-      consentCheckbox().click()
-    })
-    const params = new URL(issueLink()?.getAttribute('href') ?? '').searchParams
-    expect(params.get('logs')).toContain('Claude Code')
-    expect(params.get('logs')).not.toContain('App version')
-    expect(params.get('what-happened')).toBe('Run failed: connection reset')
+    expect(document.body.querySelector('a[href*="github.com"]')).toBeNull()
+    expect(document.body.querySelector('input[type="checkbox"]')).toBeNull()
+    expect(document.body.textContent).not.toContain('Privacy Statement')
+    expect(document.body.textContent).toContain('Copy details')
+    expect(document.body.textContent).toContain('Reveal log file')
   })
 
   it('surfaces an error message when the preload bridge is missing', async () => {
@@ -222,26 +167,6 @@ describe('ReportErrorDialog', () => {
     expect(alert?.textContent).toContain('IPC channel closed')
   })
 
-  it('revokes consent when a payload store field changes after consent', () => {
-    renderDialog()
-    act(() => {
-      consentCheckbox().click()
-    })
-    expect(consentCheckbox().checked).toBe(true)
-    expect(issueLink()?.getAttribute('href') ?? '').toContain('app-version=0.5.1')
-
-    // A payload field changing after consent must drop consent so the user never shares data they did
-    // not confirm. The model is session-scoped and intentionally unaffected by active-model changes.
-    act(() => {
-      updateState.appInfo = { version: '0.5.2' }
-      renderDialog()
-    })
-
-    expect(consentCheckbox().checked).toBe(false)
-    const href = issueLink()?.getAttribute('href')
-    expect(href === null || href === undefined).toBe(true) // link disabled again
-  })
-
   it('keeps the failed session model when the active model changes later', () => {
     renderDialog()
     settingsState.activeModel = 'model-selected-after-failure'
@@ -252,12 +177,11 @@ describe('ReportErrorDialog', () => {
     expect(environmentBlock()).not.toContain('model-selected-after-failure')
   })
 
-  it('picks up an app version that resolves after the dialog opened (no permanent Unknown)', () => {
+  it('picks up an app version that resolves after the dialog opened', () => {
     // Simulate opening during early boot: getAppInfo() has not resolved yet.
     updateState.appInfo = undefined
     renderDialog()
     expect(environmentBlock()).toContain('App version: Unknown')
-    expect(issueLink()?.getAttribute('href') ?? '').not.toContain('app-version')
 
     // getAppInfo() resolves and the store updates while the dialog is still open.
     act(() => {
@@ -267,10 +191,6 @@ describe('ReportErrorDialog', () => {
 
     // The live-derived context must reflect the now-known version, not a frozen Unknown.
     expect(environmentBlock()).toContain('App version: 0.5.1')
-    act(() => {
-      consentCheckbox().click()
-    })
-    expect(issueLink()?.getAttribute('href') ?? '').toContain('app-version=0.5.1')
   })
 
   it('attributes framework/provider to the failed session, not the current active config', () => {
@@ -289,34 +209,5 @@ describe('ReportErrorDialog', () => {
 
     // Restore for later tests (beforeEach also resets, but keep the mutation local in spirit).
     settingsState.activeProviderId = 'p1'
-  })
-
-  it('truncates a very long error so the GitHub URL cannot 414, keeping Copy details full', () => {
-    const longError = 'x'.repeat(20000)
-    act(() => {
-      root.render(
-        <ReportErrorDialog
-          open
-          error={longError}
-          subject={{ agentFrameworkId: 'claude-code', agentBackendId: 'claude-code:p1' }}
-          onClose={() => {}}
-        />
-      )
-    })
-    act(() => {
-      consentCheckbox().click()
-    })
-
-    const href = issueLink()?.getAttribute('href') ?? ''
-    // The what-happened param is bounded well under the raw 20k error length, with a visible marker.
-    const whatHappened = new URL(href).searchParams.get('what-happened') ?? ''
-    expect(whatHappened.length).toBeLessThan(20000)
-    expect(whatHappened).toContain('truncated')
-
-    const submittedPreview = document.body.querySelector(
-      '[aria-label="GitHub issue prefill"]'
-    )?.textContent
-    expect(submittedPreview).toContain(whatHappened)
-    expect(submittedPreview).toContain('Copy details')
   })
 })
