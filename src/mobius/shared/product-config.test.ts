@@ -21,6 +21,8 @@ describe('Mobius Science product configuration', () => {
       sessionExtension: 'mobius',
       sessionMimeType: 'application/x-mobius-science-session',
       copyright: '© 2026 Mobius Science',
+      credentialStorageNames: ['Mobius Science', 'Open-Science', 'Open Science'],
+      electronProfileNames: ['Mobius Science', 'Open Science', 'Open-Science'],
       agentFrameworkId: 'opencode',
       managedOpencodeVersion: '1.18.31',
       providerVendorId: 'deepseek',

@@ -199,6 +199,12 @@ int main() {
          "primary lookup did not stop and restore interaction");
 
   fixture = {};
+  fixture.identity = "Mobius Science";
+  fixture.primary_status = errSecSuccess;
+  result = Run("exists");
+  Expect(result.account == "Mobius Science Key", "Mobius product identity was not accepted");
+
+  fixture = {};
   fixture.primary_status = errSecSuccess;
   fixture.unrelated_locked = true;
   fixture.identity = "Open-Science (DEV)";
