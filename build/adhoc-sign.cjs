@@ -71,11 +71,11 @@ exports.default = async function adhocSign(context) {
   )
   for (const name of ['credential_identity_probe', 'credential_key_validator']) {
     const executable = path.join(credentialHelperDirectory, name)
-    if (fs.existsSync(executable)) {
-      execFileSync('codesign', ['--force', '--options', 'runtime', '--sign', '-', executable], {
-        stdio: 'inherit'
-      })
-    }
+    if (!fs.existsSync(executable))
+      throw new Error(`[adhoc-sign] required credential helper is missing: ${executable}`)
+    execFileSync('codesign', ['--force', '--options', 'runtime', '--sign', '-', executable], {
+      stdio: 'inherit'
+    })
   }
 
   // --deep signs nested frameworks, helpers and the bundled native `claude` binary.
