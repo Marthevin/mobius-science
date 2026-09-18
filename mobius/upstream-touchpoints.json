@@ -34,6 +34,10 @@
       "path": "src/main/index.ts",
       "seam": "Registers native product identity and generated icons."
     },
+    {
+      "path": "src/main/remote-access/pairing-page.ts",
+      "seam": "Uses the Mobius cosmic identity on the remote pairing page."
+    },
     { "path": "src/main/ipc.ts", "seam": "Applies update and Marketplace capability policy." },
     { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
     {
@@ -135,8 +139,24 @@
       "seam": "Sets the downstream browser and native window title."
     },
     {
+      "path": "src/renderer/web/bootstrap.ts",
+      "seam": "Registers the Mobius cosmic identity on the remote web bootstrap surface."
+    },
+    {
+      "path": "src/renderer/web/index.html",
+      "seam": "Brands the remote web document before JavaScript starts."
+    },
+    {
       "path": "src/renderer/src/components/AppLogo.tsx",
       "seam": "Registers the generated Mobius logo."
+    },
+    {
+      "path": "src/renderer/src/components/flask-logo.tsx",
+      "seam": "Bridges upstream neutral logo placements to the Mobius particle mark."
+    },
+    {
+      "path": "src/renderer/src/components/open-science-logo-motion.ts",
+      "seam": "Builds the startup motion field from the shared Mobius particle geometry."
     },
     {
       "path": "src/renderer/src/components/ProjectPackageDropZone.tsx",

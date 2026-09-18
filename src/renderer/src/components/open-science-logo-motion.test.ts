@@ -22,7 +22,7 @@ describe('OpenScience logo motion', () => {
     const second = createLogoParticles(metrics, 42)
     const different = createLogoParticles(metrics, 43)
 
-    expect(first).toHaveLength(1512)
+    expect(first).toHaveLength(1296)
     expect(second).toEqual(first)
     expect(different).not.toEqual(first)
   })

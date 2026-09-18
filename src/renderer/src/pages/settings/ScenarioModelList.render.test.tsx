@@ -80,16 +80,23 @@ describe('ScenarioModelList', () => {
       'Expand Vision settings',
       'Expand Session details settings'
     ])
-    expect(
-      Array.from(document.body.querySelectorAll<HTMLImageElement>('[data-scenario-icon]')).map(
-        (icon) => icon.dataset.scenarioIcon
-      )
-    ).toEqual(['subagent', 'reviewer', 'vision', 'session-details'])
-    expect(
-      Array.from(document.body.querySelectorAll<HTMLImageElement>('[data-scenario-icon]')).every(
-        (icon) => icon.alt === '' && icon.getAttribute('aria-hidden') === 'true'
-      )
-    ).toBe(true)
+    const scenarioIcons = Array.from(
+      document.body.querySelectorAll<SVGSVGElement>('[data-scenario-icon]')
+    )
+    expect(scenarioIcons.map((icon) => icon.dataset.scenarioIcon)).toEqual([
+      'subagent',
+      'reviewer',
+      'vision',
+      'session-details'
+    ])
+    expect(scenarioIcons.every((icon) => icon.getAttribute('aria-hidden') === 'true')).toBe(true)
+    expect(scenarioIcons.every((icon) => icon.classList.contains('size-5'))).toBe(true)
+    expect(scenarioIcons.every((icon) => icon.classList.contains('text-muted-foreground'))).toBe(
+      true
+    )
+    expect(scenarioIcons.every((icon) => !icon.className.baseVal.includes('drop-shadow'))).toBe(
+      true
+    )
 
     expect(sessionDetailsRow?.textContent).toContain('Same as main model')
     expect(sessionDetailsRow?.textContent).toContain('Low')

@@ -244,7 +244,7 @@ const ScenarioModelRow = ({
       >
         <MobiusScenarioIcon
           id={scenario.icon}
-          className="size-5 shrink-0 object-contain opacity-85 drop-shadow-[0_0_5px_rgba(85,210,255,0.38)] transition-opacity group-hover:opacity-100 motion-reduce:transition-none"
+          className="size-5 shrink-0 text-muted-foreground transition-colors duration-150 group-hover:text-foreground motion-reduce:transition-none"
         />
         <span className="shrink-0 text-sm font-medium text-foreground">{scenario.name}</span>
         <span id={summaryId} className="ml-auto flex min-w-0 items-center justify-end gap-2">
