@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -6,30 +5,56 @@ import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
 const root = process.cwd()
-const masterPath = join(root, 'mobius', 'brand', 'mobius-science-icon-master.png')
 const generatedRoot = join(root, 'mobius', 'generated')
-const scenarioIds = ['subagent', 'reviewer', 'vision', 'session-details'] as const
+
+const pixelAt = async (path: string, x: number, y: number): Promise<number[]> => {
+  const { data } = await sharp(path)
+    .ensureAlpha()
+    .extract({ left: x, top: y, width: 1, height: 1 })
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  return [...data]
+}
+
+const brightParticlePixelCount = async (path: string): Promise<number> => {
+  const { data } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  let count = 0
+  for (let offset = 0; offset < data.length; offset += 4) {
+    if (data[offset + 3] > 240 && data[offset] + data[offset + 1] + data[offset + 2] > 480) {
+      count += 1
+    }
+  }
+  return count
+}
 
 describe('Mobius Science approved brand assets', () => {
-  it('preserves the exact user-approved product mark as the canonical master', async () => {
-    const bytes = await readFile(masterPath)
-    const metadata = await sharp(bytes).metadata()
+  it('builds the infinity silhouette from a wide irregular particle field', async () => {
+    const icon = await readFile(join(root, 'mobius', 'brand', 'mobius-science-icon.svg'), 'utf8')
 
-    expect(createHash('sha256').update(bytes).digest('hex')).toBe(
-      'fafa0a0434108bc4118f485e25311cbfe7afeed09b0620add406c9e1aa9bbdcc'
-    )
-    expect(metadata).toMatchObject({ width: 1254, height: 1254, format: 'png', hasAlpha: true })
+    expect(icon).toContain('data-icon-layer="star-field"')
+    expect(icon).toContain('data-icon-layer="infinity-cloud"')
+    expect(icon.match(/<ellipse\b/g)?.length ?? 0).toBeGreaterThan(200)
+    expect(icon.match(/<circle\b/g)?.length ?? 0).toBeGreaterThan(100)
+    expect(icon).toContain('<linearGradient')
+    expect(icon).toContain('<radialGradient')
   })
 
-  it.each(scenarioIds)('provides a transparent square master for %s', async (scenarioId) => {
-    const metadata = await sharp(
-      join(root, 'mobius', 'brand', 'scenarios', `${scenarioId}-master.png`)
-    ).metadata()
+  it('masks the cosmic field to the original rounded tile silhouette', async () => {
+    const iconPath = join(generatedRoot, 'app', 'icon.png')
+    expect(await pixelAt(iconPath, 0, 0)).toEqual([0, 0, 0, 0])
+    expect(await pixelAt(iconPath, 80, 512)).toEqual([0, 0, 0, 0])
+    const upperInterior = await pixelAt(iconPath, 512, 128)
+    expect(upperInterior[3]).toBe(255)
+    expect(upperInterior[2]).toBeGreaterThan(upperInterior[0] + 20)
+    expect(await brightParticlePixelCount(iconPath)).toBeGreaterThan(5_000)
+  })
 
-    expect(metadata.format).toBe('png')
-    expect(metadata.width).toBe(metadata.height)
-    expect(metadata.width).toBeGreaterThanOrEqual(1024)
-    expect(metadata.hasAlpha).toBe(true)
+  it('keeps one cosmic identity in light and dark application chrome', async () => {
+    const [light, dark] = await Promise.all([
+      readFile(join(generatedRoot, 'app', 'icon.png')),
+      readFile(join(generatedRoot, 'app', 'icon-dark.png'))
+    ])
+    expect(dark.equals(light)).toBe(true)
   })
 
   it.each([
@@ -47,23 +72,33 @@ describe('Mobius Science approved brand assets', () => {
     expect(metadata).toMatchObject({ width: size, height: size, format: 'png', hasAlpha: true })
   })
 
-  it.each(scenarioIds)('derives small UI assets for %s', async (scenarioId) => {
-    for (const size of [16, 32, 64] as const) {
-      const metadata = await sharp(
-        join(generatedRoot, 'renderer', 'scenarios', `${scenarioId}-${size}.png`)
-      ).metadata()
-      expect(metadata).toMatchObject({ width: size, height: size, format: 'png', hasAlpha: true })
-    }
-  })
-
-  it('points the macOS Icon Composer package at the approved Mobius artwork', async () => {
+  it('keeps the full-color cosmic artwork in the macOS Icon Composer package', async () => {
     const descriptor = JSON.parse(
       await readFile(join(generatedRoot, 'app', 'icon.icon', 'icon.json'), 'utf8')
-    ) as { groups?: Array<{ layers?: Array<{ 'image-name'?: string }> }> }
+    ) as {
+      'fill-specializations'?: unknown[]
+      groups?: Array<{
+        layers?: Array<{
+          'image-name'?: string
+          'fill-specializations'?: unknown[]
+          position?: { scale?: number }
+        }>
+        shadow?: unknown
+        translucency?: unknown
+      }>
+    }
 
-    expect(descriptor.groups?.[0]?.layers?.[0]?.['image-name']).toBe('mobius-science.png')
+    expect(descriptor.groups?.[0]?.layers?.[0]?.['image-name']).toBe('mobius-science-icon.svg')
+    expect(descriptor['fill-specializations']).toHaveLength(2)
+    expect(descriptor.groups?.[0]?.layers?.[0]?.['fill-specializations']).toBeUndefined()
+    expect(descriptor.groups?.[0]?.layers?.[0]?.position?.scale).toBe(1)
+    expect(descriptor.groups?.[0]?.shadow).toBeTruthy()
+    expect(descriptor.groups?.[0]?.translucency).toBeTruthy()
     expect(
-      await readFile(join(generatedRoot, 'app', 'icon.icon', 'Assets', 'mobius-science.png'))
-    ).toEqual(await readFile(masterPath))
+      await readFile(
+        join(generatedRoot, 'app', 'icon.icon', 'Assets', 'mobius-science-icon.svg'),
+        'utf8'
+      )
+    ).toContain('data-icon-layer="infinity-cloud"')
   })
 })

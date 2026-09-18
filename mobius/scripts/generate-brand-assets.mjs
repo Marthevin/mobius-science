@@ -9,15 +9,14 @@ const root = resolve(import.meta.dirname, '..', '..')
 const mobiusRoot = join(root, 'mobius')
 const brandRoot = join(mobiusRoot, 'brand')
 const generatedRoot = join(mobiusRoot, 'generated')
-const master = join(brandRoot, 'mobius-science-icon-master.png')
+const iconArtwork = join(brandRoot, 'mobius-science-icon.svg')
+const originalLightTile = join(root, 'build', 'icon.png')
 const traySource = join(brandRoot, 'mobius-science-tray.svg')
-const scenarioRoot = join(brandRoot, 'scenarios')
 const appRoot = join(generatedRoot, 'app')
 const trayRoot = join(generatedRoot, 'tray')
 const rendererRoot = join(generatedRoot, 'renderer')
-const rendererScenarioRoot = join(rendererRoot, 'scenarios')
-const scenarioIds = ['subagent', 'reviewer', 'vision', 'session-details']
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 }
+const iconArtworkSource = await readFile(iconArtwork)
 
 const ensureParent = async (path) => mkdir(resolve(path, '..'), { recursive: true })
 
@@ -37,6 +36,36 @@ const renderSquare = async (input, size, { trim = false, tint } = {}) => {
 const writeSquare = async (input, output, size, options) => {
   await ensureParent(output)
   await writeFile(output, await renderSquare(input, size, options))
+}
+
+// Reuse the alpha silhouette of the upstream tile so the cosmic artwork keeps the established
+// corner radius and optical bounds while remaining a stable full-color identity in either theme.
+const renderBrandedTile = async (size) => {
+  const alpha = await sharp(originalLightTile)
+    .resize(size, size, { fit: 'fill', kernel: sharp.kernel.lanczos3 })
+    .ensureAlpha()
+    .extractChannel('alpha')
+    .png()
+    .toBuffer()
+  const mask = await sharp({
+    create: { width: size, height: size, channels: 3, background: '#ffffff' }
+  })
+    .joinChannel(alpha)
+    .png()
+    .toBuffer()
+  return sharp(iconArtworkSource, { density: 512 })
+    .resize(size, size, {
+      fit: 'fill',
+      kernel: sharp.kernel.lanczos3
+    })
+    .composite([{ input: mask, blend: 'dest-in' }])
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
+    .toBuffer()
+}
+
+const writeBrandedTile = async (output, size) => {
+  await ensureParent(output)
+  await writeFile(output, await renderBrandedTile(size))
 }
 
 const encodeIco = (frames) => {
@@ -68,6 +97,14 @@ const writeIco = async (input, output, sizes, options) => {
   await writeFile(output, encodeIco(frames))
 }
 
+const writeBrandedIco = async (output, sizes) => {
+  const frames = await Promise.all(
+    sizes.map(async (size) => ({ size, png: await renderBrandedTile(size) }))
+  )
+  await ensureParent(output)
+  await writeFile(output, encodeIco(frames))
+}
+
 const writeIcns = async (output) => {
   const entries = [
     ['icp4', 16],
@@ -80,7 +117,7 @@ const writeIcns = async (output) => {
   ]
   const chunks = await Promise.all(
     entries.map(async ([type, size]) => {
-      const png = await renderSquare(master, size)
+      const png = await renderBrandedTile(size)
       const chunk = Buffer.alloc(8 + png.length)
       chunk.write(type, 0, 4, 'ascii')
       chunk.writeUInt32BE(chunk.length, 4)
@@ -96,18 +133,18 @@ const writeIcns = async (output) => {
 }
 
 await Promise.all([
-  writeSquare(master, join(appRoot, 'icon-512.png'), 512),
-  writeSquare(master, join(appRoot, 'icon.png'), 1024),
-  writeSquare(master, join(appRoot, 'icon-dark.png'), 1024),
-  writeSquare(master, join(rendererRoot, 'logo.png'), 512),
-  writeSquare(master, join(rendererRoot, 'logo-dark.png'), 512),
+  writeBrandedTile(join(appRoot, 'icon-512.png'), 512),
+  writeBrandedTile(join(appRoot, 'icon.png'), 1024),
+  writeBrandedTile(join(appRoot, 'icon-dark.png'), 1024),
+  writeBrandedTile(join(rendererRoot, 'logo.png'), 512),
+  writeBrandedTile(join(rendererRoot, 'logo-dark.png'), 512),
   writeSquare(traySource, join(trayRoot, 'tray.png'), 24, { tint: '#56d8ff' }),
   writeSquare(traySource, join(trayRoot, 'tray@2x.png'), 48, { tint: '#56d8ff' }),
   writeSquare(traySource, join(trayRoot, 'trayTemplate.png'), 16),
   writeSquare(traySource, join(trayRoot, 'trayTemplate@2x.png'), 32),
-  writeIco(master, join(appRoot, 'icon.ico'), [16, 24, 32, 48, 64, 128, 256]),
-  writeIco(master, join(appRoot, 'icon-light.ico'), [16, 24, 32, 48, 64, 128, 256]),
-  writeIco(master, join(appRoot, 'icon-dark.ico'), [16, 24, 32, 48, 64, 128, 256]),
+  writeBrandedIco(join(appRoot, 'icon.ico'), [16, 24, 32, 48, 64, 128, 256]),
+  writeBrandedIco(join(appRoot, 'icon-light.ico'), [16, 24, 32, 48, 64, 128, 256]),
+  writeBrandedIco(join(appRoot, 'icon-dark.ico'), [16, 24, 32, 48, 64, 128, 256]),
   writeIco(traySource, join(trayRoot, 'tray-light.ico'), [16, 24, 32, 48], {
     tint: '#10152b'
   }),
@@ -117,31 +154,17 @@ await Promise.all([
   writeIcns(join(appRoot, 'icon.icns'))
 ])
 
-await mkdir(rendererScenarioRoot, { recursive: true })
-await Promise.all(
-  scenarioIds.flatMap((scenarioId) =>
-    [16, 32, 64].map((size) =>
-      writeSquare(
-        join(scenarioRoot, `${scenarioId}-master.png`),
-        join(rendererScenarioRoot, `${scenarioId}-${size}.png`),
-        size,
-        { trim: true }
-      )
-    )
-  )
-)
-
 const iconComposerRoot = join(appRoot, 'icon.icon')
 await mkdir(join(iconComposerRoot, 'Assets'), { recursive: true })
-await cp(master, join(iconComposerRoot, 'Assets', 'mobius-science.png'))
+await cp(iconArtwork, join(iconComposerRoot, 'Assets', 'mobius-science-icon.svg'))
 const iconComposer = JSON.parse(
   await readFile(join(root, 'build', 'icon.icon', 'icon.json'), 'utf8')
 )
 const layer = iconComposer.groups?.[0]?.layers?.[0]
 if (!layer) throw new Error('build/icon.icon/icon.json does not contain its primary layer.')
-layer['image-name'] = 'mobius-science.png'
-layer.name = 'Mobius Science'
+layer['image-name'] = 'mobius-science-icon.svg'
 delete layer['fill-specializations']
-layer.position = { scale: 1.35, 'translation-in-points': [0, 0] }
+layer.position = { scale: 1, 'translation-in-points': [0, 0] }
+layer.name = 'Mobius Science Cosmic'
 await writeFile(join(iconComposerRoot, 'icon.json'), `${JSON.stringify(iconComposer, null, 2)}\n`)
-process.stdout.write('Generated Mobius Science application, tray, and scenario assets.\n')
+process.stdout.write('Generated Mobius Science application and tray assets.\n')

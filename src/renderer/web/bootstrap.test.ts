@@ -23,6 +23,9 @@ const themeMocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/theme', () => themeMocks)
 vi.mock('../src/main', () => ({}))
+vi.mock('../../../mobius/brand/mobius-science-icon.svg?raw', () => ({
+  default: '<svg viewBox="0 0 1 1"></svg>'
+}))
 
 type SocketEventName = 'open' | 'message' | 'close'
 type SocketEvent = { data?: unknown; code?: number }
@@ -360,7 +363,7 @@ describe('Web bootstrap event connection', () => {
       'alert'
     )
     expect(document.getElementById('open-science-connection-message')?.textContent).toBe(
-      '访问授权已失效。请从主机上的 Open-Science 重新打开 Web 链接，或返回远程访问入口页面重新配对。'
+      '访问授权已失效。请从主机上的 Mobius Science 重新打开 Web 链接，或返回远程访问入口页面重新配对。'
     )
     expect(document.querySelector('button')?.textContent).toBe('重试')
   })
