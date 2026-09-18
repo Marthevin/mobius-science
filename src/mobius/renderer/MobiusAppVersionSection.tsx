@@ -14,7 +14,7 @@ export const MobiusAppVersionSection = (): React.JSX.Element => {
       <SettingsRow
         label={
           <div className="flex min-w-0 items-center gap-3">
-            <AppLogo className="size-12 rounded-lg" />
+            <AppLogo className="size-12 rounded-[11px] shadow-sm ring-1 ring-border" />
             <div className="min-w-0">
               <p className="flex items-baseline gap-2">
                 <span className="text-sm font-semibold text-foreground">{PRODUCT.displayName}</span>
