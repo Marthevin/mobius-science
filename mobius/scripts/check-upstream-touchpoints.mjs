@@ -9,6 +9,11 @@ const manifestPath = resolve(root, 'mobius/upstream-touchpoints.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const declared = new Set(manifest.productionFiles.map((entry) => entry.path))
 
+const downstreamPackagingSeams = new Set([
+  'build/adhoc-sign.cjs',
+  'packages/credential-identity-probe-native/src/credential_identity_probe.cc'
+])
+
 const gitLines = (...args) =>
   execFileSync('git', args, { cwd: root, encoding: 'utf8' })
     .split('\n')
@@ -30,6 +35,7 @@ const isUpstreamProductionFile = (path) => {
     return true
   }
   if (path === 'scripts/stage-default-envs.mjs') return true
+  if (downstreamPackagingSeams.has(path)) return true
   return path.startsWith('src/')
 }
 
