@@ -35,6 +35,18 @@ it('keeps the original profile when both application names have profile director
   expect(resolveElectronProfile(options)).toBe(old)
   expect(await readFile(join(current, 'Preferences'), 'utf8')).toContain('retained')
 })
+it('prefers a configured product profile while retaining ordered historical fallbacks', async () => {
+  const original = await profile('Open Science')
+  const current = await profile('Mobius Science')
+  const profileDirectoryNames = ['Mobius Science', 'Open Science', 'Open-Science'] as const
+  expect(resolveElectronProfile({ ...options, profileDirectoryNames })).toBe(current)
+  await rm(current, { recursive: true })
+  expect(resolveElectronProfile({ ...options, profileDirectoryNames })).toBe(original)
+  await rm(original, { recursive: true })
+  expect(resolveElectronProfile({ ...options, profileDirectoryNames })).toBe(
+    join(fixture, 'Mobius Science')
+  )
+})
 it('preserves an existing empty old directory without interpreting its initialization state', async () => {
   const old = join(fixture, 'Open Science')
   await mkdir(old)
