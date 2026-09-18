@@ -1,0 +1,63 @@
+<svg width="660" height="534" viewBox="0 0 660 534" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="canvas" x1="42" y1="18" x2="622" y2="516" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFD"/>
+      <stop offset="0.52" stop-color="#F4F6FB"/>
+      <stop offset="1" stop-color="#F8F5FC"/>
+    </linearGradient>
+    <radialGradient id="cyanAura" cx="0" cy="0" r="1" gradientTransform="translate(116 210) rotate(30) scale(250 210)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#33CFFF" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#33CFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetAura" cx="0" cy="0" r="1" gradientTransform="translate(565 196) rotate(145) scale(242 196)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9A62FF" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#9A62FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="286" y1="0" x2="377" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#178ED6"/>
+      <stop offset="0.52" stop-color="#6267DA"/>
+      <stop offset="1" stop-color="#9C5AD5"/>
+    </linearGradient>
+    <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#25345F" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="660" height="534" fill="url(#canvas)"/>
+  <rect width="660" height="534" fill="url(#cyanAura)"/>
+  <rect width="660" height="534" fill="url(#violetAura)"/>
+  <path d="M0 116H660" stroke="#DDE3EE" stroke-opacity="0.7"/>
+
+  <g opacity="0.5" fill="#7CA5C7">
+    <circle cx="46" cy="72" r="1.4"/><circle cx="79" cy="42" r="1"/><circle cx="111" cy="90" r="1.7"/>
+    <circle cx="151" cy="53" r="0.9"/><circle cx="201" cy="86" r="1.2"/><circle cx="255" cy="39" r="1"/>
+    <circle cx="411" cy="70" r="1.2"/><circle cx="456" cy="43" r="0.9"/><circle cx="602" cy="90" r="1.5"/>
+  </g>
+  <g opacity="0.42" fill="#9B7BC4">
+    <circle cx="488" cy="84" r="1.6"/><circle cx="552" cy="40" r="1.1"/><circle cx="623" cy="53" r="0.9"/>
+    <circle cx="590" cy="133" r="1.2"/><circle cx="525" cy="147" r="0.8"/>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" text-anchor="middle">
+    <text x="330" y="58" fill="#161B2D" font-size="29" font-weight="650" letter-spacing="-0.7">Mobius Science</text>
+    <text x="330" y="84" fill="#687086" font-size="13.5" font-weight="450" letter-spacing="0.2">A local-first workspace for rigorous, reproducible research</text>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <rect x="286" y="246" width="88" height="52" rx="26" fill="#FFFFFF" fill-opacity="0.8" stroke="#D9E0EC"/>
+    <path d="M307 272H350" stroke="url(#accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/>
+    <path d="M344 262L355 272L344 282" fill="none" stroke="#6A68DA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g opacity="0.26">
+    <circle cx="277" cy="255" r="2.7" fill="#21BDF2"/><circle cx="270" cy="271" r="1.6" fill="#4AADEB"/>
+    <circle cx="278" cy="289" r="2.1" fill="#728EE5"/><circle cx="383" cy="254" r="1.8" fill="#8B6EE1"/>
+    <circle cx="391" cy="272" r="2.6" fill="#A460DD"/><circle cx="382" cy="290" r="1.5" fill="#C25FCB"/>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif" text-anchor="middle">
+    <text x="330" y="428" fill="#252B3D" font-size="16" font-weight="600">Drag Mobius Science to Applications</text>
+    <text x="330" y="453" fill="#71788A" font-size="12.5">Then launch Mobius Science from your Applications folder.</text>
+    <text x="330" y="485" fill="#8A90A1" font-size="10.5" letter-spacing="1.1">LOCAL-FIRST  ·  REPRODUCIBLE  ·  RESEARCH-READY</text>
+  </g>
+</svg>
