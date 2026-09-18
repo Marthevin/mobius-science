@@ -74,6 +74,62 @@ describe('Notebook destination policy', () => {
     })
   })
 
+  it('allows an exact hostname authorization through a synthetic Fake-IP DNS answer', async () => {
+    lookup.mockResolvedValue([{ address: '198.18.42.7', family: 4 }])
+    const policy = new DestinationPolicy({
+      allowedDomains: ['conda.anaconda.org'],
+      deniedDomains: []
+    })
+
+    await expect(policy.inspect('conda.anaconda.org', 443)).resolves.toEqual({
+      kind: 'allow',
+      address: '198.18.42.7'
+    })
+  })
+
+  it('keeps synthetic Fake-IP access closed without an exact hostname authorization', async () => {
+    lookup.mockResolvedValue([{ address: '198.18.42.7', family: 4 }])
+    const wildcard = new DestinationPolicy({
+      allowedDomains: ['*.anaconda.org'],
+      deniedDomains: []
+    })
+    const unknown = new DestinationPolicy({ allowedDomains: [], deniedDomains: [] })
+
+    await expect(wildcard.inspect('conda.anaconda.org', 443)).resolves.toMatchObject({
+      kind: 'deny',
+      configurable: false
+    })
+    await expect(unknown.inspect('conda.anaconda.org', 443)).resolves.toMatchObject({
+      kind: 'deny',
+      configurable: false
+    })
+  })
+
+  it('never treats a literal or mixed Fake-IP answer as an authorized public destination', async () => {
+    const literal = new DestinationPolicy({
+      allowedDomains: ['198.18.42.7'],
+      deniedDomains: []
+    })
+    await expect(literal.inspect('198.18.42.7', 443)).resolves.toMatchObject({
+      kind: 'deny',
+      configurable: false
+    })
+    expect(lookup).not.toHaveBeenCalled()
+
+    lookup.mockResolvedValue([
+      { address: '198.18.42.7', family: 4 },
+      { address: '93.184.216.34', family: 4 }
+    ])
+    const mixed = new DestinationPolicy({
+      allowedDomains: ['conda.anaconda.org'],
+      deniedDomains: []
+    })
+    await expect(mixed.inspect('conda.anaconda.org', 443)).resolves.toMatchObject({
+      kind: 'deny',
+      configurable: false
+    })
+  })
+
   it.each(['64:ff9b::7f00:1', 'fec0::1'])(
     'rejects non-public IPv6 destination %s without DNS lookup',
     async (address) => {
