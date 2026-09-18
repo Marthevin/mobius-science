@@ -474,8 +474,8 @@ async function startDesktop(): Promise<void> {
     { default: trayLinux }
   ] = await Promise.all([
     import('@electron-toolkit/utils'),
-    import('../../resources/icon.png?asset'),
-    import('../../resources/icon-dark.png?asset'),
+    import('../../mobius/generated/app/icon.png?asset'),
+    import('../../mobius/generated/app/icon-dark.png?asset'),
     import('../../resources/icon-light.ico?asset'),
     import('../../resources/icon-dark.ico?asset'),
     import('../../resources/trayTemplate.png?asset'),
@@ -486,7 +486,7 @@ async function startDesktop(): Promise<void> {
 
   // Windows gets multi-resolution ICOs for title-bar and Alt-Tab fidelity; the macOS runtime Dock
   // Theme override and Linux use matching lossless 1024px PNGs. The installed macOS icon itself is
-  // build/icon.icon (electron-builder.yml), not either runtime PNG.
+  // mobius/generated/app/icon.icon (mobius/electron-builder.yml), not either runtime PNG.
   const iconVariantPaths =
     process.platform === 'win32'
       ? { light: iconWindows, dark: iconDarkWindows }
