@@ -14,6 +14,7 @@ const f = vi.hoisted(() => {
     fail: undefined as unknown,
     leaseRelease: vi.fn(),
     select: vi.fn(),
+    profile: vi.fn(() => '/test/profile'),
     validate: vi.fn(),
     inventory: vi.fn(() => [Buffer.from('synthetic-profile-ciphertext')]),
     key: vi.fn(),
@@ -97,7 +98,7 @@ vi.mock('./credential-identity/ciphertext-inventory', () => ({
 }))
 vi.mock('./storage/electron-profile', () => ({
   resolveBootstrapConfigRoot: () => '/test/config',
-  resolveElectronProfile: () => '/test/profile'
+  resolveElectronProfile: f.profile
 }))
 vi.mock('./desktop-runtime-launcher', () => ({
   desktopBackendPaths: () => ({ command: '/test/node', entry: '/test/backend.cjs' }),
@@ -213,7 +214,11 @@ beforeEach(() => {
   f.ready = false
   f.windowsStartup.mockResolvedValue(undefined)
   f.handlers.clear()
-  f.select.mockReturnValue({ backend: 'mac-keychain', appName: 'Open-Science (DEV)', exists: true })
+  f.select.mockReturnValue({
+    backend: 'mac-keychain',
+    appName: `${MOBIUS_NATIVE_IDENTITY.credentialStorageNames[0]} (DEV)`,
+    exists: true
+  })
   f.validate.mockReturnValue(vi.fn())
   f.app.isReady = () => f.ready
   f.app.whenReady.mockImplementation(async () => {
@@ -231,10 +236,28 @@ afterEach(() => {
 it.each(['mac-keychain', 'windows-dpapi'] as const)(
   'completes %s identity preflight before yielding to Electron, without acquiring business ownership',
   async (backend) => {
-    f.select.mockReturnValue({ backend, appName: 'Open-Science (DEV)', exists: true })
+    f.select.mockReturnValue({
+      backend,
+      appName: `${MOBIUS_NATIVE_IDENTITY.credentialStorageNames[0]} (DEV)`,
+      exists: true
+    })
     await import('./index')
     await vi.waitFor(() => expect(f.app.exit).toHaveBeenCalledWith(1))
-    expect(f.app.setName).toHaveBeenNthCalledWith(1, 'Open-Science (DEV)')
+    expect(f.select).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialStorageNames: MOBIUS_NATIVE_IDENTITY.credentialStorageNames
+      })
+    )
+    expect(f.profile).toHaveBeenCalledWith({
+      appData: '/test/home',
+      configRoot: '/test/config',
+      packaged: false,
+      profileDirectoryNames: MOBIUS_NATIVE_IDENTITY.electronProfileNames
+    })
+    expect(f.app.setName).toHaveBeenNthCalledWith(
+      1,
+      `${MOBIUS_NATIVE_IDENTITY.credentialStorageNames[0]} (DEV)`
+    )
     expect(f.app.setName).toHaveBeenLastCalledWith(MOBIUS_NATIVE_IDENTITY.developmentName)
     expect(f.inventory).toHaveBeenCalledWith({
       configRoot: '/test/config',
