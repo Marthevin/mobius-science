@@ -36,3 +36,31 @@ it('signs the unpacked credential executables before signing the outer macOS app
     expect(position).toBeLessThan(calls.findIndex((args) => args.at(-1) === app))
   }
 })
+
+it('refuses to package macOS when a credential helper is missing', async () => {
+  const app = '/fixture/Mobius Science.app'
+  const missing = posix.join(
+    app,
+    'Contents/Resources/app.asar.unpacked/node_modules/@aipoch/credential-identity-probe-native/build/Release/credential_identity_probe'
+  )
+  const exports: { default?: (context: unknown) => Promise<void> } = {}
+  runInNewContext(readFileSync('build/adhoc-sign.cjs', 'utf8'), {
+    exports,
+    __dirname: '/fixture/build',
+    console: { log: vi.fn() },
+    require: (id: string) => {
+      if (id === 'node:path') return posix
+      if (id === 'node:fs') return { existsSync: (path: string) => path !== missing }
+      if (id === 'node:child_process') return { execFileSync: vi.fn() }
+      throw new Error(`Unexpected module ${id}`)
+    }
+  })
+
+  await expect(
+    exports.default!({
+      electronPlatformName: 'darwin',
+      appOutDir: '/fixture',
+      packager: { appInfo: { productFilename: 'Mobius Science' } }
+    })
+  ).rejects.toThrow(/credential_identity_probe/u)
+})
