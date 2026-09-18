@@ -196,6 +196,7 @@ async function startElectronApp(mainEntryPath: string): Promise<void> {
     platform: process.platform,
     packaged: app.isPackaged,
     credentialStore: getCredentialStore(),
+    credentialStorageNames: MOBIUS_NATIVE_IDENTITY.credentialStorageNames,
     ...(process.platform === 'linux'
       ? { linuxPasswordStore: app.commandLine?.getSwitchValue('password-store') }
       : {})
@@ -208,7 +209,8 @@ async function startElectronApp(mainEntryPath: string): Promise<void> {
   const profilePath = resolveElectronProfile({
     appData: app.getPath('appData'),
     configRoot,
-    packaged: app.isPackaged
+    packaged: app.isPackaged,
+    profileDirectoryNames: MOBIUS_NATIVE_IDENTITY.electronProfileNames
   })
   app.setPath('userData', profilePath)
   app.setPath('sessionData', profilePath)
