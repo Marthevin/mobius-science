@@ -33,13 +33,16 @@ export const selectCredentialIdentity = (options: {
   platform: NodeJS.Platform
   packaged: boolean
   credentialStore?: 'os' | 'file'
+  credentialStorageNames?: readonly [string, ...string[]]
   probe: (appName: string) => IdentityProbeResult
   linuxProbe?: (appName: string) => IdentityProbeResult
   linuxPasswordStore?: string
 }): CredentialIdentity => {
   const suffix = options.packaged ? '' : ' (DEV)'
-  const current = `Open-Science${suffix}`
-  const legacy = `Open Science${suffix}`
+  const configuredNames = options.credentialStorageNames ?? ['Open-Science', 'Open Science']
+  const candidates = configuredNames.map((name) => `${name}${suffix}`)
+  const current = candidates[0]
+  const legacy = candidates[1] ?? current
   if (options.platform === 'win32') {
     // Windows OSCrypt belongs to Local State + the DPAPI user context, not an app-name item.
     return Object.freeze({ backend: 'windows-dpapi', appName: current })
@@ -48,15 +51,20 @@ export const selectCredentialIdentity = (options: {
     return Object.freeze({ backend: 'file', appName: current })
   }
   if (options.platform === 'linux') {
-    const result = options.linuxProbe?.(legacy)
-    if (!result || !['exists', 'not-found'].includes(result.status))
-      throw new CredentialIdentityError(
-        result?.reason ?? `linux-secret-service-probe-${result?.status ?? 'unsupported'}`
-      )
+    const linuxCandidates = options.credentialStorageNames ? candidates : [legacy]
+    for (const appName of linuxCandidates) {
+      const result = options.linuxProbe?.(appName)
+      if (!result || !['exists', 'not-found'].includes(result.status))
+        throw new CredentialIdentityError(
+          result?.reason ?? `linux-secret-service-probe-${result?.status ?? 'unsupported'}`
+        )
+      if (result.status === 'exists')
+        return Object.freeze({ backend: 'linux-secret-service', appName, exists: true })
+    }
     return Object.freeze({
       backend: 'linux-secret-service',
-      appName: legacy,
-      exists: result.status === 'exists'
+      appName: linuxCandidates[0],
+      exists: false
     })
   }
   if (options.platform !== 'darwin') throw new CredentialIdentityError('unsupported-backend')
@@ -69,15 +77,15 @@ export const selectCredentialIdentity = (options: {
       exists,
       reason,
       probes,
-      ...(probes.length === 1
+      ...(probes.length === 1 && candidates.length > 1
         ? {
-            skippedProbe: { appName: legacy, reason: 'preferred-identity-present' }
+            skippedProbe: { appName: candidates[1], reason: 'preferred-identity-present' }
           }
         : {})
     })
     return Object.freeze({ backend: 'mac-keychain', appName, exists })
   }
-  for (const appName of [current, legacy]) {
+  for (const appName of candidates) {
     let result: IdentityProbeResult
     try {
       result = safeCredentialProbeResult(options.probe(appName))
