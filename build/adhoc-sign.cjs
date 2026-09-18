@@ -70,6 +70,31 @@ exports.default = async function adhocSign(context) {
     console.log('[adhoc-sign] signed bundled micromamba')
   }
 
+  // Loose executables in Resources are not covered by --deep's nested-code discovery.
+  const credentialHelperDirectory = path.join(
+    appPath,
+    'Contents',
+    'Resources',
+    'app.asar.unpacked',
+    'node_modules',
+    '@aipoch',
+    'credential-identity-probe-native',
+    'build',
+    'Release'
+  )
+  for (const name of [
+    'credential_identity_probe',
+    'credential_key_validator',
+    'credential_secret'
+  ]) {
+    const executable = path.join(credentialHelperDirectory, name)
+    if (!fs.existsSync(executable))
+      throw new Error(`[adhoc-sign] required credential helper is missing: ${executable}`)
+    execFileSync('codesign', ['--force', '--options', 'runtime', '--sign', '-', executable], {
+      stdio: 'inherit'
+    })
+  }
+
   const macho = new Set(['feedface', 'feedfacf', 'cefaedfe', 'cffaedfe', 'cafebabe', 'bebafeca'])
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const signLoose = (directory) => {
