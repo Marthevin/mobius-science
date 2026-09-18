@@ -7,6 +7,7 @@ export type ProfileLocationOptions = {
   appData: string
   configRoot: string
   packaged: boolean
+  profileDirectoryNames?: readonly [string, ...string[]]
   env?: NodeJS.ProcessEnv
 }
 
@@ -51,6 +52,20 @@ export const resolveElectronProfile = (options: ProfileLocationOptions): string 
     return validateProfilePath(join(options.configRoot, 'electron-profile'))
   }
   const suffix = options.packaged ? '' : ' (DEV)'
+  if (options.profileDirectoryNames) {
+    const candidates = options.profileDirectoryNames.map((name) =>
+      join(options.appData, name + suffix)
+    )
+    for (const candidate of candidates) {
+      try {
+        lstatSync(candidate)
+        return validateProfilePath(candidate)
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
+    return validateProfilePath(candidates[0])
+  }
   const legacy = join(options.appData, 'Open Science' + suffix)
   // lstat observes broken links too: never redirect an unavailable old profile to a new directory.
   try {
