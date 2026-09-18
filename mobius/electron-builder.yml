@@ -44,6 +44,7 @@ files:
   - '!**/__fixtures__{,/**/*}'
 asarUnpack:
   - resources/**
+  - node_modules/@aipoch/credential-identity-probe-native/build/Release/credential_*
   - node_modules/@aipoch/process-tree-native/build/Release/*.node
   - node_modules/@aipoch/safe-file-publisher-native/build/Release/*.node
   - node_modules/pdfjs-dist/**
@@ -115,6 +116,7 @@ mac:
       to: managed-runtimes/opencode
 dmg:
   title: Mobius Science
+  background: mobius/generated/app/dmg-background.png
   icon: mobius/generated/app/icon.icns
   artifactName: mobius-science-${version}-mac-${arch}.${ext}
   contents:
@@ -125,11 +127,6 @@ dmg:
       y: 286
       type: link
       path: /Applications
-    - x: 530
-      y: 75
-      type: file
-      path: LICENSE
-      name: LICENSE.txt
 linux:
   executableName: mobius-science
   syncDesktopName: true

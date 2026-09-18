@@ -57,7 +57,13 @@ describe('Mobius Science approved brand assets', () => {
     expect(dark.equals(light)).toBe(true)
   })
 
+  it('writes the DMG background at Finder logical-pixel density', async () => {
+    const metadata = await sharp(join(generatedRoot, 'app', 'dmg-background.png')).metadata()
+    expect(metadata).toMatchObject({ width: 660, height: 534, density: 72 })
+  })
+
   it.each([
+    ['app/dmg-background.png', 660, 534],
     ['app/icon-512.png', 512],
     ['app/icon.png', 1024],
     ['app/icon-dark.png', 1024],
@@ -67,9 +73,9 @@ describe('Mobius Science approved brand assets', () => {
     ['tray/tray@2x.png', 48],
     ['tray/trayTemplate.png', 16],
     ['tray/trayTemplate@2x.png', 32]
-  ] as const)('generates %s at %d px', async (relativePath, size) => {
+  ] as const)('generates %s at %d×%d px', async (relativePath, width, height = width) => {
     const metadata = await sharp(join(generatedRoot, relativePath)).metadata()
-    expect(metadata).toMatchObject({ width: size, height: size, format: 'png', hasAlpha: true })
+    expect(metadata).toMatchObject({ width, height, format: 'png', hasAlpha: true })
   })
 
   it('keeps the full-color cosmic artwork in the macOS Icon Composer package', async () => {
