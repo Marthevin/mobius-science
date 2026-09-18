@@ -1,27 +1,40 @@
-import { readFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
-import { load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 
-describe('Mobius electron-builder overlay', () => {
-  it('owns visible package identity, icons, Session association, and update policy', async () => {
-    const config = load(
-      await readFile(join(process.cwd(), 'mobius', 'electron-builder.yml'), 'utf8')
-    ) as {
-      extends?: string
+const require = createRequire(import.meta.url)
+
+describe('Mobius electron-builder resolved configuration', () => {
+  it('owns visible package identity, icons, Session association, and update policy', () => {
+    const configPath = join(process.cwd(), 'mobius', 'electron-builder.cjs')
+    delete require.cache[require.resolve(configPath)]
+    const config = require(configPath) as {
       appId?: string
       productName?: string
       fileAssociations?: Array<{ ext?: string; mimeType?: string; name?: string }>
-      win?: { executableName?: string; icon?: string; artifactName?: string }
-      mac?: { icon?: string; artifactName?: string; extendInfo?: Record<string, string> }
-      dmg?: { icon?: string; title?: string; contents?: Array<{ name?: string }> }
-      linux?: { executableName?: string }
+      win?: {
+        executableName?: string
+        icon?: string
+        artifactName?: string
+        fileAssociations?: unknown[]
+      }
+      mac?: {
+        icon?: string
+        artifactName?: string
+        extendInfo?: Record<string, string>
+        fileAssociations?: unknown[]
+      }
+      dmg?: {
+        background?: string
+        icon?: string
+        title?: string
+        contents?: Array<{ name?: string; type?: string }>
+      }
+      linux?: { executableName?: string; fileAssociations?: unknown[] }
       publish?: unknown
     }
 
-    // electron-builder resolves `extends` from the project directory, not from this YAML file.
-    expect(config.extends).toBe('./electron-builder.yml')
     expect(config.appId).toBe('com.mobius.science')
     expect(config.productName).toBe('Mobius Science')
     expect(config.fileAssociations).toContainEqual(
@@ -43,10 +56,20 @@ describe('Mobius electron-builder overlay', () => {
       }
     })
     expect(config.dmg).toMatchObject({
+      background: 'mobius/generated/app/dmg-background.png',
       icon: 'mobius/generated/app/icon.icns',
       title: 'Mobius Science'
     })
-    expect(config.dmg?.contents?.[0]?.name).toBe('Mobius Science.app')
+    expect(config.dmg?.contents).toEqual([
+      expect.objectContaining({ name: 'Mobius Science.app' }),
+      expect.objectContaining({ type: 'link' })
+    ])
+    expect(config.dmg?.contents).not.toContainEqual(
+      expect.objectContaining({ name: 'Open-Science.app' })
+    )
+    expect(config.mac?.fileAssociations).toBeUndefined()
+    expect(config.win?.fileAssociations).toBeUndefined()
+    expect(config.linux?.fileAssociations).toBeUndefined()
     expect(config.linux?.executableName).toBe('mobius-science')
     expect(config.publish).toBeNull()
   })

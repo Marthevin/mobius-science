@@ -10,6 +10,7 @@ const mobiusRoot = join(root, 'mobius')
 const brandRoot = join(mobiusRoot, 'brand')
 const generatedRoot = join(mobiusRoot, 'generated')
 const iconArtwork = join(brandRoot, 'mobius-science-icon.svg')
+const dmgBackgroundArtwork = join(brandRoot, 'dmg-background.svg')
 const originalLightTile = join(root, 'build', 'icon.png')
 const traySource = join(brandRoot, 'mobius-science-tray.svg')
 const appRoot = join(generatedRoot, 'app')
@@ -36,6 +37,18 @@ const renderSquare = async (input, size, { trim = false, tint } = {}) => {
 const writeSquare = async (input, output, size, options) => {
   await ensureParent(output)
   await writeFile(output, await renderSquare(input, size, options))
+}
+
+const writeDmgBackground = async (output) => {
+  await ensureParent(output)
+  await writeFile(
+    output,
+    await sharp(dmgBackgroundArtwork, { density: 144 })
+      .resize(660, 534, { fit: 'fill', kernel: sharp.kernel.lanczos3 })
+      .withMetadata({ density: 72 })
+      .png({ compressionLevel: 9, adaptiveFiltering: true })
+      .toBuffer()
+  )
 }
 
 // Reuse the alpha silhouette of the upstream tile so the cosmic artwork keeps the established
@@ -133,6 +146,7 @@ const writeIcns = async (output) => {
 }
 
 await Promise.all([
+  writeDmgBackground(join(appRoot, 'dmg-background.png')),
   writeBrandedTile(join(appRoot, 'icon-512.png'), 512),
   writeBrandedTile(join(appRoot, 'icon.png'), 1024),
   writeBrandedTile(join(appRoot, 'icon-dark.png'), 1024),
