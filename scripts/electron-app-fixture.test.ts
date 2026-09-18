@@ -61,6 +61,8 @@ describe('source macOS mock Keychain metadata', () => {
     () => {
       const executable = resolve('e2e/fixtures/mock-credential-identity.sh')
       for (const identity of [
+        'Mobius Science',
+        'Mobius Science (DEV)',
         'Open-Science',
         'Open-Science (DEV)',
         'Open Science',

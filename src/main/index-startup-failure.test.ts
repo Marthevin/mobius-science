@@ -1003,7 +1003,10 @@ it.each([
       await Promise.race([fixture.ready, fixture.exited])
       if (['fresh', 'existing', 'KWallet existing'].includes(scenario)) {
         expect(fixture.configureDesktop).toHaveBeenCalledOnce()
-        expect(fixture.electron.app.setName).toHaveBeenNthCalledWith(1, 'Open Science')
+        expect(fixture.electron.app.setName).toHaveBeenNthCalledWith(
+          1,
+          MOBIUS_NATIVE_IDENTITY.credentialStorageNames[0]
+        )
         expect(fixture.electron.app.setName).toHaveBeenLastCalledWith(MOBIUS_NATIVE_IDENTITY.name)
         expect(fixture.electron.dialog.showErrorBox).not.toHaveBeenCalled()
         if (scenario === 'existing' || scenario === 'KWallet existing')

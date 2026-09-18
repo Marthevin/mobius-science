@@ -59,6 +59,40 @@ describe('credential identity selection', () => {
     expect(choose(['exists']).selection.appName).toBe('Open-Science')
   })
 
+  it('prefers the configured product identity and falls back through historical identities', () => {
+    const credentialStorageNames = ['Mobius Science', 'Open-Science', 'Open Science'] as const
+    const currentProbe = vi.fn(() => result('exists'))
+    expect(
+      selectCredentialIdentity({
+        platform: 'darwin',
+        packaged: true,
+        probe: currentProbe,
+        credentialStorageNames
+      })
+    ).toEqual({ backend: 'mac-keychain', appName: 'Mobius Science', exists: true })
+    expect(currentProbe.mock.calls).toEqual([['Mobius Science']])
+
+    const legacyStatuses: IdentityProbeResult['status'][] = [
+      'not-found',
+      'access-blocked',
+      'exists'
+    ]
+    const legacyProbe = vi.fn(() => result(legacyStatuses.shift() ?? 'not-found'))
+    expect(
+      selectCredentialIdentity({
+        platform: 'darwin',
+        packaged: false,
+        probe: legacyProbe,
+        credentialStorageNames
+      })
+    ).toEqual({ backend: 'mac-keychain', appName: 'Open Science (DEV)', exists: true })
+    expect(legacyProbe.mock.calls).toEqual([
+      ['Mobius Science (DEV)'],
+      ['Open-Science (DEV)'],
+      ['Open Science (DEV)']
+    ])
+  })
+
   it('keeps Windows on the same profile-scoped DPAPI backend without macOS item queries', () => {
     const probe = vi.fn()
     const selection = selectCredentialIdentity({ platform: 'win32', packaged: true, probe })
