@@ -32,7 +32,7 @@ import { installWebRendererContracts } from './api-installer'
 import { i18next, initI18n, prepareI18nLocale } from '@/i18n'
 import { applyHtmlLang, resolveInitialLocale } from '@/lib/locale-preference'
 import { applyTheme, resolveInitialTheme } from '@/lib/theme'
-import openScienceLogoSvg from '../../main/remote-access/open-science-logo.svg?raw'
+import mobiusScienceIconSvg from '../../../mobius/brand/mobius-science-icon.svg?raw'
 
 // Apply the saved theme before the (async) web API install and the app import below, so the page
 // doesn't paint in light mode and then flip to dark. The Electron renderer does the same at the top
@@ -93,7 +93,7 @@ const setConnectionMessage = (message: string): void => {
 
 const connectionLogo = document.getElementById('open-science-connection-logo')
 if (connectionLogo) {
-  connectionLogo.innerHTML = openScienceLogoSvg.replace(
+  connectionLogo.innerHTML = mobiusScienceIconSvg.replace(
     '<svg ',
     '<svg aria-hidden="true" focusable="false" '
   )
