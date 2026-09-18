@@ -35,6 +35,10 @@
       "seam": "Registers native product identity and generated icons."
     },
     {
+      "path": "src/main/credential-identity/selection.ts",
+      "seam": "Accepts ordered product credential identities while preserving upstream defaults."
+    },
+    {
       "path": "src/main/remote-access/pairing-page.ts",
       "seam": "Uses the Mobius cosmic identity on the remote pairing page."
     },
@@ -63,6 +67,10 @@
     {
       "path": "src/main/session-persistence/paths.ts",
       "seam": "Uses Mobius-owned configuration directories."
+    },
+    {
+      "path": "src/main/storage/electron-profile.ts",
+      "seam": "Accepts ordered product profile directories while preserving upstream defaults."
     },
     { "path": "src/main/storage-root.ts", "seam": "Uses Mobius-owned data directory names." },
     {

@@ -297,6 +297,7 @@ async function startDesktop(): Promise<void> {
     appData: app.getPath('appData'),
     configRoot,
     packaged: app.isPackaged,
+    profileDirectoryNames: MOBIUS_NATIVE_IDENTITY.electronProfileNames,
     ...(preservedStartupOptions
       ? { env: { ...process.env, OPEN_SCIENCE_USER_DATA: preservedStartupOptions.profilePath } }
       : {})
@@ -331,6 +332,7 @@ async function startDesktop(): Promise<void> {
         platform: process.platform,
         packaged: app.isPackaged,
         credentialStore: getCredentialStore(),
+        credentialStorageNames: MOBIUS_NATIVE_IDENTITY.credentialStorageNames,
         linuxPasswordStore: app.commandLine.getSwitchValue('password-store')
       })
       app.setName(identity.appName)

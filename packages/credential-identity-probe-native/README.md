@@ -5,8 +5,8 @@ metadata. Importing the package returns `executablePath`, `validatorExecutablePa
 `secretExecutablePath` without running any helper. The caller must run it as a separate
 process with a timeout, bounded stdout, and no shell; never embed its Security API calls in Electron.
 
-The argument is one of `Open Science`, `Open Science (DEV)`, `Open-Science`, or
-`Open-Science (DEV)`. It writes one JSON result with `schemaVersion`, `platform`, `identity`,
+The argument is one of `Mobius Science`, `Mobius Science (DEV)`, `Open Science`,
+`Open Science (DEV)`, `Open-Science`, or `Open-Science (DEV)`. It writes one JSON result with `schemaVersion`, `platform`, `identity`,
 `status`, `reason`, `osStatus`, and an `account` only for `exists`. Status is one of `exists`,
 `not-found`, `access-blocked`, `error`, or `unsupported`. Windows and Linux return `unsupported`.
 The macOS implementation applies to non-MAS Electron builds only.

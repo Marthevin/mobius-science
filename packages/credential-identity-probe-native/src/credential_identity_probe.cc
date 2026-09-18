@@ -17,7 +17,8 @@ struct ProbeResult {
 };
 
 bool IsAllowedIdentity(const std::string& identity) {
-  return identity == "Open Science" || identity == "Open Science (DEV)" ||
+  return identity == "Mobius Science" || identity == "Mobius Science (DEV)" ||
+         identity == "Open Science" || identity == "Open Science (DEV)" ||
          identity == "Open-Science" || identity == "Open-Science (DEV)";
 }
 
