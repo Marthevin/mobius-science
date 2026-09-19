@@ -57,13 +57,20 @@ const setTrayIconVariant = (
 const TEMPLATE_ICON_SIZE = 18
 const createMacTemplateIcon = (
   iconPath: string,
-  preparedTemplate: boolean
+  preparedTemplate: boolean,
+  retinaIconPath?: string
 ): NativeImage | undefined => {
   try {
     const source = nativeImage.createFromPath(iconPath)
     if (source.isEmpty()) return undefined
 
     if (preparedTemplate) {
+      if (retinaIconPath) {
+        const retina = nativeImage.createFromPath(retinaIconPath)
+        if (!retina.isEmpty()) {
+          source.addRepresentation({ scaleFactor: 2, dataURL: retina.toDataURL() })
+        }
+      }
       source.setTemplateImage(true)
       return source
     }
@@ -105,6 +112,7 @@ const createMacTemplateIcon = (
 const createAppTray = (opts: {
   iconPath: string
   templateIconPath?: string
+  templateIconRetinaPath?: string
   // Windows-only: per-variant tray tiles so the tray glyph follows the app icon chosen in settings
   // (light tile for the light variant, dark tile for the dark one). Switched live via
   // setTrayIconVariant when the user changes the setting.
@@ -133,7 +141,8 @@ const createAppTray = (opts: {
       process.platform === 'darwin'
         ? (createMacTemplateIcon(
             opts.templateIconPath ?? opts.iconPath,
-            Boolean(opts.templateIconPath)
+            Boolean(opts.templateIconPath),
+            opts.templateIconRetinaPath
           ) ?? nativeImage.createFromPath(opts.iconPath))
         : ((opts.variantIconPaths &&
             createVariantIcon(
