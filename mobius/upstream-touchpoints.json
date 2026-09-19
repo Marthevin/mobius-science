@@ -47,12 +47,20 @@
       "seam": "Registers native product identity and generated icons."
     },
     {
+      "path": "src/main/tray.ts",
+      "seam": "Combines the Mobius macOS status icon's 1x and Retina template representations."
+    },
+    {
       "path": "src/main/credential-identity/selection.ts",
       "seam": "Accepts ordered product credential identities while preserving upstream defaults."
     },
     {
       "path": "src/main/credential-identity/ciphertext-inventory.ts",
       "seam": "Reads encrypted database records across the Mobius filename migration without weakening credential recovery checks."
+    },
+    {
+      "path": "src/main/credential-identity/recovery.ts",
+      "seam": "Explains recovery when branded and legacy project databases coexist."
     },
     {
       "path": "src/main/projects/prisma-client.ts",
@@ -257,6 +265,10 @@
     {
       "path": "src/renderer/src/pages/workspace/workspace-conversation-items.ts",
       "seam": "Prevents OpenCode's flattened Notebook provider namespace from leaking into activity rows."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/ConversationPanel.tsx",
+      "seam": "Joins the Notebook and queue toolbar to the composer card without overlapping background layers."
     },
     {
       "path": "src/renderer/src/pages/workspace/WorkspaceSidebar.tsx",

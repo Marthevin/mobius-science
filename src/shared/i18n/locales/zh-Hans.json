@@ -48,6 +48,8 @@
   "native": {
     "Linux OS credentials require an available Secret Service backend and /usr/bin/busctl. Unlock the original default keyring and restart. For an unsupported backend, use a compatible application version without changing the backend or profile.": "Linux 系统凭据需要可用的 Secret Service 后端和 /usr/bin/busctl。请解锁原有的默认密钥环并重新启动。如果后端不受支持，请使用兼容的应用版本，不要更改后端或 profile。",
     "Credential storage needs recovery": "凭据存储需要恢复",
+    "Project database needs recovery": "项目数据库需要恢复",
+    "Mobius Science found both mobius-science.db and open-science.db in the configuration folder. Startup stopped to avoid hiding data. Quit all Mobius Science and Open-Science processes, then back up the entire configuration folder, including any -wal, -shm, and -journal sidecars. Use an SQLite-aware recovery process to select or merge the intended database before restarting; do not delete either copy until recovery is verified.": "Mobius Science 在配置文件夹中同时发现 mobius-science.db 和 open-science.db。为避免隐藏数据，启动已停止。请先退出所有 Mobius Science 和 Open-Science 进程，再备份整个配置文件夹，包括所有 -wal、-shm 和 -journal 辅助文件。请通过 SQLite 感知的恢复流程选择或合并要使用的数据库，再重新启动；确认恢复成功前，请勿删除任一副本。",
     "Silent credential identity checks are not supported by this system credential backend. Startup has stopped to preserve existing encrypted data.": "此系统凭据后端不支持静默身份检查。为保留现有加密数据，启动已停止。",
     "Open-Science could not safely access existing encrypted data. Unlock the system credential store or restore the original key and profile, then restart. Existing credentials have not been replaced.": "Open-Science 无法安全访问现有加密数据。请解锁系统凭据存储，或恢复原始密钥和配置文件，然后重新启动。现有凭据未被替换。",
     "Conversation export is too large. Select fewer conversation turns.": "对话导出内容过大。请选择较少的对话轮次。",
