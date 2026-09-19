@@ -88,9 +88,6 @@ const ipv4In = (address: number, base: string, bits: number): boolean => {
   return (address & mask) === (ipv4Number(base) & mask)
 }
 
-const isSyntheticDnsAddress = (address: string): boolean =>
-  isIP(address) === 4 && ipv4In(ipv4Number(address), '198.18.0.0', 15)
-
 const isExactHostRule = (rule: Rule): boolean =>
   !rule.all && !rule.subdomains && rule.labels === undefined
 
@@ -120,6 +117,22 @@ const parseIpv6 = (address: string): bigint | undefined => {
   if (missing < 0 || (halves.length === 1 && missing !== 0)) return undefined
   const words = [...left, ...Array.from({ length: missing }, () => 0), ...right]
   return words.reduce((value, word) => (value << 16n) | BigInt(word), 0n)
+}
+
+const SYNTHETIC_IPV4_BASE = '198.18.0.0'
+const IPV4_MAPPED_PREFIX = parseIpv6('::ffff:0:0')! >> 32n
+// Darwin can return a proxy Fake-IP through its IPv4-translatable IPv6 form.
+const IPV4_TRANSLATABLE_PREFIX = parseIpv6('::ffff:0:0:0')! >> 32n
+
+const isSyntheticDnsAddress = (address: string): boolean => {
+  const family = isIP(address)
+  if (family === 4) return ipv4In(ipv4Number(address), SYNTHETIC_IPV4_BASE, 15)
+  if (family !== 6 || address.includes('%')) return false
+  const value = parseIpv6(address)
+  if (value === undefined) return false
+  const prefix = value >> 32n
+  if (prefix !== IPV4_MAPPED_PREFIX && prefix !== IPV4_TRANSLATABLE_PREFIX) return false
+  return ipv4In(Number(value & 0xffffffffn), SYNTHETIC_IPV4_BASE, 15)
 }
 
 const ipv6In = (address: bigint, base: bigint, bits: number): boolean => {
