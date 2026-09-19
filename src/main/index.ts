@@ -353,10 +353,10 @@ async function startElectronApp(mainEntryPath: string): Promise<void> {
     import('../../mobius/generated/app/icon-dark.png?asset'),
     import('../../resources/icon-light.ico?asset'),
     import('../../resources/icon-dark.ico?asset'),
-    import('../../resources/trayTemplate.png?asset'),
-    import('../../resources/tray-light.ico?asset'),
-    import('../../resources/tray-dark.ico?asset'),
-    import('../../resources/tray.png?asset')
+    import('../../mobius/generated/tray/trayTemplate.png?asset'),
+    import('../../mobius/generated/tray/tray-light.ico?asset'),
+    import('../../mobius/generated/tray/tray-dark.ico?asset'),
+    import('../../mobius/generated/tray/tray.png?asset')
   ])
 
   // Windows gets multi-resolution ICOs for title-bar and Alt-Tab fidelity; the macOS runtime Dock
