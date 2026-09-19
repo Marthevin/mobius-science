@@ -18,6 +18,7 @@ import {
 } from './subagent-release-projection'
 import { isNotebookExecutionActivity, type ToolExecutionPhase } from './tool-execution-phase'
 import { getNotebookToolDisplayName } from './notebook-tool-names'
+import { getFirstPartyToolDisplayName } from './first-party-tool-presentation'
 
 type ConversationMessageItem = {
   id: string
@@ -137,11 +138,9 @@ const formatActivityToolName = (
   const providerToolName = trimDetail(activity.providerToolName)
   const title = trimDetail(activity.title)
 
-  const notebookToolName =
-    (providerToolName && formatNotebookToolName(providerToolName)) ??
-    (title && formatNotebookToolName(title))
+  const firstPartyToolName = getFirstPartyToolDisplayName(providerToolName, title)
 
-  if (notebookToolName) return t(notebookToolName)
+  if (firstPartyToolName) return t(firstPartyToolName)
   if (providerToolName) return providerToolName
   if (title && KNOWN_TITLE_TOOL_NAMES.has(title)) return title
 

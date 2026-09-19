@@ -33,6 +33,32 @@ describe('workspace tool activity details', () => {
     expect(getToolDisplayName(createActivity({ toolKind: undefined }))).toBe('Tool')
   })
 
+  it.each([
+    ['open_science_notebook_inspect_packages', 'Inspect packages'],
+    ['open_science_library_search_library', 'Literature library'],
+    ['open_science_literature_read_document', 'Reading'],
+    ['open_science_artifacts_write_artifact_file', 'Write file'],
+    ['open_science_plan_generate_plan', 'Plan control']
+  ])('replaces the first-party transport identity %s with %s', (providerToolName, expected) => {
+    expect(getToolDisplayName(createActivity({ providerToolName, toolKind: 'other' }))).toBe(
+      expected
+    )
+  })
+
+  it('does not repeat a flattened first-party identity as the generic detail subtitle', () => {
+    const activity = createActivity({
+      title: 'open_science_notebook_inspect_packages',
+      toolKind: 'other',
+      rawInput: { packages: ['pyfiglet'] },
+      toolContent: [{ type: 'content', content: { type: 'text', text: 'pyfiglet is installed' } }]
+    })
+    const details = buildToolActivityDetails(activity)
+
+    expect(details?.displayName).toBe('Inspect packages')
+    expect(details?.subtitle).toBeUndefined()
+    expect(JSON.stringify(details)).not.toContain('open_science_notebook')
+  })
+
   it('keeps native Skill instruction documents out of expandable activity details', () => {
     const activity = createActivity({
       title: 'Loaded skill: mcp-pubmed',
