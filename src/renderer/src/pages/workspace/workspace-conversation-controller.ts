@@ -721,12 +721,23 @@ const useWorkspaceConversationController = (
   )
   const submitImmediately = !queueBlocksActiveSession && canSubmitImmediately(options)
   const queueDraft = canQueueDraft(options)
+  const activeOptimisticMessage = options.activeSession
+    ? optimisticMessages[options.activeSession.id]
+    : undefined
+  const authoritativePromptMessageId = options.activeSession?.activeRun?.promptMessageId
+  const authoritativePromptProjected = Boolean(
+    authoritativePromptMessageId &&
+    options.activeSession?.messages.some(
+      (message) => message.id === authoritativePromptMessageId && message.role === 'user'
+    )
+  )
 
   return {
     admitApplicationMessage: messageQueue.lifecycle.enqueueApplication,
-    optimisticMessage: options.activeSession
-      ? optimisticMessages[options.activeSession.id]
-      : undefined,
+    // appendUserMessage projects the store-owned prompt before sendMessage finishes persistence
+    // and provider dispatch. Stop presenting the renderer-only bubble as soon as that prompt is
+    // visible, otherwise both identities render for the remainder of admission.
+    optimisticMessage: authoritativePromptProjected ? undefined : activeOptimisticMessage,
     planProjectionRecoveryError,
     availability: {
       submit: submitImmediately || queueDraft,
