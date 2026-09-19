@@ -41,10 +41,15 @@ const writeSquare = async (input, output, size, options) => {
 
 const writeDmgBackground = async (output) => {
   await ensureParent(output)
+  const background = await sharp(dmgBackgroundArtwork, { density: 144 })
+    .resize(660, 534, { fit: 'fill', kernel: sharp.kernel.lanczos3 })
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
+    .toBuffer()
+  const headerIcon = await renderBrandedTile(48)
   await writeFile(
     output,
-    await sharp(dmgBackgroundArtwork, { density: 144 })
-      .resize(660, 534, { fit: 'fill', kernel: sharp.kernel.lanczos3 })
+    await sharp(background)
+      .composite([{ input: headerIcon, left: 180, top: 26 }])
       .withMetadata({ density: 72 })
       .png({ compressionLevel: 9, adaptiveFiltering: true })
       .toBuffer()
