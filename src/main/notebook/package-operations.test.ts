@@ -10,6 +10,7 @@ import { createRootNotebookLane } from './lane-identity'
 import { NotebookPackageOperations } from './package-operations'
 import { installPackages } from './package-manager'
 import { compactManagePackagesResult } from './mcp-server'
+import { resetAutoMirrorCache } from './mirror-probe'
 import { CHILD_UNCONFIRMED } from './provisioner-runtime'
 import { NotebookRuntimeRepairPolicy } from './runtime-repair-policy'
 import { NotebookSessionAggregate, type NotebookSessionRuntimeBinding } from './session-aggregate'
@@ -20,6 +21,7 @@ const roots: string[] = []
 
 afterEach(() => {
   vi.restoreAllMocks()
+  resetAutoMirrorCache()
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
@@ -522,6 +524,79 @@ describe('NotebookPackageOperations', () => {
       3,
       expect.objectContaining({ request: expect.objectContaining({ packages: ['scipy'] }) }),
       {}
+    )
+  })
+
+  it('carries an automatic mirror plan through admission and retries only its official fallback', async () => {
+    const installPackages = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        needsRestart: false,
+        log: 'automatic mirror blocked',
+        method: 'pip',
+        attempts: [
+          {
+            groupOrdinal: 0,
+            installer: 'pip',
+            packages: ['pyarrow'],
+            status: 'failed',
+            reason: 'network',
+            mutationRisk: 'none'
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        needsRestart: false,
+        log: 'official installed',
+        method: 'pip',
+        attempts: [
+          {
+            groupOrdinal: 0,
+            installer: 'pip',
+            packages: ['pyarrow'],
+            status: 'succeeded',
+            mutationRisk: 'confirmed'
+          }
+        ]
+      })
+    const packageSpawn = vi.fn(() => vi.fn())
+    const { owner } = harness(session('session-1'), {
+      resolvePackageMirror: vi.fn(() => undefined),
+      mirrorProbe: {
+        candidates: [
+          {
+            name: 'automatic-test',
+            mirror: { pypiIndex: 'https://mirror.test/simple' },
+            probeUrl: 'https://mirror.test/conda-forge/repodata.json',
+            biocondaProbeUrl: 'https://mirror.test/bioconda/repodata.json',
+            trustedDomains: ['mirror.test']
+          }
+        ],
+        probe: async () => 1
+      },
+      installPackages,
+      packageSpawn
+    })
+
+    const result = await owner.manage({
+      language: 'python',
+      packages: ['pyarrow'],
+      usePip: true
+    })
+
+    expect(result).toMatchObject({ ok: true, fallbackUsed: true })
+    expect(installPackages).toHaveBeenCalledTimes(2)
+    expect(packageSpawn).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({ pypiIndex: 'https://mirror.test/simple' })
+    )
+    expect(packageSpawn).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({ pypiIndex: 'https://pypi.org/simple' })
     )
   })
 
