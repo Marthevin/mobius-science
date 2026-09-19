@@ -104,6 +104,27 @@ describe('read-only ciphertext inventory', () => {
     ])
   })
 
+  it('preserves a dedicated recovery reason when branded and legacy databases coexist', () => {
+    const paths = fixture()
+    for (const name of ['mobius-science.db', 'open-science.db']) {
+      const db = new DatabaseSync(join(paths.configRoot, name))
+      db.exec('CREATE TABLE ComputeCredential(ciphertext BLOB)')
+      db.prepare('INSERT INTO ComputeCredential VALUES (?)').run(Buffer.from(name))
+      db.close()
+    }
+
+    let error: unknown
+    try {
+      readCredentialCiphertexts(paths)
+    } catch (failure) {
+      error = failure
+    }
+    expect(error).toMatchObject({
+      name: 'CredentialIdentityError',
+      reason: 'project-database-conflict'
+    })
+  })
+
   it('blocks unreadable or malformed existing documents instead of treating them as empty', () => {
     const paths = fixture()
     writeFileSync(join(paths.configRoot, 'credentials.json'), '{broken')

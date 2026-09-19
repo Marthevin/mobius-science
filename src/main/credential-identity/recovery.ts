@@ -8,6 +8,11 @@ export const credentialRecoveryMessage = (
 ): string => {
   const i18n = createNativeI18n(resolveLocale('system', systemLanguages))
   const translate = i18n.t.bind(i18n)
+  if (error.reason === 'project-database-conflict') {
+    return `${translate('Project database needs recovery')}\n\n${translate(
+      'Mobius Science found both mobius-science.db and open-science.db in the configuration folder. Startup stopped to avoid hiding data. Quit all Mobius Science and Open-Science processes, then back up the entire configuration folder, including any -wal, -shm, and -journal sidecars. Use an SQLite-aware recovery process to select or merge the intended database before restarting; do not delete either copy until recovery is verified.'
+    )}\n\nPROJECT_DATABASE: conflicting-files`
+  }
   const title = translate('Credential storage needs recovery')
   const description = error.reason.startsWith('linux-')
     ? translate(

@@ -17,6 +17,7 @@ describe('Mobius native icon registration', () => {
     const source = await readFile(join(process.cwd(), 'src/main/index.ts'), 'utf8')
 
     expect(source).toContain("import('../../mobius/generated/tray/trayTemplate.png?asset')")
+    expect(source).toContain("import('../../mobius/generated/tray/trayTemplate@2x.png?asset')")
     expect(source).toContain("import('../../mobius/generated/tray/tray-light.ico?asset')")
     expect(source).toContain("import('../../mobius/generated/tray/tray-dark.ico?asset')")
     expect(source).toContain("import('../../mobius/generated/tray/tray.png?asset')")

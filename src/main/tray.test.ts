@@ -11,6 +11,8 @@ type FakeImage = {
   getSize: () => { width: number; height: number }
   toBitmap: () => Buffer
   resize: () => FakeImage
+  toDataURL: () => string
+  addRepresentation: (options: { scaleFactor?: number; dataURL?: string }) => void
   setTemplateImage: (value: boolean) => void
 }
 
@@ -41,6 +43,7 @@ let bitmapThrows = false
 let sourceBitmap = Buffer.alloc(4 * 4 * 4, 200)
 let templateBitmap: Buffer | undefined
 let createdFromPaths: string[] = []
+let addedRepresentations: Array<{ scaleFactor?: number; dataURL?: string }> = []
 // Paths whose fake image reports isEmpty(), to exercise the variant-icon fallback per path.
 let emptyPaths: string[] = []
 
@@ -55,6 +58,10 @@ const makeImage = (kind: 'path' | 'bitmap'): FakeImage => {
       return Buffer.from(sourceBitmap)
     },
     resize: () => image,
+    toDataURL: () => `data:image/png;base64,${kind}`,
+    addRepresentation: (options) => {
+      addedRepresentations.push(options)
+    },
     setTemplateImage: (value: boolean) => {
       image.isTemplate = value
     }
@@ -161,6 +168,7 @@ describe('createAppTray', () => {
     sourceBitmap = Buffer.alloc(4 * 4 * 4, 200)
     templateBitmap = undefined
     createdFromPaths = []
+    addedRepresentations = []
     trayDestroyed = false
     emptyPaths = []
     // Default the shared cases to a non-darwin platform (full-color icon path).
@@ -464,6 +472,23 @@ describe('createAppTray', () => {
       })
 
       expect(createdFromPaths[0]).toBe('/icons/app-dark.png')
+    })
+
+    it('adds the packaged Retina asset as a 2x template representation', () => {
+      createAppTray({
+        iconPath: '/icons/app.png',
+        templateIconPath: '/icons/trayTemplate.png',
+        templateIconRetinaPath: '/icons/trayTemplate@2x.png',
+        onShow: vi.fn(),
+        onHide: vi.fn(),
+        onQuit: vi.fn()
+      })
+
+      expect(createdFromPaths).toEqual(['/icons/trayTemplate.png', '/icons/trayTemplate@2x.png'])
+      expect(addedRepresentations).toEqual([
+        { scaleFactor: 2, dataURL: 'data:image/png;base64,path' }
+      ])
+      expect(lastTray?.icon.isTemplate).toBe(true)
     })
 
     it('preserves source transparency when deriving template alpha', () => {

@@ -1087,6 +1087,26 @@ describe('workspace conversation items', () => {
     ).toBe('Using tool: Notebook run')
   })
 
+  it.each([
+    'ask_user_question',
+    'background_run',
+    'request_network_access',
+    'wsl_setup_diagnostics',
+    'wsl_setup_install_platform',
+    'wsl_setup_install_recommended_distro',
+    'wsl_setup_select_profile',
+    'wsl_setup_open_terminal'
+  ])('hides the flattened OpenCode notebook identity for %s', (toolName) => {
+    const providerToolName = `open_science_notebook_${toolName}`
+    expect(
+      formatActivityTitle(
+        createActivity({ status: 'completed', providerToolName, toolKind: 'other' }),
+        undefined,
+        t
+      )
+    ).not.toContain('open_science_notebook')
+  })
+
   it('detects a Codex notebook activity whose MCP identity is only in the title', () => {
     expect(
       formatActivityTitle(

@@ -6082,7 +6082,7 @@ describe('ConversationPanel notebook bar', () => {
 
     const queueTrigger = container.querySelector('[data-testid="composer-queue-trigger"]')
     expect(queueTrigger).not.toBeNull()
-    expect(queueTrigger?.parentElement?.classList.contains('min-h-[68px]')).toBe(true)
+    expect(queueTrigger?.parentElement?.classList.contains('min-h-9')).toBe(true)
     expect(container.querySelector('[aria-label="Open notebook"]')).toBeNull()
   })
 
@@ -6099,6 +6099,17 @@ describe('ConversationPanel notebook bar', () => {
 
     expect(container.querySelector('[aria-label="Open notebook"]')).not.toBeNull()
     expect(container.querySelector('[data-testid="background-tasks-chip"]')).toBeNull()
+
+    const notebookBar = container.querySelector('[data-testid="composer-context-bar"]')
+    const backdrop = container.querySelector('[data-testid="composer-card-backdrop"]')
+    const form = getComposerForm()
+    expect(notebookBar?.classList.contains('-mb-8')).toBe(false)
+    expect(notebookBar?.classList.contains('min-h-9')).toBe(true)
+    expect(notebookBar?.classList.contains('rounded-t-2xl')).toBe(true)
+    expect(notebookBar?.classList.contains('border-b-0')).toBe(true)
+    expect(backdrop?.classList.contains('hidden')).toBe(true)
+    expect(form.classList.contains('rounded-b-2xl')).toBe(true)
+    expect(form.classList.contains('rounded-t-none')).toBe(true)
   })
 
   it('places the queue disclosure at the right edge of the Notebook bar', () => {
