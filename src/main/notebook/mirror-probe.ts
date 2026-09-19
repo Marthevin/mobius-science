@@ -38,6 +38,18 @@ export type ProbeDeps = {
   timeoutMs?: number
 }
 
+export type EffectivePackageMirrorPlan = Readonly<{
+  primary: PackageMirror
+  networkPreflight?: boolean
+  networkFallback?: PackageMirror
+}>
+
+export const OFFICIAL_PACKAGE_MIRROR: Readonly<PackageMirror> = {
+  condaChannel: 'https://conda.anaconda.org/conda-forge/',
+  pypiIndex: 'https://pypi.org/simple',
+  cranMirror: 'https://cloud.r-project.org'
+}
+
 // Probes every candidate's conda-forge and bioconda channels in parallel. A candidate is reachable only
 // when both respond; its score is the slower response because both channels are required for installs.
 // Returns undefined when no complete candidate responds (caller then uses the public indexes).
@@ -95,18 +107,37 @@ const resolveAutoMirror = (deps?: ProbeDeps): Promise<PackageMirror | undefined>
 // Effective mirror WITH the speed probe: a user-configured override always wins (no probe); otherwise
 // use the fastest-probed mirror; if the probe finds nothing reachable, use the public indexes rather
 // than reviving a locale mirror that the probe just rejected.
-export const effectiveMirrorAsync = async (
+export const effectiveMirrorPlanAsync = async (
   configured: PackageMirror | undefined,
   _locale: string,
   deps?: ProbeDeps
-): Promise<PackageMirror> => {
+): Promise<EffectivePackageMirrorPlan> => {
   const hasAny =
     configured && (configured.condaChannel || configured.pypiIndex || configured.cranMirror)
   // Configured channel override already carries any caBundle it was given.
-  if (hasAny) return configured!
+  if (hasAny) return { primary: configured! }
   // Otherwise use the probed/public mirror, but always preserve a configured caBundle (e.g. a
   // caBundle-only config behind an enterprise TLS proxy still gets the fastest-probed channel).
   const probed = await resolveAutoMirror(deps)
   const base = probed ?? {}
-  return configured?.caBundle ? { ...base, caBundle: configured.caBundle } : base
+  const primary = configured?.caBundle ? { ...base, caBundle: configured.caBundle } : base
+  const selectedThirdParty = Boolean(base.condaChannel || base.pypiIndex || base.cranMirror)
+  return {
+    primary,
+    networkPreflight: true,
+    ...(selectedThirdParty
+      ? {
+          networkFallback: {
+            ...OFFICIAL_PACKAGE_MIRROR,
+            ...(configured?.caBundle ? { caBundle: configured.caBundle } : {})
+          }
+        }
+      : {})
+  }
 }
+
+export const effectiveMirrorAsync = async (
+  configured: PackageMirror | undefined,
+  locale: string,
+  deps?: ProbeDeps
+): Promise<PackageMirror> => (await effectiveMirrorPlanAsync(configured, locale, deps)).primary
