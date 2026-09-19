@@ -134,6 +134,10 @@ const getNotebookToolDisplayName = (toolName: string | undefined | null): string
   switch (matchNotebookControlTool(toolName)) {
     case 'background_run':
       return 'Notebook run'
+    case 'inspect_packages':
+      return 'Inspect packages'
+    case 'manage_packages':
+      return 'Manage packages'
     case 'notebook_state':
       return 'Notebook state'
     case 'notebook_restart':

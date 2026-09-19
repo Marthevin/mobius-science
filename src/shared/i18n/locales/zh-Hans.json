@@ -1834,6 +1834,7 @@
     "Open Network settings to review the required setup.": "打开网络设置以查看所需配置。",
     "Open Network settings to review availability and allowed domains.": "打开网络设置以查看可用性和允许的域名。",
     "Open Network settings to check again and review the setup.": "打开网络设置以重新检查并查看配置。",
+    "Inspect packages": "检查软件包",
     "Manage packages": "管理软件包",
     "Manage permissions": "管理权限",
     "Manage tokens on GitHub": "在 GitHub 上管理令牌",

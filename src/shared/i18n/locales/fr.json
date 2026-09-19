@@ -1812,6 +1812,7 @@
     "Open Network settings to review the required setup.": "Ouvrez les paramètres Réseau pour vérifier la configuration requise.",
     "Open Network settings to review availability and allowed domains.": "Ouvrez les paramètres Réseau pour vérifier la disponibilité et les domaines autorisés.",
     "Open Network settings to check again and review the setup.": "Ouvrez les paramètres Réseau pour relancer la vérification et examiner la configuration.",
+    "Inspect packages": "Inspecter les paquets",
     "Manage packages": "Gérer les paquets",
     "Manage permissions": "Gérer les autorisations",
     "Manage tokens on GitHub": "Gérer les jetons sur GitHub",

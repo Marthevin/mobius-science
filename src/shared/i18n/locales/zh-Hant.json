@@ -1833,6 +1833,7 @@
     "Open Network settings to review the required setup.": "開啟網路設定以檢視所需設定。",
     "Open Network settings to review availability and allowed domains.": "開啟網路設定以檢視可用性和允許的網域。",
     "Open Network settings to check again and review the setup.": "開啟網路設定以重新檢查並檢視設定。",
+    "Inspect packages": "檢查軟體套件",
     "Manage packages": "管理軟體套件",
     "Manage permissions": "管理權限",
     "Manage tokens on GitHub": "在 GitHub 上管理權杖",
