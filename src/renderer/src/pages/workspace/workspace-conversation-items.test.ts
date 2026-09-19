@@ -1072,6 +1072,21 @@ describe('workspace conversation items', () => {
     ).toBe('Used tool: Notebook run')
   })
 
+  it('hides the flattened OpenCode notebook provider identity from the activity row', () => {
+    expect(
+      formatActivityTitle(
+        createActivity({
+          id: 'tool-opencode-notebook',
+          status: 'in_progress',
+          providerToolName: 'open_science_notebook_notebook_execute',
+          toolKind: 'other'
+        }),
+        undefined,
+        t
+      )
+    ).toBe('Using tool: Notebook run')
+  })
+
   it('detects a Codex notebook activity whose MCP identity is only in the title', () => {
     expect(
       formatActivityTitle(
