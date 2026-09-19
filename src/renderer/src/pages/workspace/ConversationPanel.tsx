@@ -914,6 +914,15 @@ const ConversationPanel = ({
   const activeBranchPlan = selectActiveBranchPlan(activeSession)
   const subagentSummary = projectSessionSubagents(activeSession, pendingPermissions)
   const hasSubagents = subagentSummary.children.length > 0
+  const composerContextJoinsCard = Boolean(
+    notebookReference || messageQueue.items.length > 0 || hasBookmarkEntry
+  )
+  const composerContextBarVisible = Boolean(
+    composerContextJoinsCard ||
+    backgroundTasksVisible ||
+    hasSubagents ||
+    (activeBranchPlan ? isPlanProgressVisible(activeBranchPlan) : false)
+  )
   const hasRunningSubagents = subagentSummary.runningCount > 0
   const isSaveAsSkillDisabled = isSaveAsSkillDisabledFromParent || hasRunningSubagents
   const saveAsSkillDisabledReason = hasRunningSubagents
@@ -1973,13 +1982,9 @@ const ConversationPanel = ({
                     tucks the strip behind the composer, so a notice between them would overlap.
                     Switching between a compact job bar and Notebook chrome remounts this layer so a
                     Notebook that becomes available after jobs still receives its entrance animation. */}
-                {notebookReference ||
-                messageQueue.items.length > 0 ||
-                backgroundTasksVisible ||
-                hasSubagents ||
-                hasBookmarkEntry ||
-                (activeBranchPlan ? isPlanProgressVisible(activeBranchPlan) : false) ? (
+                {composerContextBarVisible ? (
                   <div
+                    data-testid="composer-context-bar"
                     aria-hidden={ordinaryComposerBlocked || undefined}
                     inert={ordinaryComposerBlocked || undefined}
                     key={
@@ -1991,8 +1996,8 @@ const ConversationPanel = ({
                     }
                     className={cn(
                       'flex px-2',
-                      notebookReference || messageQueue.items.length > 0 || hasBookmarkEntry
-                        ? 'relative -mb-8 min-h-[68px] items-start rounded-2xl bg-bg-200 pt-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-out'
+                      composerContextJoinsCard
+                        ? 'relative min-h-9 items-center rounded-t-2xl border border-b-0 border-border-200 bg-bg-000 py-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-out'
                         : 'mb-2 min-h-9 items-center rounded-lg border border-border-200 bg-bg-000 shadow-card',
                       ordinaryComposerBlocked && 'invisible pointer-events-none'
                     )}
@@ -2057,7 +2062,8 @@ const ConversationPanel = ({
                         hasPendingPermission ||
                         pendingElicitation ||
                         pendingPlan ||
-                        specialistUnavailable) &&
+                        specialistUnavailable ||
+                        composerContextJoinsCard) &&
                         'hidden'
                     )}
                   />
@@ -2346,7 +2352,8 @@ const ConversationPanel = ({
                         data-testid="ordinary-composer-form"
                         inert={ordinaryComposerBlocked || undefined}
                         className={cn(
-                          'relative z-10 flex flex-col gap-2 rounded-2xl border border-border-200 bg-bg-000 px-3 py-2',
+                          'relative z-10 flex flex-col gap-2 border border-border-200 bg-bg-000 px-3 py-2',
+                          composerContextJoinsCard ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl',
                           ordinaryComposerBlocked && 'invisible pointer-events-none'
                         )}
                         data-specialist-color={specialistComposerColor}
