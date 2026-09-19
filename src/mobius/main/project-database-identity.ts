@@ -6,6 +6,13 @@ import { PRODUCT } from '../shared/product-config'
 
 const sqliteSidecarSuffixes = ['-wal', '-shm', '-journal'] as const
 
+class ProjectDatabaseIdentityError extends Error {
+  constructor(readonly reason: 'conflicting-project-databases') {
+    super('Both Mobius and legacy project databases exist; recovery is required before startup.')
+    this.name = 'ProjectDatabaseIdentityError'
+  }
+}
+
 const assertRegularDatabaseFile = (path: string): void => {
   const metadata = lstatSync(path, { throwIfNoEntry: false })
   if (metadata && (!metadata.isFile() || metadata.isSymbolicLink())) {
@@ -19,13 +26,22 @@ const projectDatabasePath = (configRoot: string): string =>
 const legacyProjectDatabasePaths = (configRoot: string): string[] =>
   PRODUCT.legacyDatabaseFileNames.map((name) => join(configRoot, name))
 
+const selectExistingProjectDatabasePath = (configRoot: string): string => {
+  const activePath = projectDatabasePath(configRoot)
+  const legacyPaths = legacyProjectDatabasePaths(configRoot).filter(existsSync)
+  if (existsSync(activePath) && legacyPaths.length > 0) {
+    throw new ProjectDatabaseIdentityError('conflicting-project-databases')
+  }
+  if (legacyPaths.length > 1) {
+    throw new ProjectDatabaseIdentityError('conflicting-project-databases')
+  }
+  return legacyPaths[0] ?? activePath
+}
+
 // Credential identity selection runs before Prisma startup, so it must inspect the current file
 // regardless of whether the one-time branded filename migration has run yet.
 const resolveExistingProjectDatabasePath = (configRoot: string): string => {
-  const activePath = projectDatabasePath(configRoot)
-  if (existsSync(activePath)) return activePath
-
-  return legacyProjectDatabasePaths(configRoot).find(existsSync) ?? activePath
+  return selectExistingProjectDatabasePath(configRoot)
 }
 
 const checkpointLegacyDatabase = (path: string): void => {
@@ -54,11 +70,12 @@ const checkpointLegacyDatabase = (path: string): void => {
 
 // Checkpointing first makes the main SQLite file self-contained. The final rename is then atomic
 // within the configuration directory, so a crash leaves either the legacy or branded database as
-// the complete authority. Existing branded data always wins and is never overwritten.
+// the complete authority. If both authorities exist, startup fails closed so neither is hidden.
 const migrateLegacyProjectDatabase = (configRoot: string): string => {
   const activePath = projectDatabasePath(configRoot)
   assertRegularDatabaseFile(activePath)
-  if (existsSync(activePath)) return activePath
+  const selectedPath = selectExistingProjectDatabasePath(configRoot)
+  if (selectedPath === activePath) return activePath
 
   for (const suffix of sqliteSidecarSuffixes) {
     if (existsSync(`${activePath}${suffix}`)) {
@@ -66,8 +83,7 @@ const migrateLegacyProjectDatabase = (configRoot: string): string => {
     }
   }
 
-  const legacyPath = legacyProjectDatabasePaths(configRoot).find(existsSync)
-  if (!legacyPath) return activePath
+  const legacyPath = selectedPath
   assertRegularDatabaseFile(legacyPath)
   for (const suffix of sqliteSidecarSuffixes) assertRegularDatabaseFile(`${legacyPath}${suffix}`)
 
@@ -80,4 +96,9 @@ const migrateLegacyProjectDatabase = (configRoot: string): string => {
   return activePath
 }
 
-export { migrateLegacyProjectDatabase, projectDatabasePath, resolveExistingProjectDatabasePath }
+export {
+  migrateLegacyProjectDatabase,
+  projectDatabasePath,
+  ProjectDatabaseIdentityError,
+  resolveExistingProjectDatabasePath
+}

@@ -382,6 +382,7 @@ async function startDesktop(): Promise<void> {
     { default: iconWindows },
     { default: iconDarkWindows },
     { default: trayMacTemplate },
+    { default: trayMacTemplateRetina },
     { default: trayLightWindows },
     { default: trayDarkWindows },
     { default: trayLinux }
@@ -392,6 +393,7 @@ async function startDesktop(): Promise<void> {
     import('../../resources/icon-light.ico?asset'),
     import('../../resources/icon-dark.ico?asset'),
     import('../../mobius/generated/tray/trayTemplate.png?asset'),
+    import('../../mobius/generated/tray/trayTemplate@2x.png?asset'),
     import('../../mobius/generated/tray/tray-light.ico?asset'),
     import('../../mobius/generated/tray/tray-dark.ico?asset'),
     import('../../mobius/generated/tray/tray.png?asset')
@@ -1479,6 +1481,8 @@ async function startDesktop(): Promise<void> {
         ...handlers,
         iconPath: trayIconPath,
         templateIconPath: process.platform === 'darwin' ? trayMacTemplate : undefined,
+        templateIconRetinaPath:
+          process.platform === 'darwin' ? trayMacTemplateRetina : undefined,
         variantIconPaths: trayVariantIconPaths,
         translate,
         getNavigationSessions: async () =>
