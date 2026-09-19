@@ -75,7 +75,10 @@ describe('Notebook destination policy', () => {
   })
 
   it('allows an exact hostname authorization through a synthetic Fake-IP DNS answer', async () => {
-    lookup.mockResolvedValue([{ address: '198.18.42.7', family: 4 }])
+    lookup.mockResolvedValue([
+      { address: '198.18.42.7', family: 4 },
+      { address: '::ffff:0:c612:2a07', family: 6 }
+    ])
     const policy = new DestinationPolicy({
       allowedDomains: ['conda.anaconda.org'],
       deniedDomains: []
