@@ -17,11 +17,8 @@ import {
   type InlineParentMessageProjection
 } from './subagent-release-projection'
 import { isNotebookExecutionActivity, type ToolExecutionPhase } from './tool-execution-phase'
-import {
-  getNotebookToolDisplayName,
-  isAuthorizedDirectoryTool,
-  NOTEBOOK_MEMORY_TOOL_SUFFIXES
-} from './notebook-tool-names'
+import { getNotebookToolDisplayName, isAuthorizedDirectoryTool } from './notebook-tool-names'
+import { getFirstPartyToolDisplayName } from './first-party-tool-presentation'
 
 type ConversationMessageItem = {
   id: string
@@ -144,11 +141,9 @@ const formatActivityToolName = (
 
   if (isAuthorizedDirectoryTool(providerToolName, title)) return t('List authorized directories')
 
-  const notebookToolName =
-    (providerToolName && formatNotebookToolName(providerToolName)) ??
-    (title && formatNotebookToolName(title))
+  const firstPartyToolName = getFirstPartyToolDisplayName(providerToolName, title)
 
-  if (notebookToolName) return t(notebookToolName)
+  if (firstPartyToolName) return t(firstPartyToolName)
   if (providerToolName) return providerToolName
   if (title && KNOWN_TITLE_TOOL_NAMES.has(title)) return title
 
