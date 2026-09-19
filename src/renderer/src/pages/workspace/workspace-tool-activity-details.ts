@@ -33,6 +33,10 @@ import {
   isLiteratureReadDocumentTool,
   type LiteratureToolSummary
 } from './literature-tool-presentation'
+import {
+  getFirstPartyToolDisplayName,
+  isFirstPartyToolIdentity
+} from './first-party-tool-presentation'
 
 type ToolCodeSection = {
   kind: 'code'
@@ -237,7 +241,9 @@ const stringifyRaw = (value: unknown): string | undefined => {
 // Prefers the explicit provider tool name, falling back to a readable tool-kind label.
 const getToolDisplayName = (activity: ToolActivity): string => {
   const provider = trimDetail(activity.providerToolName)
+  const firstPartyName = getFirstPartyToolDisplayName(provider, activity.title)
 
+  if (firstPartyName) return firstPartyName
   if (provider) return provider
   if (activity.toolKind) return TOOL_KIND_LABELS[activity.toolKind] ?? 'Tool'
 
@@ -406,7 +412,11 @@ const buildGenericDetails = (activity: ToolActivity): ToolActivityDetails | unde
   const candidateSubtitle = primaryPath ?? trimDetail(activity.title)
   // Drop a subtitle that just repeats the tool name (e.g. "Monitor · Monitor").
   const subtitle =
-    candidateSubtitle && candidateSubtitle !== displayName ? candidateSubtitle : undefined
+    candidateSubtitle &&
+    candidateSubtitle !== displayName &&
+    !isFirstPartyToolIdentity(candidateSubtitle)
+      ? candidateSubtitle
+      : undefined
 
   return {
     displayName,
