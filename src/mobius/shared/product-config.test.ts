@@ -16,6 +16,8 @@ describe('Mobius Science product configuration', () => {
       cliCommand: 'mobius-science',
       configDirectory: '.mobius-science',
       developmentConfigDirectory: '.mobius-science-project',
+      databaseFileName: 'mobius-science.db',
+      legacyDatabaseFileNames: ['open-science.db'],
       dataDirectory: 'MobiusScience',
       developmentDataDirectory: 'MobiusScience-DEV',
       sessionExtension: 'mobius',
