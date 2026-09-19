@@ -10,6 +10,7 @@ import {
   credentialSystemCode,
   type InventoryDiagnostic
 } from './diagnostic'
+import { resolveExistingProjectDatabasePath } from '../../mobius/main/project-database-identity'
 
 const PROTECTED_PREFIX = 'open-science:protected:v1:'
 const MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
@@ -140,7 +141,7 @@ export const readCredentialCiphertexts = (options: {
     }
     source = 'application-database'
     stage = 'read-database'
-    database(join(options.configRoot, 'open-science.db'), (db) => {
+    database(resolveExistingProjectDatabasePath(options.configRoot), (db) => {
       const tables = new Set(
         db
           .prepare("SELECT name FROM sqlite_master WHERE type='table'")
