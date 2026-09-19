@@ -90,6 +90,18 @@ describe('read-only ciphertext inventory', () => {
     ])
   })
 
+  it('finds compute ciphertexts after the database adopts the Mobius filename', () => {
+    const paths = fixture()
+    const db = new DatabaseSync(join(paths.configRoot, 'mobius-science.db'))
+    db.exec('CREATE TABLE ComputeCredential(ciphertext BLOB)')
+    db.prepare('INSERT INTO ComputeCredential VALUES (?)').run(Buffer.from('mobius-password'))
+    db.close()
+
+    expect(readCredentialCiphertexts(paths).map((value) => value.toString())).toEqual([
+      'mobius-password'
+    ])
+  })
+
   it('blocks unreadable or malformed existing documents instead of treating them as empty', () => {
     const paths = fixture()
     writeFileSync(join(paths.configRoot, 'credentials.json'), '{broken')

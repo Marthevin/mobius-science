@@ -8,19 +8,27 @@ import {
   migrateApplicationDatabase,
   type SchemaMigrationOptions
 } from '../database/migration-service'
+import {
+  migrateLegacyProjectDatabase,
+  projectDatabasePath as mobiusProjectDatabasePath
+} from '../../mobius/main/project-database-identity'
+import { PRODUCT } from '../../mobius/shared/product-config'
 
 const PROJECT_DB_FILE = 'open-science.db'
 // SQLite PRAGMAs used by migrations are connection-scoped. Keeping a single connection also avoids
 // unnecessary SQLITE_BUSY contention for the local application database.
 const PROJECT_DB_CONNECTION_LIMIT = 1
-const projectDatabasePath = (configRoot: string): string =>
-  join(configRoot, PROJECT_DB_FILE).replace(/\\/g, '/')
+const projectDatabasePath = (configRoot: string, databaseFile = PROJECT_DB_FILE): string =>
+  join(configRoot, databaseFile).replace(/\\/g, '/')
 
 // Builds a client bound to the SQLite file under the given config root. Not a singleton, so tests can
 // point separate clients at temp directories. Backslashes are normalized so the file: URL is valid on
 // Windows (Prisma's SQLite connector expects forward slashes).
-const createProjectDbClient = (configRoot: string): PrismaClient => {
-  const dbPath = projectDatabasePath(configRoot)
+const createProjectDbClient = (
+  configRoot: string,
+  databaseFile = PROJECT_DB_FILE
+): PrismaClient => {
+  const dbPath = projectDatabasePath(configRoot, databaseFile)
 
   return new PrismaClient({
     datasources: {
@@ -42,10 +50,11 @@ const getProjectDbClient = (
 
       try {
         await mkdir(configRoot, { recursive: true })
-        client = createProjectDbClient(configRoot)
+        migrateLegacyProjectDatabase(configRoot)
+        client = createProjectDbClient(configRoot, PRODUCT.databaseFileName)
         await migrateApplicationDatabase(client, {
           ...migrationOptions,
-          databasePath: projectDatabasePath(configRoot)
+          databasePath: mobiusProjectDatabasePath(configRoot)
         })
       } catch (error) {
         await client?.$disconnect().catch(() => undefined)
