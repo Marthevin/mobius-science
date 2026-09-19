@@ -11,7 +11,8 @@ const declared = new Set(manifest.productionFiles.map((entry) => entry.path))
 
 const downstreamPackagingSeams = new Set([
   'build/adhoc-sign.cjs',
-  'packages/credential-identity-probe-native/src/credential_identity_probe.cc'
+  'packages/credential-identity-probe-native/src/credential_identity_probe.cc',
+  'packages/notebook-network-sandbox/runtime/src/gateway/address-policy.ts'
 ])
 
 const gitLines = (...args) =>
