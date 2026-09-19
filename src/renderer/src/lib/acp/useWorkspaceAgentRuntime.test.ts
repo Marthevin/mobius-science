@@ -11212,6 +11212,45 @@ describe('manual native context compaction', () => {
     expect(useSessionStore.getState().sessions[0].compacting).toBeUndefined()
   })
 
+  it('does not strand a post-compaction run when persistence reports a revision conflict', async () => {
+    const snapshot = {
+      ...createSnapshot(['session-1']),
+      nativeContextCompactionSessionIds: ['session-1']
+    }
+    const runtime = {
+      state: snapshot,
+      createSession: vi.fn(),
+      resumeSession: vi.fn(),
+      resetSessionContext: vi.fn(),
+      compactSession: vi.fn().mockResolvedValue(snapshot),
+      sendPrompt: vi.fn().mockResolvedValue(snapshot)
+    }
+    await expect(compactWorkspaceSession(runtime, 'session-1')).resolves.toBe(true)
+    const messageIds = useSessionStore.getState().sessions[0].messages.map(({ id }) => id)
+
+    await expect(
+      sendWorkspaceMessage(
+        runtime,
+        {
+          sessionId: 'session-1',
+          text: 'Continue after compacting',
+          cwd: '/workspace/project'
+        },
+        {
+          flushPersistence: vi.fn().mockRejectedValue(new SessionRevisionConflictError(117, 119))
+        }
+      )
+    ).resolves.toBeUndefined()
+
+    const session = useSessionStore.getState().sessions[0]
+    expect(session.messages.map(({ id }) => id)).toEqual(messageIds)
+    expect(session.status).toBe('error')
+    expect(session.error).toContain('Session revision conflict: expected 117, actual 119')
+    expect(session.activeRun).toBeUndefined()
+    expect(session.compacting).toBeUndefined()
+    expect(runtime.sendPrompt).not.toHaveBeenCalled()
+  })
+
   it('surfaces a session failure when compaction returns no runtime snapshot', async () => {
     const snapshot = {
       ...createSnapshot(['session-1']),
@@ -11287,6 +11326,45 @@ describe('manual native context compaction', () => {
       compacting: true
     })
     expect(cancelledSessionIds).toEqual(new Set(['session-1']))
+  })
+
+  it('settles an orphaned local run when Main reports no matching interaction', async () => {
+    const appended = useSessionStore.getState().appendUserMessage({
+      sessionId: 'session-1',
+      content: 'Prompt stranded after a revision conflict'
+    })
+    expect(appended).toBeDefined()
+    const runtime = { cancel: vi.fn().mockResolvedValue(createSnapshot(['session-1'])) }
+
+    await cancelWorkspaceRun(runtime, 'session-1')
+
+    expect(runtime.cancel).toHaveBeenCalledWith('session-1')
+    expect(useSessionStore.getState().sessions[0]).toMatchObject({ status: 'idle' })
+    expect(useSessionStore.getState().sessions[0].activeRun).toBeUndefined()
+  })
+
+  it('does not settle a newer run while checking an orphaned cancellation', async () => {
+    useSessionStore.getState().appendUserMessage({
+      sessionId: 'session-1',
+      content: 'Old stranded prompt'
+    })
+    const cancellation = createDeferred<AcpStateSnapshot>()
+    const runtime = { cancel: vi.fn(() => cancellation.promise) }
+    const pending = cancelWorkspaceRun(runtime, 'session-1')
+
+    useSessionStore.getState().finishRun('session-1')
+    const replacement = useSessionStore.getState().appendUserMessage({
+      sessionId: 'session-1',
+      content: 'New live prompt'
+    })
+    const newerRun = useSessionStore.getState().sessions[0].activeRun
+    expect(replacement).toBeDefined()
+
+    cancellation.resolve(createSnapshot(['session-1']))
+    await pending
+
+    expect(useSessionStore.getState().sessions[0]).toMatchObject({ status: 'running' })
+    expect(useSessionStore.getState().sessions[0].activeRun).toBe(newerRun)
   })
 
   it('rejects when runtime cancellation returns no terminal snapshot', async () => {
