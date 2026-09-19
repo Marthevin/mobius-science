@@ -74,7 +74,7 @@ import {
 } from './runtime-paths'
 import { toErrorMessage } from '../error-message'
 import { buildManagedRuntimeProcessEnvironment } from './process-environment'
-import { withPipInstallEvidence } from './pip-install-evidence'
+import { withPipDryRunReport, withPipInstallEvidence } from './pip-install-evidence'
 
 const terminatedPackageProcessErrors = new WeakSet<object>()
 
@@ -207,6 +207,9 @@ export type InstallDeps = {
   condaChannel?: string
   pypiIndex?: string
   cranMirror?: string
+  // Automatic mirrors are preferences, not reachability proof. When enabled, the selected index is
+  // checked through the same installer sandbox with a non-writing dry-run before any transaction.
+  networkPreflight?: boolean
   // PEM CA bundle path (enterprise TLS proxy); exported into every install subprocess's env so
   // conda/pip/R HTTPS verification trusts it.
   caBundle?: string
@@ -426,6 +429,7 @@ const protectedRBasePlanError = (
 type ProtectedCondaExecution = {
   conda?: SpawnResult
   approvedPlan?: SpawnResult
+  preflightFailed?: boolean
   failure?: InstallResult
 }
 
@@ -441,6 +445,7 @@ const executeCondaWithRBaseProtection = async (options: {
   prefix: string
   installedRBaseIdentity?: CondaPackageIdentity
   readIdentity: () => CondaPackageIdentity | undefined
+  preflightRequired?: boolean
   runCondaPreflight: InstallSpawn
   runConda: (
     command: string,
@@ -449,14 +454,21 @@ const executeCondaWithRBaseProtection = async (options: {
   ) => Promise<SpawnResult>
 }): Promise<ProtectedCondaExecution> => {
   const installed = options.installedRBaseIdentity
-  if (!installed) {
+  if (!installed && !options.preflightRequired) {
     return { conda: await options.runConda(options.command, options.realArgs) }
   }
 
   const preflight = await options.runCondaPreflight(options.command, options.preflightArgs)
   // The caller owns solver-failure classification and any language-specific fallback. A failed
   // preflight never wrote the prefix, so return it as the Conda result without an approved plan.
-  if (preflight.code !== 0) return { conda: preflight }
+  if (preflight.code !== 0) return { conda: preflight, preflightFailed: true }
+
+  if (!installed) {
+    return {
+      conda: await options.runConda(options.command, options.realArgs),
+      approvedPlan: preflight
+    }
+  }
 
   const planError = protectedRBasePlanError(preflight, installed.version)
   if (planError) {
@@ -537,13 +549,55 @@ const hasCondaTransactionActions = (value: unknown): boolean => {
   })
 }
 
-// Fallback authorization is derived exclusively from micromamba's JSON response. stderr is retained
-// in the user-facing log, but a localized/proxied diagnostic string cannot start a second installer.
+const hasTrustedSandboxNetworkPolicyMarker = (text: string): boolean =>
+  /<sandbox_violations>[\s\S]*^OPEN_SCIENCE_NETWORK_POLICY_BLOCKED(?::|$)/imu.test(text)
+
+const failureReasonFromText = (text: string): CondaFailureClassification['reason'] => {
+  // The package sandbox appends this block after subprocess stderr. It is stronger evidence than
+  // pip's generic terminal "no matching distribution" line, which commonly follows a blocked fetch.
+  if (hasTrustedSandboxNetworkPolicyMarker(text)) return 'network'
+  if (
+    /nothing provides|no matching distribution found|could not find a version that satisfies|package(?:s)?[^\n]*not found|does not exist|not installed/iu.test(
+      text
+    )
+  )
+    return 'package-not-found'
+  if (/solver|resolutionimpossible|unsatisfiable|dependency conflict/iu.test(text))
+    return 'solver-failed'
+  if (/permission denied|operation not permitted|access denied/iu.test(text)) return 'permission'
+  if (
+    /authentication required|proxy authentication|unauthorized|forbidden|\b(?:401|403)\b/iu.test(
+      text
+    )
+  )
+    return 'authentication'
+  if (/cancelled|canceled|aborted by user/iu.test(text)) return 'cancelled'
+  if (
+    /certificate_verify_failed|certificate verification failed|self[- ]signed certificate|unable to get local issuer certificate|hostname mismatch/iu.test(
+      text
+    )
+  )
+    return 'tls-policy'
+  if (
+    /(?:^|\n)OPEN_SCIENCE_NETWORK_POLICY_BLOCKED(?::|$)|newconnectionerror|connection (?:reset|refused|aborted)|temporary failure in name resolution|name or service not known|network is unreachable|no route to host|(?:read|connect)?timed out|readtimeout|connecttimeout/iu.test(
+      text
+    )
+  )
+    return 'network'
+  return 'unknown'
+}
+
+const explicitNetworkFailure = (result: SpawnResult): boolean =>
+  failureReasonFromText(`${result.stdout}\n${result.stderr}`) === 'network'
+
+// Transaction fallback authorization is derived from micromamba's JSON response. The explicit
+// sandbox marker is recognized as network evidence, but remains mutationRisk:unknown unless the
+// caller knows this was a dry-run and can safely narrow it to none.
 const classifyCondaFailure = (result: SpawnResult): CondaFailureClassification => {
   const structured = parseStructuredCondaResult(result)
   if (!structured) {
     return {
-      reason: 'unknown',
+      reason: explicitNetworkFailure(result) ? 'network' : 'unknown',
       mutationRisk: 'unknown'
     }
   }
@@ -553,19 +607,31 @@ const classifyCondaFailure = (result: SpawnResult): CondaFailureClassification =
       mutationRisk: 'possible'
     }
   }
-  const diagnostics = stringValues(structured).join('\n')
-  const reason =
-    /nothing provides|package(?:s)?[^\n]*not found|does not exist|not installed/iu.test(diagnostics)
-      ? ('package-not-found' as const)
-      : /solver|unsatisfiable|conflict/iu.test(diagnostics)
-        ? ('solver-failed' as const)
-        : /permission|access denied/iu.test(diagnostics)
-          ? ('permission' as const)
-          : /network|timeout|tls|ssl|http/iu.test(diagnostics)
-            ? ('network' as const)
-            : ('unknown' as const)
+  const reason = failureReasonFromText(stringValues(structured).join('\n'))
   return {
     reason,
+    mutationRisk: 'none'
+  }
+}
+
+const classifyPreflightFailure = (result: SpawnResult): CondaFailureClassification => {
+  const rawOutput = `${result.stdout}\n${result.stderr}`
+  // The package sandbox owns this wrapper block, so it is stronger evidence than a nested HTTP
+  // status emitted by pip or Conda. Only preflight can safely narrow its mutation risk to none.
+  if (hasTrustedSandboxNetworkPolicyMarker(rawOutput)) {
+    return { reason: 'network', mutationRisk: 'none' }
+  }
+  const structured = parseStructuredCondaResult(result)
+  const structuredClassification = structured ? classifyCondaFailure(result) : undefined
+  const classification =
+    structuredClassification && structuredClassification.reason !== 'unknown'
+      ? structuredClassification
+      : {
+          reason: failureReasonFromText(rawOutput),
+          mutationRisk: 'none' as const
+        }
+  return {
+    reason: classification.reason,
     mutationRisk: 'none'
   }
 }
@@ -740,15 +806,21 @@ const summarize = (value) => {
   visit(value)
   const diagnostics = strings(value).join('\n')
   const canonicalDiagnostic =
-    /nothing provides|package(?:s)?[^\n]*not found|does not exist|not installed/iu.test(diagnostics)
+    /nothing provides|no matching distribution found|could not find a version that satisfies|package(?:s)?[^\n]*not found|does not exist|not installed/iu.test(diagnostics)
       ? 'package not found'
-      : /solver|unsatisfiable|conflict/iu.test(diagnostics)
+      : /solver|resolutionimpossible|unsatisfiable|dependency conflict/iu.test(diagnostics)
         ? 'solver failed'
-        : /permission|access denied/iu.test(diagnostics)
+        : /permission denied|operation not permitted|access denied/iu.test(diagnostics)
           ? 'permission denied'
-          : /network|timeout|tls|ssl|http/iu.test(diagnostics)
-            ? 'network timeout'
-            : undefined
+          : /authentication required|proxy authentication|unauthorized|forbidden|\b(?:401|403)\b/iu.test(diagnostics)
+            ? 'authentication required'
+            : /cancelled|canceled|aborted by user/iu.test(diagnostics)
+              ? 'cancelled'
+              : /certificate_verify_failed|certificate verify failed|certificate verification failed|self[- ]signed certificate|unable to get local issuer certificate|hostname mismatch/iu.test(diagnostics)
+                ? 'certificate verification failed'
+                : /newconnectionerror|connection (?:reset|refused|aborted)|temporary failure in name resolution|name or service not known|network is unreachable|no route to host|(?:read|connect)?timed out|readtimeout|connecttimeout/iu.test(diagnostics)
+                  ? 'network is unreachable'
+                  : undefined
   return {
     transaction,
     actions,
@@ -1370,6 +1442,38 @@ export async function installPackages(
       deps.interpreter ? req.workspaceCwd : undefined,
       spawnOptions
     )
+  const runPreflight: InstallSpawn = (command, args, env = spawnEnv) =>
+    baseSpawn(
+      command,
+      args,
+      env,
+      deps.onChild,
+      deps.onBeforeSpawn,
+      undefined,
+      deps.interpreter ? req.workspaceCwd : undefined,
+      spawnOptions
+    )
+  const pipPreflight = async (
+    command: string,
+    installArgs: string[],
+    env: NodeJS.ProcessEnv,
+    installArgIndex = 0
+  ): Promise<SpawnResult | undefined> => {
+    if (!deps.networkPreflight) return undefined
+    return withPipDryRunReport((reportPath) =>
+      runPreflight(
+        command,
+        [
+          ...installArgs.slice(0, installArgIndex + 1),
+          '--dry-run',
+          '--report',
+          reportPath,
+          ...installArgs.slice(installArgIndex + 1)
+        ],
+        { ...env, PIP_REPORT: reportPath }
+      )
+    )
+  }
 
   if (req.packages.length === 0) {
     return { ok: false, needsRestart: false, log: '', error: 'No packages requested.' }
@@ -1511,9 +1615,9 @@ export async function installPackages(
     return condaCacheMaintenance
   }
   // A dry-run may refresh repodata in the shared package cache, so it takes the same in-process cache
-  // locks as a real transaction. The solver itself deliberately does NOT reuse the install journal hooks:
-  // it cannot write the target prefix. Cache maintenance above does reuse them because its deleting child
-  // must remain supervised until it exits.
+  // locks as a real transaction and uses the same durable child journal. It cannot write the target
+  // prefix, but a surviving solver still owns shared cache paths and must block recovery from starting a
+  // conflicting operation after an app crash.
   const runCondaPreflight: InstallSpawn = async (command, args) => {
     const context = resolveCondaContext()
     await maintainCondaCache(command)
@@ -1522,8 +1626,8 @@ export async function installPackages(
         command,
         args,
         context.env,
-        undefined,
-        undefined,
+        deps.onChild,
+        deps.onBeforeSpawn,
         undefined,
         undefined,
         spawnOptions
@@ -1735,6 +1839,20 @@ export async function installPackages(
       ...(deps.pypiIndex ? ['-i', deps.pypiIndex] : []),
       ...req.packages
     ]
+    const preflight = await pipPreflight(command, pipArgs, spawnEnv, args.length + 2)
+    if (preflight && preflight.code !== 0) {
+      const classification = classifyPreflightFailure(preflight)
+      return {
+        ok: false,
+        needsRestart: false,
+        log: mergeLog(preflight),
+        ...installLogTruncation(preflight),
+        method: 'pip',
+        attempts: [installerAttempt(0, 'pip', req.packages, preflight, classification)],
+        fallbackUsed: false,
+        error: 'pip index preflight failed.'
+      }
+    }
     const result = await run(command, pipArgs)
     return {
       ok: result.code === 0,
@@ -1808,6 +1926,21 @@ export async function installPackages(
     if (req.usePip) {
       const pip = pipBin(prefix)
       const args = ['install', ...(deps.pypiIndex ? ['-i', deps.pypiIndex] : []), ...req.packages]
+      const preflight = await pipPreflight(pip, args, spawnEnv)
+      if (preflight && preflight.code !== 0) {
+        const classification = classifyPreflightFailure(preflight)
+        return {
+          ok: false,
+          needsRestart: false,
+          log: mergeLog(preflight),
+          ...installLogTruncation(preflight),
+          method: 'pip',
+          attempts: [installerAttempt(0, 'pip', req.packages, preflight, classification)],
+          fallbackUsed: false,
+          prefix,
+          error: 'pip index preflight failed.'
+        }
+      }
       const result = await withPipInstallEvidence(prefix, (reportPath) =>
         run(pip, args, { ...spawnEnv, ...(reportPath ? { PIP_REPORT: reportPath } : {}) })
       )
@@ -1868,6 +2001,7 @@ export async function installPackages(
       prefix,
       installedRBaseIdentity: protectedRBaseIdentity,
       readIdentity: () => readIdentity(prefix, 'r-base'),
+      preflightRequired: deps.networkPreflight,
       runCondaPreflight,
       runConda
     })
@@ -1886,26 +2020,53 @@ export async function installPackages(
         prefix
       }
     }
-    const classification = classifyCondaFailure(result)
+    const classification = execution.preflightFailed
+      ? classifyPreflightFailure(result)
+      : classifyCondaFailure(result)
     const condaAttempt = installerAttempt(0, 'conda', req.packages, result, classification)
     if (condaFallbackIsAuthorized(classification)) {
-      const fallback = await withPipInstallEvidence(prefix, (reportPath) =>
-        run(
-          pipBin(prefix),
-          ['install', ...(deps.pypiIndex ? ['-i', deps.pypiIndex] : []), ...req.packages],
-          { ...spawnEnv, ...(reportPath ? { PIP_REPORT: reportPath } : {}) }
-        )
-      )
+      const pip = pipBin(prefix)
+      const pipArgs = [
+        'install',
+        ...(deps.pypiIndex ? ['-i', deps.pypiIndex] : []),
+        ...req.packages
+      ]
+      const fallbackPreflight = await pipPreflight(pip, pipArgs, spawnEnv)
+      const fallback =
+        fallbackPreflight && fallbackPreflight.code !== 0
+          ? fallbackPreflight
+          : await withPipInstallEvidence(prefix, (reportPath) =>
+              run(pip, pipArgs, {
+                ...spawnEnv,
+                ...(reportPath ? { PIP_REPORT: reportPath } : {})
+              })
+            )
       const ok = fallback.code === 0
+      const fallbackClassification =
+        fallbackPreflight && fallbackPreflight.code !== 0
+          ? classifyPreflightFailure(fallbackPreflight)
+          : undefined
+      const fallbackLogResults =
+        fallbackPreflight && fallbackPreflight.code === 0
+          ? [fallbackPreflight, fallback]
+          : [fallback]
       return {
         ok,
         needsRestart: false,
-        log: [preflight ? mergeLog(preflight) : '', mergeLog(result), mergeLog(fallback)]
+        log: [
+          preflight ? mergeLog(preflight) : '',
+          mergeLog(result),
+          fallbackPreflight?.code === 0 ? mergeLog(fallbackPreflight) : '',
+          mergeLog(fallback)
+        ]
           .filter(Boolean)
           .join('\n'),
-        ...installLogTruncation(preflight, result, fallback),
+        ...installLogTruncation(preflight, result, ...fallbackLogResults),
         method: 'pip',
-        attempts: [condaAttempt, installerAttempt(1, 'pip', req.packages, fallback)],
+        attempts: [
+          condaAttempt,
+          installerAttempt(1, 'pip', req.packages, fallback, fallbackClassification)
+        ],
         fallbackUsed: true,
         prefix,
         error: ok ? undefined : 'conda and pip install both failed.'

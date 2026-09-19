@@ -155,8 +155,8 @@ describe('managed R native lock tool preparation', () => {
           ? 'install.packages'
           : `${installer === 'github' ? 'remotes' : 'BiocManager'}::install`
       )
-      expect(onBeforeSpawn).toHaveBeenCalledTimes(2)
-      expect(onChild).toHaveBeenCalledTimes(2)
+      expect(onBeforeSpawn).toHaveBeenCalledTimes(calls.length)
+      expect(onChild).toHaveBeenCalledTimes(calls.length)
       expect(result.log).toContain('renv prepared\nnative installed')
       expect(result.attempts?.map((attempt) => [attempt.groupOrdinal, attempt.installer])).toEqual(
         installer === 'cran'
@@ -472,6 +472,38 @@ describe('defaultSpawn (fail-closed spawn hooks)', () => {
     expect(result.maxPathRecoveryEvidence).toContain('broken-package-1.0-0.conda')
   })
 
+  it.each([
+    ['403 Forbidden at https://mirror.test/channel', 'authentication required'],
+    [
+      'SSL certificate verify failed at https://mirror.test/channel',
+      'certificate verification failed'
+    ],
+    ['operation cancelled by user', 'cancelled'],
+    ['connection refused by mirror.test', 'network is unreachable']
+  ] as const)(
+    'preserves a non-ambiguous bounded Conda failure class for %s',
+    async (diagnostic, canonical) => {
+      const result = await defaultSpawn(
+        process.execPath,
+        [
+          '-e',
+          [
+            `const value = { padding: 'x'.repeat(${INSTALLER_STREAM_LOG_LIMIT_BYTES}), error: ${JSON.stringify(diagnostic)}, actions: {} };`,
+            `process.stdout.write(JSON.stringify(value));`,
+            `process.exitCode = 1;`
+          ].join('')
+        ],
+        undefined,
+        undefined,
+        undefined,
+        true
+      )
+
+      expect(result.stdoutDroppedBytes).toBeGreaterThan(0)
+      expect(result.structuredCondaResult?.diagnostics).toEqual([canonical])
+    }
+  )
+
   it('marks summarized archive evidence incomplete instead of silently capping it', async () => {
     const result = await defaultSpawn(process.execPath, [
       '-e',
@@ -713,6 +745,151 @@ describe('installPackages', () => {
     expect(calls[0][2]?.PIP_REPORT).toMatch(/report\.json$/u)
   })
 
+  it('preflights an automatic pip mirror through the installer sandbox before writing', async () => {
+    const networkBlocked: SpawnResult = {
+      code: 1,
+      stdout: '',
+      stderr: 'OPEN_SCIENCE_NETWORK_POLICY_BLOCKED: destination rejected'
+    }
+    const { spawn, calls } = scriptedSpawn([networkBlocked, ok])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['pyarrow'], usePip: true },
+      {
+        spawn,
+        ...base,
+        pypiIndex: 'https://mirror.test/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0][1]).toEqual(
+      expect.arrayContaining([
+        'install',
+        '--dry-run',
+        '--report',
+        expect.stringMatching(/report\.json$/u),
+        '-i',
+        'https://mirror.test/simple',
+        'pyarrow'
+      ])
+    )
+    expect(result).toMatchObject({ ok: false, fallbackUsed: false })
+    expect(result.attempts).toEqual([
+      expect.objectContaining({ installer: 'pip', reason: 'network', mutationRisk: 'none' })
+    ])
+  })
+
+  it.each([
+    ['ERROR: No matching distribution found for pyopenssl-does-not-exist', 'package-not-found'],
+    ['ERROR: Permission denied while reading tls-helper metadata', 'permission'],
+    ['SSLError: CERTIFICATE_VERIFY_FAILED for https://mirror.test/simple', 'tls-policy']
+  ] as const)(
+    'does not classify a pip preflight as network merely because it mentions SSL: %s',
+    async (stderr, reason) => {
+      const { spawn, calls } = scriptedSpawn([{ code: 1, stdout: '', stderr }])
+
+      const result = await installPackages(
+        { language: 'python', packages: ['pyopenssl-does-not-exist'], usePip: true },
+        {
+          spawn,
+          ...base,
+          pypiIndex: 'https://mirror.test/simple',
+          networkPreflight: true
+        }
+      )
+
+      expect(calls).toHaveLength(1)
+      expect(result.attempts?.[0]).toMatchObject({ reason, mutationRisk: 'none' })
+    }
+  )
+
+  it('runs exactly one actual pip install after a successful sandbox preflight', async () => {
+    const { spawn, calls } = scriptedSpawn([ok, ok])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['pyarrow'], usePip: true },
+      {
+        spawn,
+        ...base,
+        pypiIndex: 'https://pypi.org/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(calls).toHaveLength(2)
+    expect(calls[0][1]).toContain('--dry-run')
+    expect(calls[0][1]).toContain('--report')
+    expect(calls[1][1]).not.toContain('--dry-run')
+    expect(calls[1][1]).toEqual(['install', '-i', 'https://pypi.org/simple', 'pyarrow'])
+    expect(result).toMatchObject({ ok: true, method: 'pip' })
+  })
+
+  it('prefers the sandbox policy marker over pip generic package-not-found fallout', async () => {
+    const stderr = [
+      'ERROR: No matching distribution found for pyarrow',
+      '<sandbox_violations>',
+      'OPEN_SCIENCE_NETWORK_POLICY_BLOCKED: destination rejected',
+      '</sandbox_violations>'
+    ].join('\n')
+    const { spawn } = scriptedSpawn([{ code: 1, stdout: '', stderr }])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['pyarrow'], usePip: true },
+      {
+        spawn,
+        ...base,
+        pypiIndex: 'https://mirror.test/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(result.attempts?.[0]).toMatchObject({ reason: 'network', mutationRisk: 'none' })
+  })
+
+  it('preflights an automatic Conda mirror for a Python-only environment before writing', async () => {
+    const { spawn, calls } = scriptedSpawn([safeRPlan, ok])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['pyarrow'] },
+      { spawn, ...base, networkPreflight: true }
+    )
+
+    expect(calls).toHaveLength(2)
+    expect(calls[0][1]).toContain('--dry-run')
+    expect(calls[0][1]).toContain('--json')
+    expect(calls[1][1]).not.toContain('--dry-run')
+    expect(result).toMatchObject({ ok: true, method: 'conda' })
+  })
+
+  it('prefers a trusted sandbox policy marker over a Conda JSON 403 classification', async () => {
+    const policyBlocked: SpawnResult = {
+      code: 1,
+      stdout: 'bounded JSON tail',
+      stderr: [
+        '<sandbox_violations>',
+        'OPEN_SCIENCE_NETWORK_POLICY_BLOCKED: destination rejected',
+        '</sandbox_violations>'
+      ].join('\n'),
+      structuredCondaResult: {
+        transaction: false,
+        actions: { LINK: [], UNLINK: [] },
+        archives: [],
+        diagnostics: ['authentication required']
+      }
+    }
+    const { spawn, calls } = scriptedSpawn([policyBlocked])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['pyarrow'] },
+      { spawn, ...base, networkPreflight: true }
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(result.attempts?.[0]).toMatchObject({ reason: 'network', mutationRisk: 'none' })
+  })
+
   it('installs into an EXTERNAL interpreter via its own pip, never the app-managed prefix', async () => {
     const { spawn, calls } = scriptedSpawn([ok])
     const result = await installPackages(
@@ -745,6 +922,44 @@ describe('installPackages', () => {
       { spawn, ...base, interpreter: { command: 'py', args: ['-3'] } }
     )
     expect(calls[0]).toEqual(['py', ['-3', '-m', 'pip', 'install', 'rich'], expect.anything()])
+  })
+
+  it('inserts external pip preflight flags after the launcher and -m pip arguments', async () => {
+    const { spawn, calls } = scriptedSpawn([ok, ok])
+
+    await installPackages(
+      { language: 'python', packages: ['rich'] },
+      {
+        spawn,
+        ...base,
+        interpreter: { command: 'py', args: ['-3'] },
+        pypiIndex: 'https://pypi.org/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(calls[0][0]).toBe('py')
+    expect(calls[0][1]).toEqual([
+      '-3',
+      '-m',
+      'pip',
+      'install',
+      '--dry-run',
+      '--report',
+      expect.stringMatching(/report\.json$/u),
+      '-i',
+      'https://pypi.org/simple',
+      'rich'
+    ])
+    expect(calls[1][1]).toEqual([
+      '-3',
+      '-m',
+      'pip',
+      'install',
+      '-i',
+      'https://pypi.org/simple',
+      'rich'
+    ])
   })
 
   it('prefixes r packages with r- and installs into default-r via micromamba, needsRestart true', async () => {
@@ -935,7 +1150,7 @@ describe('installPackages', () => {
     expect(result.error).toMatch(/4\.4\.3.*4\.5\.3.*Repair/i)
   })
 
-  it('journals the approved R transaction but not the read-only dry-run', async () => {
+  it('journals both the cache-touching dry-run and the approved R transaction', async () => {
     const order: string[] = []
     let call = 0
     const spawn: InstallSpawn = async (_command, args, _env, onChild, onBeforeSpawn) => {
@@ -958,7 +1173,7 @@ describe('installPackages', () => {
     )
 
     expect(result.ok).toBe(true)
-    expect(order).toEqual(['spawn#0', 'intent', 'spawn#1', 'child#1'])
+    expect(order).toEqual(['intent', 'spawn#0', 'child#0', 'intent', 'spawn#1', 'child#1'])
   })
 
   it('installs a Bioconductor R package by its bioconductor- name without r- mangling', async () => {
@@ -1248,6 +1463,68 @@ describe('installPackages', () => {
       expect.objectContaining({ installer: 'conda', reason: 'solver-failed' }),
       expect.objectContaining({ installer: 'pip', status: 'succeeded' })
     ])
+  })
+
+  it('preflights an automatic pip fallback after a safe Conda solver failure', async () => {
+    const solverFailure: SpawnResult = {
+      code: 1,
+      stdout: JSON.stringify({
+        success: false,
+        solver_problems: ['Could not solve: unsatisfiable dependency constraints'],
+        actions: {}
+      }),
+      stderr: 'solver failed'
+    }
+    const { spawn, calls } = scriptedSpawn([solverFailure, ok, ok])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['special-wheel'] },
+      {
+        spawn,
+        ...base,
+        pypiIndex: 'https://mirror.test/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(calls).toHaveLength(3)
+    expect(calls[0][1]).toContain('--dry-run')
+    expect(calls[1][1]).toContain('--dry-run')
+    expect(calls[1][1]).toContain('--report')
+    expect(calls[2][1]).not.toContain('--dry-run')
+    expect(result).toMatchObject({ ok: true, method: 'pip', fallbackUsed: true })
+  })
+
+  it('counts a failed pip fallback preflight truncation exactly once', async () => {
+    const solverFailure: SpawnResult = {
+      code: 1,
+      stdout: JSON.stringify({
+        success: false,
+        solver_problems: ['Could not solve: unsatisfiable dependency constraints'],
+        actions: {}
+      }),
+      stderr: 'solver failed'
+    }
+    const fallbackBlocked: SpawnResult = {
+      code: 1,
+      stdout: '',
+      stderr: 'OPEN_SCIENCE_NETWORK_POLICY_BLOCKED: destination rejected',
+      stderrDroppedBytes: 7
+    }
+    const { spawn } = scriptedSpawn([solverFailure, fallbackBlocked])
+
+    const result = await installPackages(
+      { language: 'python', packages: ['special-wheel'] },
+      {
+        spawn,
+        ...base,
+        pypiIndex: 'https://mirror.test/simple',
+        networkPreflight: true
+      }
+    )
+
+    expect(result).toMatchObject({ ok: false, method: 'pip', fallbackUsed: true })
+    expect(result.logTruncation).toEqual({ droppedBytes: 7 })
   })
 
   it('falls back using the reduced summary when bounded logs truncate structured output', async () => {

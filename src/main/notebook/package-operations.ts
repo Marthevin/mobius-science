@@ -8,7 +8,7 @@ import type {
   PackageInspectionResult
 } from './environment-state-tracker'
 import { boundedFailureDiagnostic } from './failure-diagnostic'
-import { effectiveMirrorAsync, type ProbeDeps } from './mirror-probe'
+import { effectiveMirrorPlanAsync, type ProbeDeps } from './mirror-probe'
 import { NotebookPackageAdmissionOwner } from './package-admission'
 import type { NotebookPackageAdmittedTarget } from './package-admission'
 import type { InstallDeps, InstallRequest, InstallResult, InstallSpawn } from './package-manager'
@@ -254,7 +254,7 @@ class NotebookPackageOperations {
         {
           target: admission.target,
           mirror: async () =>
-            effectiveMirrorAsync(
+            effectiveMirrorPlanAsync(
               await this.resolvePackageMirror(),
               this.options.locale,
               this.options.mirrorProbe
