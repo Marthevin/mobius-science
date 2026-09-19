@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream, type Dirent } from 'node:fs'
 import { readFile, readdir, stat } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 import { validateConversationGraph } from '../../shared/conversation-graph'
 import { NOTEBOOK_RUN_FILE } from '../../shared/notebook'
@@ -16,6 +16,7 @@ import {
   validateArtifactReproducibilityReceiptStorage,
   validateArtifactReproducibilityRecipeStorage
 } from '../artifacts/provenance-storage-contract'
+import { resolveExistingProjectDatabasePath } from '../../mobius/main/project-database-identity'
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 const storageKey = (...segments: string[]): string => segments.join('/')
@@ -361,9 +362,9 @@ const assertNoUploadStaging = async (root: string): Promise<void> => {
 }
 
 const validateSqliteStore = async (dataRoot: string, authorityRoot: string): Promise<void> => {
-  const databasePath = join(authorityRoot, 'open-science.db')
+  const databasePath = resolveExistingProjectDatabasePath(authorityRoot)
   if (!(await fileExists(databasePath))) return
-  const client = createProjectDbClient(authorityRoot)
+  const client = createProjectDbClient(authorityRoot, basename(databasePath))
   try {
     const checkpointRows = await client.$queryRawUnsafe<Array<Record<string, unknown>>>(
       'PRAGMA wal_checkpoint(FULL)'
