@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -59,15 +59,37 @@ describe('Mobius project database identity', () => {
     migrated.close()
   })
 
-  it('never overwrites an existing Mobius database with a legacy file', () => {
+  it('refuses to choose silently when valid branded and legacy databases coexist', () => {
     const root = temporaryRoot()
     const activePath = projectDatabasePath(root)
     const legacyPath = join(root, 'open-science.db')
-    writeFileSync(activePath, 'current')
-    writeFileSync(legacyPath, 'legacy')
+    const active = new DatabaseSync(activePath)
+    const legacy = new DatabaseSync(legacyPath)
 
-    expect(migrateLegacyProjectDatabase(root)).toBe(activePath)
-    expect(resolveExistingProjectDatabasePath(root)).toBe(activePath)
+    try {
+      for (const [database, marker] of [
+        [active, 'branded'],
+        [legacy, 'legacy']
+      ] as const) {
+        database.exec('PRAGMA journal_mode = WAL')
+        database.exec(
+          'CREATE TABLE ComputeCredential (id INTEGER PRIMARY KEY, ciphertext BLOB NOT NULL)'
+        )
+        database.prepare('INSERT INTO ComputeCredential (ciphertext) VALUES (?)').run(marker)
+      }
+
+      expect(() => resolveExistingProjectDatabasePath(root)).toThrowError(
+        'Both Mobius and legacy project databases exist; recovery is required before startup.'
+      )
+      expect(() => migrateLegacyProjectDatabase(root)).toThrowError(
+        'Both Mobius and legacy project databases exist; recovery is required before startup.'
+      )
+    } finally {
+      active.close()
+      legacy.close()
+    }
+
+    expect(existsSync(activePath)).toBe(true)
     expect(existsSync(legacyPath)).toBe(true)
   })
 

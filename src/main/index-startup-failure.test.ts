@@ -150,6 +150,7 @@ vi.mock('../../resources/icon-dark.png?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/icon-light.ico?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/icon-dark.ico?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/trayTemplate.png?asset', () => ({ default: 'icon' }))
+vi.mock('../../mobius/generated/tray/trayTemplate@2x.png?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/tray-light.ico?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/tray-dark.ico?asset', () => ({ default: 'icon' }))
 vi.mock('../../resources/tray.png?asset', () => ({ default: 'icon' }))
@@ -291,6 +292,26 @@ it.each(['mac-keychain', 'windows-dpapi'] as const)(
     )
   }
 )
+it('shows actionable database recovery before opening the application profile', async () => {
+  f.validate.mockImplementationOnce(() => {
+    throw new CredentialIdentityError('project-database-conflict')
+  })
+
+  await import('./index')
+
+  expect(f.app.exit).toHaveBeenCalledWith(1)
+  expect(f.leaseRelease).toHaveBeenCalledOnce()
+  expect(f.dialog.showErrorBox).toHaveBeenCalledWith(
+    MOBIUS_NATIVE_IDENTITY.name,
+    expect.stringMatching(
+      /mobius-science\.db.*open-science\.db.*PROJECT_DATABASE: conflicting-files/s
+    )
+  )
+  expect(f.app.whenReady).not.toHaveBeenCalled()
+  expect(f.key).not.toHaveBeenCalled()
+  expect(f.launch).not.toHaveBeenCalled()
+  expect(f.diagnostics).not.toHaveBeenCalled()
+})
 it('releases credential preflight and exits without yielding or initializing the profile after recovery failure', async () => {
   // beforeEach resets module identity; use the same error class as this entry import.
   const { CredentialIdentityError } = await import('./credential-identity/selection')
