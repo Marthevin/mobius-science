@@ -19,6 +19,7 @@ import {
   markManagedProjectWorkspacesRetained,
   markManagedWorkspaceRetained,
   readManagedWorkspaceOwnership,
+  recoverMissingManagedWorkspace,
   reconcileProvisionalManagedWorkspaces,
   removeManagedWorkspaceOwnership,
   restoreManagedProjectWorkspacesActive,
@@ -102,6 +103,52 @@ afterEach(async () => {
 })
 
 describe('managed workspace ownership', () => {
+  it('recreates a missing managed workspace for an authoritative Session', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'managed-workspace-resume-recovery-'))
+    roots.push(dataRoot)
+    const cwd = join(dataRoot, 'workspaces', 'workspace-restored')
+    const session: PersistedChatSession = {
+      id: 'session-1',
+      projectId: 'project-1',
+      title: 'Session',
+      cwd,
+      status: 'idle',
+      messages: [],
+      createdAt: 10,
+      updatedAt: 30
+    }
+
+    await expect(recoverMissingManagedWorkspace(session, dataRoot)).resolves.toBe(true)
+    await expect(readdir(cwd)).resolves.toEqual([])
+    await expect(readManagedWorkspaceOwnership(cwd, dataRoot)).resolves.toMatchObject({
+      workspaceId: 'workspace-restored',
+      projectId: 'project-1',
+      sessionId: 'session-1',
+      createdAt: 10,
+      lastUsedAt: 30,
+      retainedAfterDelete: false
+    })
+  })
+
+  it('does not create an external Session directory during resume recovery', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'managed-workspace-external-resume-'))
+    roots.push(dataRoot)
+    const cwd = join(dataRoot, '..', 'external-workspace')
+
+    await expect(
+      recoverMissingManagedWorkspace(
+        {
+          id: 'session-1',
+          projectId: 'project-1',
+          cwd,
+          createdAt: 10,
+          updatedAt: 30
+        },
+        dataRoot
+      )
+    ).resolves.toBe(false)
+  })
+
   it('keeps Project and Session identity after the live Session record is gone', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'managed-workspace-ownership-'))
     roots.push(dataRoot)

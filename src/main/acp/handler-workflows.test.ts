@@ -80,7 +80,8 @@ const createHarness = (
   mutate?: (session: ReturnType<typeof createSession>) => void,
   archiveAvailability?: Parameters<typeof createAcpHandlerWorkflows>[3],
   taskNotifications?: Parameters<typeof createAcpHandlerWorkflows>[2],
-  saveAsSkillAdmission?: Parameters<typeof createAcpHandlerWorkflows>[5]
+  saveAsSkillAdmission?: Parameters<typeof createAcpHandlerWorkflows>[5],
+  resumeWorkspace?: Parameters<typeof createAcpHandlerWorkflows>[6]
 ): {
   workflows: ReturnType<typeof createAcpHandlerWorkflows>
   startPrompt: ReturnType<typeof vi.fn>
@@ -146,7 +147,8 @@ const createHarness = (
     taskNotifications,
     archiveAvailability,
     { loadSession: vi.fn(async () => session), prepareRuntimeResume },
-    saveAsSkillAdmission
+    saveAsSkillAdmission,
+    resumeWorkspace
   )
   const graph = session.conversationGraph!
   const frame = graph.frames.find(({ id }) => id === graph.activeFrameId)!
@@ -231,6 +233,27 @@ describe('ACP resume Session workflow', () => {
 
     expect(harness.resumeSession).not.toHaveBeenCalled()
     expect(harness.prepareRuntimeResume).not.toHaveBeenCalled()
+  })
+
+  it('restores an authoritative managed workspace before provider resume', async () => {
+    const ensureAvailable = vi.fn(async () => undefined)
+    const availability = {
+      withSessionAvailable: archiveAvailability.withSessionAvailable,
+      withSessionAvailableById: async <Result>(
+        _sessionId: string,
+        operation: (projectId: string) => Promise<Result>
+      ): Promise<Result> => operation('project-1')
+    }
+    const harness = createHarness(undefined, availability, undefined, undefined, {
+      ensureAvailable
+    })
+
+    await harness.workflows.resumeSession({ sessionId: 'session-1', cwd: '/workspace' })
+
+    expect(ensureAvailable).toHaveBeenCalledWith(harness.session)
+    expect(ensureAvailable.mock.invocationCallOrder[0]).toBeLessThan(
+      harness.resumeSession.mock.invocationCallOrder[0]
+    )
   })
 })
 

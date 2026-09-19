@@ -12,6 +12,7 @@ import {
   type ShellRuntimeAgentContract
 } from '../notebook/shell-runtime'
 import type { AcpBackendGenerationView } from './backend-generation-owner'
+import type { OpenCodeSessionDirectoryResumePreparation } from './opencode-session-directory'
 import { AcpProviderSessionResumer } from './provider-session-resumer'
 import {
   CURRENT_PRIMARY_SESSION_CAPABILITY_POLICY,
@@ -77,6 +78,7 @@ type HarnessOptions = {
   invalidatePendingOnTimeout?: boolean
   invalidateDuringResume?: boolean
   observerError?: Error
+  openCodeSessionDirectory?: OpenCodeSessionDirectoryResumePreparation
   projectAgentContext?: string
   projectAgentContextError?: Error
   providerSessionId?: string
@@ -116,6 +118,7 @@ type ResumerHarness = {
   observeProgress: (providerSessionId: string) => void
   providerSession: ActiveSession
   provision: ReturnType<typeof vi.fn>
+  reconcileOpenCodeSessionDirectory: ReturnType<typeof vi.fn>
   registry: AcpSessionRegistry
   release: ReturnType<typeof vi.fn>
   backend: AcpBackendGenerationView
@@ -260,6 +263,10 @@ const createHarness = (options: HarnessOptions = {}): ResumerHarness => {
   const clearTimer = vi.fn()
   const assertCurrentConnection = vi.fn()
   const clearLivePermissionProfile = vi.fn()
+  const reconcileOpenCodeSessionDirectory = vi.fn(async () => {
+    order.push('reconcile OpenCode directory')
+    return options.openCodeSessionDirectory ?? 'unsupported'
+  })
   const provision = vi.fn(async () => {
     order.push('capability provision')
     const mcpServers = options.capabilityMcpServers ?? []
@@ -306,6 +313,7 @@ const createHarness = (options: HarnessOptions = {}): ResumerHarness => {
     resumeCapabilityAdvertised: () => options.supportsResume !== false,
     supportsSessionClose: () => options.supportsClose !== false,
     currentBackend: () => currentBackend,
+    reconcileOpenCodeSessionDirectory,
     registry,
     reserveIdentity: (sessionId) =>
       registry.reserve({
@@ -388,6 +396,7 @@ const createHarness = (options: HarnessOptions = {}): ResumerHarness => {
     observeProgress: (providerSessionId) => resumer.observeProgress(providerSessionId),
     providerSession,
     provision,
+    reconcileOpenCodeSessionDirectory,
     registry,
     release,
     request,
@@ -1143,6 +1152,50 @@ describe('AcpProviderSessionResumer', () => {
       expect(harness.adopt).toHaveBeenCalledOnce()
     }
   )
+
+  it('reconciles a persisted OpenCode directory before resuming its provider Session', async () => {
+    const harness = createHarness({
+      initialBackend: opencodeBackend,
+      openCodeSessionDirectory: 'moved'
+    })
+
+    const resumed = await harness.resume({
+      providerSessionId: 'ses_provider',
+      previousFrameworkId: 'opencode',
+      previousBackendId: opencodeBackend.backendId
+    })
+
+    expect(resumed).toMatchObject({ providerSessionId: 'provider-session' })
+    expect(resumed).not.toHaveProperty('contextReset')
+
+    expect(harness.reconcileOpenCodeSessionDirectory).toHaveBeenCalledWith(
+      'ses_provider',
+      '/workspace'
+    )
+    expect(harness.order.indexOf('reconcile OpenCode directory')).toBeLessThan(
+      harness.order.indexOf('session/resume')
+    )
+    expect(harness.adopt).not.toHaveBeenCalled()
+  })
+
+  it('fresh-adopts OpenCode context when its persisted directory cannot be reconciled', async () => {
+    const harness = createHarness({
+      initialBackend: opencodeBackend,
+      openCodeSessionDirectory: 'unavailable'
+    })
+
+    await expect(
+      harness.resume({
+        providerSessionId: 'ses_provider',
+        previousFrameworkId: 'opencode',
+        previousBackendId: opencodeBackend.backendId
+      })
+    ).resolves.toMatchObject({ contextReset: true })
+
+    expect(harness.request).not.toHaveBeenCalled()
+    expect(harness.adopt).toHaveBeenCalledOnce()
+    expect(harness.identityClaimedAtAdoption()).toBe(true)
+  })
 
   it('fresh-adopts a legacy OpenCode Session after its adapter returns Unknown error', async () => {
     const harness = createHarness({

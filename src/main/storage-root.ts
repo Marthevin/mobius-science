@@ -89,7 +89,7 @@ const isPathInsideOrEqual = (parent: string, child: string): boolean => {
 let cachedDataRoot: string | undefined
 let configuredDataRoot: string | undefined
 
-const initDataRoot = (settingsDataRoot: unknown, onboardingCompletedAt?: number): void => {
+const initDataRoot = (settingsDataRoot: unknown, _onboardingCompletedAt?: number): void => {
   const unset =
     settingsDataRoot == null ||
     (typeof settingsDataRoot === 'string' && settingsDataRoot.trim() === '')
@@ -98,12 +98,11 @@ const initDataRoot = (settingsDataRoot: unknown, onboardingCompletedAt?: number)
       'The saved data location (dataRoot) is invalid. Restore its absolute path before restarting.'
     )
   configuredDataRoot = unset ? undefined : (settingsDataRoot as string)
-  // 历史数据路径，属于品牌改名豁免项，禁止随展示品牌修改。
-  const legacyDefault = (): string =>
-    join(app.getPath('home'), app.isPackaged ? 'OpenScience' : 'OpenScience-dev')
-  cachedDataRoot =
-    configuredDataRoot ??
-    (onboardingCompletedAt !== undefined ? legacyDefault() : computeDefaultDataRoot())
+  // An onboarding marker records completion, not a data-location choice. Older profiles can carry
+  // the marker without a persisted dataRoot (for example after a reinstall or profile repair).
+  // Falling back to the former product name in that case splits one profile across two roots and
+  // makes portable $DATA paths resolve away from the user's Mobius files.
+  cachedDataRoot = configuredDataRoot ?? computeDefaultDataRoot()
 }
 
 // Before initDataRoot has run (early callers, tests), fall back to computeDefaultDataRoot()

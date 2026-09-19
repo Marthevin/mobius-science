@@ -73,6 +73,13 @@ describe('Mobius Science approved brand assets', () => {
     expect(metadata).toMatchObject({ width: 660, height: 534, density: 72 })
   })
 
+  it('places the application icon in the DMG header', async () => {
+    const center = await pixelAt(join(generatedRoot, 'app', 'dmg-background.png'), 204, 50)
+    expect(center[0] + center[1] + center[2]).toBeLessThan(550)
+    expect(center[2]).toBeGreaterThan(center[0] + 40)
+    expect(center[3]).toBe(255)
+  })
+
   it.each([
     ['app/dmg-background.png', 660, 534],
     ['app/icon-512.png', 512],

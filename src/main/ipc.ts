@@ -411,6 +411,7 @@ import { createDataRootSourceCleanup, DataRootCleanupJournal } from './storage/d
 import {
   markManagedProjectWorkspacesRetained,
   markManagedWorkspaceRetained,
+  recoverMissingManagedWorkspace,
   reconcileProvisionalManagedWorkspaces,
   restoreManagedProjectWorkspacesActive,
   restoreManagedWorkspaceActive
@@ -3717,6 +3718,11 @@ const createApplicationModules = async (
     (sessionId) => {
       if (sideChatRuntime.hasForParent(sessionId)) {
         throw new Error('Close Side chat before saving this conversation as a Skill.')
+      }
+    },
+    {
+      ensureAvailable: async (session) => {
+        await recoverMissingManagedWorkspace(session)
       }
     }
   )

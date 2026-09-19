@@ -39,8 +39,8 @@
   </g>
 
   <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" text-anchor="middle">
-    <text x="330" y="58" fill="#161B2D" font-size="29" font-weight="650" letter-spacing="-0.7">Mobius Science</text>
-    <text x="330" y="84" fill="#687086" font-size="13.5" font-weight="450" letter-spacing="0.2">A local-first workspace for rigorous, reproducible research</text>
+    <text x="357" y="58" fill="#161B2D" font-size="29" font-weight="650" letter-spacing="-0.7">Mobius Science</text>
+    <text x="357" y="84" fill="#687086" font-size="13.5" font-weight="450" letter-spacing="0.2">A local-first workspace for rigorous, reproducible research</text>
   </g>
 
   <g filter="url(#softShadow)">
