@@ -1,4 +1,5 @@
 import { runtimeMetadata } from '../runtime-metadata'
+import { recoverMissingManagedWorkspace } from '../storage/managed-workspace-ownership'
 import { join } from 'node:path'
 import type { AcpSessionAgentTarget } from '../../shared/acp'
 import { SPECIALIST_IPC } from '../../shared/specialist'
@@ -226,6 +227,11 @@ export async function composeAgentWorkflows({
     (sessionId) => {
       if (sideChatRuntime.hasForParent(sessionId)) {
         throw new Error('Close Side chat before saving this conversation as a Skill.')
+      }
+    },
+    {
+      ensureAvailable: async (session) => {
+        await recoverMissingManagedWorkspace(session)
       }
     }
   )

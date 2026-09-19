@@ -5,6 +5,7 @@ import type { AgentFramework } from '../agent-framework/types'
 import { AcpProviderSessionAdopter } from './provider-session-adopter'
 import { AcpProviderSessionCreator } from './provider-session-creator'
 import { AcpProviderSessionResumer } from './provider-session-resumer'
+import { reconcileOpenCodeSessionDirectory } from './opencode-session-directory'
 import type { AcpRuntimeBaseOwners } from './runtime-base-composition'
 import type { AcpRuntimeOptions } from './runtime-contract'
 import type { AcpRuntimeLifecycleOwners } from './runtime-lifecycle-composition'
@@ -169,6 +170,12 @@ const composeAcpRuntimeProviderSessionOwners = (
     resumeCapabilityAdvertised: () => base.connectionResources.capabilities.resume,
     supportsSessionClose: () => base.connectionResources.capabilities.close,
     currentBackend: () => base.backendGeneration.current,
+    reconcileOpenCodeSessionDirectory: (providerSessionId, cwd) => {
+      const api = base.backendGeneration.openCodeUsageApi()
+      return api
+        ? reconcileOpenCodeSessionDirectory(api, providerSessionId, cwd)
+        : Promise.resolve('unsupported' as const)
+    },
     registry: session.sessionRegistry,
     reserveIdentity: (sessionId) => reserveIdentity(undefined, [sessionId]),
     capabilities: base.sessionCapabilities,
