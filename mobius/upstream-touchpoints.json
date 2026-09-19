@@ -22,6 +22,10 @@
       "seam": "Accepts the Mobius credential identity while retaining legacy identities for safe migration."
     },
     {
+      "path": "packages/notebook-network-sandbox/runtime/src/gateway/address-policy.ts",
+      "seam": "Lets an explicitly allowed exact hostname traverse the sandbox DNS fake-IP range while retaining private-network denial."
+    },
+    {
       "path": "src/shared/app-config.ts",
       "seam": "Projects identity and removes upstream destinations."
     },
@@ -45,6 +49,14 @@
     {
       "path": "src/main/credential-identity/selection.ts",
       "seam": "Accepts ordered product credential identities while preserving upstream defaults."
+    },
+    {
+      "path": "src/main/credential-identity/ciphertext-inventory.ts",
+      "seam": "Reads encrypted database records across the Mobius filename migration without weakening credential recovery checks."
+    },
+    {
+      "path": "src/main/projects/prisma-client.ts",
+      "seam": "Migrates the legacy database filename before opening the Mobius authority store."
     },
     {
       "path": "src/main/remote-access/pairing-page.ts",
@@ -79,6 +91,10 @@
     {
       "path": "src/main/storage/electron-profile.ts",
       "seam": "Accepts ordered product profile directories while preserving upstream defaults."
+    },
+    {
+      "path": "src/main/storage/provenance-migration-validation.ts",
+      "seam": "Validates either side of the one-time Mobius database filename migration."
     },
     { "path": "src/main/storage-root.ts", "seam": "Uses Mobius-owned data directory names." },
     {
@@ -195,6 +211,10 @@
       "seam": "Removes the upstream issue destination from the retained local helper."
     },
     {
+      "path": "src/renderer/src/lib/acp/workspace-runtime-session-lifecycle-owner.ts",
+      "seam": "Settles renderer runs that lost their Main-owned interaction after compaction without cancelling a newer run."
+    },
+    {
       "path": "src/renderer/src/pages/home/HomePage.tsx",
       "seam": "Uses Mobius branding and removes Star/update controls."
     },
@@ -229,6 +249,14 @@
     {
       "path": "src/renderer/src/pages/workspace/ReportErrorDialog.tsx",
       "seam": "Keeps diagnostics local."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/notebook-tool-names.ts",
+      "seam": "Maps stable internal Notebook MCP identities to user-facing labels."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/workspace-conversation-items.ts",
+      "seam": "Prevents OpenCode's flattened Notebook provider namespace from leaking into activity rows."
     },
     {
       "path": "src/renderer/src/pages/workspace/WorkspaceSidebar.tsx",
