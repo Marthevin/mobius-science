@@ -417,6 +417,62 @@ const reconcileProvisionalManagedWorkspaces = async (
   if (firstFailure) throw firstFailure
 }
 
+// A durable Session is authoritative for its app-managed cwd. If the directory was removed outside
+// the application (or by an interrupted legacy migration), recreate only that empty managed
+// directory and its ownership receipt before the provider resumes. External cwd values are never
+// created here, and an existing directory is never claimed or modified.
+const recoverMissingManagedWorkspace = async (
+  session: Pick<PersistedChatSession, 'cwd' | 'projectId' | 'id' | 'createdAt' | 'updatedAt'>,
+  dataRoot = resolveDataRoot()
+): Promise<boolean> => {
+  const location = locateManagedWorkspace(session.cwd, dataRoot)
+  if (!location || (await assertManagedWorkspaceDirectory(session.cwd, dataRoot))) return false
+
+  await mkdir(location.workspacesRoot, { recursive: true })
+  if (!(await assertManagedWorkspacesRoot(location.workspacesRoot))) {
+    throw new Error('Managed workspaces root is unavailable during Session recovery.')
+  }
+
+  const prior = await readOwnershipForUpdate(location)
+  if (
+    prior &&
+    (prior.projectId !== session.projectId ||
+      (prior.sessionId !== undefined && prior.sessionId !== session.id))
+  ) {
+    throw new Error('Managed workspace ownership conflicts with the resumed Session.')
+  }
+
+  try {
+    await mkdir(location.directory, { recursive: false })
+  } catch (error) {
+    if (
+      isFileSystemError(error, 'EEXIST') &&
+      (await assertManagedWorkspaceDirectory(session.cwd, dataRoot))
+    ) {
+      return false
+    }
+    throw error
+  }
+
+  try {
+    await writeOwnership(location, {
+      version: MANAGED_WORKSPACE_OWNERSHIP_VERSION,
+      workspaceId: location.workspaceId,
+      projectId: session.projectId,
+      sessionId: session.id,
+      createdAt: prior?.createdAt ?? session.createdAt,
+      lastUsedAt: Math.max(prior?.lastUsedAt ?? session.createdAt, session.updatedAt),
+      retainedAfterDelete: false
+    })
+    return true
+  } catch (error) {
+    await rm(location.directory, { recursive: true, force: true }).catch(() => undefined)
+    if (!prior)
+      await rm(location.receiptPath, { force: true, recursive: false }).catch(() => undefined)
+    throw error
+  }
+}
+
 const readManagedWorkspaceOwnership = async (
   cwd: string,
   dataRoot?: string
@@ -450,6 +506,7 @@ export {
   markManagedProjectWorkspacesRetained,
   markManagedWorkspaceRetained,
   readManagedWorkspaceOwnership,
+  recoverMissingManagedWorkspace,
   reconcileProvisionalManagedWorkspaces,
   removeManagedWorkspaceOwnership,
   restoreManagedProjectWorkspacesActive,

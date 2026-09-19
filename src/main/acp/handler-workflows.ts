@@ -85,6 +85,10 @@ type InterruptedTurnSessionSource = {
 
 type SaveAsSkillAdmission = (sessionId: string) => void | Promise<void>
 
+type ResumeWorkspaceAvailability = {
+  ensureAvailable(session: PersistedChatSession): Promise<void>
+}
+
 const safeRead = (value: object, key: string): unknown => {
   try {
     return (value as Record<string, unknown>)[key]
@@ -276,7 +280,8 @@ const createAcpHandlerWorkflows = (
   taskNotifications?: PromptNotifications,
   archiveAvailability?: SessionArchiveAvailability,
   interruptedTurnSessions?: InterruptedTurnSessionSource,
-  saveAsSkillAdmission?: SaveAsSkillAdmission
+  saveAsSkillAdmission?: SaveAsSkillAdmission,
+  resumeWorkspace?: ResumeWorkspaceAvailability
 ): AcpHandlerWorkflows => ({
   async createSession(request): Promise<AcpCreateSessionResponse> {
     try {
@@ -303,6 +308,16 @@ const createAcpHandlerWorkflows = (
     try {
       const resume = async (projectId: string): Promise<AcpCreateSessionResponse> => {
         const bound = bindResumeRequestToProject(request, projectId)
+        if (resumeWorkspace) {
+          if (!interruptedTurnSessions) {
+            throw new Error('Session workspace recovery is unavailable.')
+          }
+          const session = await interruptedTurnSessions.loadSession(projectId, request.sessionId)
+          if (!session || session.projectId !== projectId || session.id !== request.sessionId) {
+            throw new Error('Session workspace recovery could not load the authoritative Session.')
+          }
+          await resumeWorkspace.ensureAvailable(session)
+        }
         if (
           interruptedTurnSessions?.prepareRuntimeResume &&
           !runtime.hasLiveSession(projectId, request.sessionId)

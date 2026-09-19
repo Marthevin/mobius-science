@@ -1,3 +1,4 @@
+import { recoverMissingManagedWorkspace } from '../storage/managed-workspace-ownership'
 import { app } from 'electron'
 import { join } from 'node:path'
 import type { AcpSessionAgentTarget } from '../../shared/acp'
@@ -213,6 +214,11 @@ export async function composeAgentWorkflows({
     (sessionId) => {
       if (sideChatRuntime.hasForParent(sessionId)) {
         throw new Error('Close Side chat before saving this conversation as a Skill.')
+      }
+    },
+    {
+      ensureAvailable: async (session) => {
+        await recoverMissingManagedWorkspace(session)
       }
     }
   )

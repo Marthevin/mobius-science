@@ -92,6 +92,22 @@
       "seam": "Projects the Mobius product identity into agent instructions."
     },
     {
+      "path": "src/main/acp/handler-workflows.ts",
+      "seam": "Restores a missing app-managed Session workspace before provider resume."
+    },
+    {
+      "path": "src/main/acp/opencode-session-directory.ts",
+      "seam": "Reconciles OpenCode's provider-owned Session directory after the Mobius data-root migration."
+    },
+    {
+      "path": "src/main/acp/provider-session-resumer.ts",
+      "seam": "Moves a stale OpenCode provider Session before resume and safely resets context when reconciliation is unavailable."
+    },
+    {
+      "path": "src/main/acp/runtime-provider-session-composition.ts",
+      "seam": "Connects authenticated OpenCode loopback directory reconciliation to provider Session resume."
+    },
+    {
       "path": "src/main/artifacts/provenance-finalization-recovery.ts",
       "seam": "Keeps finalization recovery bounded on research databases with large execution snapshots."
     },
@@ -115,7 +131,14 @@
       "path": "src/main/storage/provenance-migration-validation.ts",
       "seam": "Validates either side of the one-time Mobius database filename migration."
     },
-    { "path": "src/main/storage-root.ts", "seam": "Uses Mobius-owned data directory names." },
+    {
+      "path": "src/main/storage-root.ts",
+      "seam": "Uses the Mobius-owned data directory for profiles without an explicit saved root."
+    },
+    {
+      "path": "src/main/storage/managed-workspace-ownership.ts",
+      "seam": "Recreates only authoritative missing app-managed Session workspaces with durable ownership."
+    },
     {
       "path": "src/main/session-package/desktop.ts",
       "seam": "Exports .mobius and imports .mobius/.science."
