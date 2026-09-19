@@ -193,6 +193,22 @@ class ArtifactProvenanceFinalizationRecovery {
           originKind: 'agent_generated',
           state: { in: ['pending', 'finalized'] },
           artifact: { is: { projectId, sessionId: appSessionId } }
+        },
+        select: {
+          id: true,
+          originKind: true,
+          artifactRunId: true,
+          rootFrameId: true,
+          agentFrameId: true,
+          messageBranchId: true,
+          runtimeSegmentId: true,
+          promptMessageId: true,
+          evidenceStorageKey: true,
+          evidenceJson: true,
+          evidenceChecksum: true,
+          evidenceSchemaVersion: true,
+          state: true,
+          messageId: true
         }
       })
     ).map(requireAgentArtifactVersion)

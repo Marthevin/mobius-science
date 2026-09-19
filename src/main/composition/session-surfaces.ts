@@ -46,6 +46,7 @@ export async function composeSessionSurfaces({
   uploadCommandOwner,
   reviewRepository,
   startupSessionDetails,
+  consumeStartupSessionCatalog,
   sessionPersistenceBackend,
   specialistService,
   specialistPackageService,
@@ -75,6 +76,7 @@ export async function composeSessionSurfaces({
   uploadCommandOwner: ReturnType<typeof createUploadCommandOwner>
   reviewRepository: ReturnType<typeof createDefaultReviewRepository>
   startupSessionDetails: { current: LoadAllSessionsResult['sessions'] | undefined }
+  consumeStartupSessionCatalog: () => Promise<LoadAllSessionsResult>
   sessionPersistenceBackend: ReturnType<typeof coordinateSessionPersistenceWithProjectDeletions>
   specialistService: SpecialistService
   specialistPackageService: SpecialistPackageService
@@ -133,6 +135,7 @@ export async function composeSessionSurfaces({
       appVersion: runtimeMetadata().version,
       configRoot,
       settingsService,
+      loadStartupSessionCatalog: consumeStartupSessionCatalog,
       sessionPersistenceBackend,
       sessionPersistenceCoordinator
     },
@@ -147,8 +150,7 @@ export async function composeSessionSurfaces({
       })
       const owner = createSessionDetailsOwner({
         sessions: {
-          listSessions: async () =>
-            (await dependencies.sessionPersistenceBackend.loadAll()).sessions,
+          listSessions: async () => (await dependencies.loadStartupSessionCatalog()).sessions,
           mutateSession: (projectId, sessionId, mutation) =>
             dependencies.sessionPersistenceCoordinator.mutateSessionDetailsAuthority(
               projectId,
