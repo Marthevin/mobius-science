@@ -11,6 +11,8 @@ export type ProductConfig = Readonly<{
   cliCommand: string
   configDirectory: string
   developmentConfigDirectory: string
+  databaseFileName: string
+  legacyDatabaseFileNames: readonly [string, ...string[]]
   dataDirectory: string
   developmentDataDirectory: string
   sessionExtension: string
@@ -56,6 +58,13 @@ const isProductConfig = (value: unknown): value is ProductConfig => {
     ) &&
     new Set(candidate.electronProfileNames).size === candidate.electronProfileNames.length &&
     candidate.electronProfileNames[0] === candidate.displayName &&
+    Array.isArray(candidate.legacyDatabaseFileNames) &&
+    candidate.legacyDatabaseFileNames.length > 0 &&
+    candidate.legacyDatabaseFileNames.every(
+      (name) => typeof name === 'string' && name.trim().length > 0
+    ) &&
+    new Set(candidate.legacyDatabaseFileNames).size === candidate.legacyDatabaseFileNames.length &&
+    !candidate.legacyDatabaseFileNames.includes(candidate.databaseFileName) &&
     [
       'displayName',
       'developmentDisplayName',
@@ -66,6 +75,7 @@ const isProductConfig = (value: unknown): value is ProductConfig => {
       'cliCommand',
       'configDirectory',
       'developmentConfigDirectory',
+      'databaseFileName',
       'dataDirectory',
       'developmentDataDirectory',
       'sessionExtension',
@@ -87,6 +97,10 @@ export const PRODUCT: ProductConfig = Object.freeze({
     ...string[]
   ],
   electronProfileNames: Object.freeze([...productManifest.electronProfileNames]) as readonly [
+    string,
+    ...string[]
+  ],
+  legacyDatabaseFileNames: Object.freeze([...productManifest.legacyDatabaseFileNames]) as readonly [
     string,
     ...string[]
   ]
