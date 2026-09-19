@@ -138,6 +138,14 @@ describe('validateProvenanceMigrationState', () => {
     await expect(validateProvenanceMigrationState(root)).resolves.toBeUndefined()
   })
 
+  it('validates an internally consistent Mobius-named SQLite authority store', async () => {
+    const client = createProjectDbClient(root, 'mobius-science.db')
+    await migrateApplicationDatabase(client)
+    await client.$disconnect()
+
+    await expect(validateProvenanceMigrationState(root)).resolves.toBeUndefined()
+  })
+
   it('validates the fixed config-root SQLite authority against a separate data root', async () => {
     const authorityRoot = join(root, 'config')
     const dataRoot = join(root, 'data')

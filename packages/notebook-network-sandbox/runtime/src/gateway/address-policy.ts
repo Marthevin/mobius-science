@@ -88,6 +88,12 @@ const ipv4In = (address: number, base: string, bits: number): boolean => {
   return (address & mask) === (ipv4Number(base) & mask)
 }
 
+const isSyntheticDnsAddress = (address: string): boolean =>
+  isIP(address) === 4 && ipv4In(ipv4Number(address), '198.18.0.0', 15)
+
+const isExactHostRule = (rule: Rule): boolean =>
+  !rule.all && !rule.subdomains && rule.labels === undefined
+
 const parseIpv6 = (address: string): bigint | undefined => {
   const withoutZone = address.split('%', 1)[0]!
   const halves = withoutZone.split('::')
@@ -207,6 +213,15 @@ class DestinationPolicy {
       return { kind: 'deny', reason: 'host did not resolve', configurable: false }
     }
     if (addresses.some((address) => !isInternetAddress(address))) {
+      // Transparent proxy "Fake-IP" modes map public hostnames into the IANA benchmarking range.
+      // Accept that mapping only for a hostname with an exact allow rule and only when every answer
+      // is synthetic. Literal IPs, wildcard grants, mixed answers, and all other private ranges stay
+      // blocked, so this compatibility path cannot broaden ordinary private-network access.
+      const exactSyntheticDnsAuthorization =
+        isIP(host) === 0 &&
+        addresses.every(isSyntheticDnsAddress) &&
+        this.#allowed.some((rule) => isExactHostRule(rule) && ruleAccepts(rule, host, port))
+      if (exactSyntheticDnsAuthorization) return { kind: 'allow', address: addresses[0]! }
       return {
         kind: 'deny',
         reason: 'destination resolves to a non-public network address',

@@ -5,6 +5,10 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { withReadOnlySqliteSnapshot as database } from './sqlite-snapshot'
 import { CredentialIdentityError } from './selection'
+import {
+  ProjectDatabaseIdentityError,
+  resolveExistingProjectDatabasePath
+} from '../../mobius/main/project-database-identity'
 
 const PROTECTED_PREFIX = 'open-science:protected:v1:'
 const MAX_DOCUMENT_BYTES = 64 * 1024 * 1024
@@ -115,7 +119,7 @@ export const readCredentialCiphertexts = (options: {
         }
       }
     }
-    database(join(options.configRoot, 'open-science.db'), (db) => {
+    database(resolveExistingProjectDatabasePath(options.configRoot), (db) => {
       const tables = new Set(
         db
           .prepare("SELECT name FROM sqlite_master WHERE type='table'")
@@ -176,6 +180,8 @@ export const readCredentialCiphertexts = (options: {
     return values
   } catch (error) {
     if (error instanceof Error && error.name === 'SettingsDocumentReadError') throw error
+    if (error instanceof ProjectDatabaseIdentityError)
+      throw new CredentialIdentityError('project-database-conflict')
     throw new CredentialIdentityError('ciphertext-inventory-unavailable')
   }
 }

@@ -1006,6 +1006,31 @@ it('prints credential failure details before a native recovery dialog can be sho
   )
 })
 
+it('shows actionable database recovery before opening the application profile', async () => {
+  const { CredentialIdentityError } = await import('./credential-identity/selection')
+  fixture.headless = false
+  fixture.selectCredentialIdentity.mockReset().mockReturnValue({
+    backend: 'mac-keychain',
+    appName: 'Mobius Science',
+    exists: true
+  })
+  fixture.prepareCredentialValidation.mockReset().mockImplementationOnce(() => {
+    throw new CredentialIdentityError('project-database-conflict')
+  })
+
+  await import('./index')
+  await fixture.exited
+
+  expect(fixture.electron.dialog.showErrorBox).toHaveBeenCalledWith(
+    MOBIUS_NATIVE_IDENTITY.name,
+    expect.stringMatching(
+      /mobius-science\.db.*open-science\.db.*PROJECT_DATABASE: conflicting-files/s
+    )
+  )
+  expect(fixture.prepareLocations).not.toHaveBeenCalled()
+  expect(fixture.configureDesktop).not.toHaveBeenCalled()
+})
+
 it('reports headless credential recovery on stderr without a blocking dialog', async () => {
   const { CredentialIdentityError } = await import('./credential-identity/selection')
   fixture.selectCredentialIdentity.mockReset().mockImplementationOnce(() => {

@@ -17,10 +17,7 @@ import {
   type InlineParentMessageProjection
 } from './subagent-release-projection'
 import { isNotebookExecutionActivity, type ToolExecutionPhase } from './tool-execution-phase'
-import {
-  getNotebookMemoryToolDisplayName,
-  NOTEBOOK_MEMORY_TOOL_SUFFIXES
-} from './notebook-tool-names'
+import { getNotebookToolDisplayName } from './notebook-tool-names'
 
 type ConversationMessageItem = {
   id: string
@@ -81,10 +78,6 @@ type ConversationItem =
 
 const KNOWN_TITLE_TOOL_NAMES = new Set(['ToolSearch'])
 
-// Claude Code namespaces MCP tools with `mcp__`; Codex records completed tools as dotted titles.
-// Both preserve the notebook server name, with Codex occasionally sanitizing its hyphens.
-const NOTEBOOK_PROVIDER_TOOL_PATTERN =
-  /^(?:mcp__|mcp\.)?open[-_]science[-_]notebook(?:__|\.)([^.]+)$/iu
 const PLAN_PROVIDER_TOOL_PATTERN =
   /^(?:(?:mcp__|mcp\.)?open[-_]science[-_]plan(?:__|\.|_)|)(generate_plan|update_step_status)$/iu
 
@@ -99,39 +92,9 @@ const getPlanToolKind = (
   return undefined
 }
 
-// Returns the notebook tool suffix (e.g. "notebook_execute") for a notebook MCP tool identity, or
-// undefined when the name is not a notebook tool. Framework-agnostic across the two server-name forms.
-const getNotebookToolSuffix = (toolName: string | undefined): string | undefined =>
-  NOTEBOOK_PROVIDER_TOOL_PATTERN.exec(toolName?.trim() ?? '')?.[1]
-
 // Maps a notebook MCP tool to a clean human label so rows read as notebook actions, not raw
 // mcp__…__* names. Returns undefined for non-notebook tools.
-const formatNotebookToolName = (toolName: string): string | undefined => {
-  const memoryToolName = getNotebookMemoryToolDisplayName(toolName)
-
-  if (memoryToolName) return memoryToolName
-
-  const suffix = getNotebookToolSuffix(toolName)
-
-  if (!suffix) return undefined
-  // A Memory suffix that failed the strict matcher above is an unknown provider identity, not a
-  // generic Notebook action. Preserve its raw label rather than hiding it behind "Notebook".
-  if (NOTEBOOK_MEMORY_TOOL_SUFFIXES.some((memorySuffix) => memorySuffix === suffix.toLowerCase()))
-    return undefined
-
-  switch (suffix) {
-    case 'notebook_execute':
-      return 'Notebook run'
-    case 'notebook_state':
-      return 'Notebook state'
-    case 'notebook_restart':
-      return 'Notebook restart'
-    case 'notebook_shutdown':
-      return 'Notebook shutdown'
-    default:
-      return 'Notebook'
-  }
-}
+const formatNotebookToolName = getNotebookToolDisplayName
 
 // Treats pending and in-progress tool calls as live activity rows.
 const isActivityActive = (activity: ToolActivity): boolean =>
@@ -410,7 +373,6 @@ export {
   createConversationItems,
   formatActivityTitle,
   formatNotebookToolName,
-  getNotebookToolSuffix,
   hidesBehindPresentationBarrier,
   isActivityActive,
   resolveTurnTerminalAgentMessageIds,

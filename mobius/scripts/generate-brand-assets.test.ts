@@ -28,6 +28,17 @@ const brightParticlePixelCount = async (path: string): Promise<number> => {
 }
 
 describe('Mobius Science approved brand assets', () => {
+  it('builds the menu-bar infinity from irregular particles without a drawn line', async () => {
+    const tray = await readFile(join(root, 'mobius', 'brand', 'mobius-science-tray.svg'), 'utf8')
+    const radii = [...tray.matchAll(/\br="([\d.]+)"/g)].map((match) => match[1])
+
+    expect(tray).toContain('data-tray-layer="infinity-particles"')
+    expect(tray).not.toMatch(/<(?:path|polyline|line)\b/)
+    expect(tray).not.toContain('stroke=')
+    expect(tray.match(/<circle\b/g)?.length ?? 0).toBeGreaterThanOrEqual(24)
+    expect(new Set(radii).size).toBeGreaterThanOrEqual(5)
+  })
+
   it('builds the infinity silhouette from a wide irregular particle field', async () => {
     const icon = await readFile(join(root, 'mobius', 'brand', 'mobius-science-icon.svg'), 'utf8')
 
@@ -60,6 +71,13 @@ describe('Mobius Science approved brand assets', () => {
   it('writes the DMG background at Finder logical-pixel density', async () => {
     const metadata = await sharp(join(generatedRoot, 'app', 'dmg-background.png')).metadata()
     expect(metadata).toMatchObject({ width: 660, height: 534, density: 72 })
+  })
+
+  it('places the application icon in the DMG header', async () => {
+    const center = await pixelAt(join(generatedRoot, 'app', 'dmg-background.png'), 204, 50)
+    expect(center[0] + center[1] + center[2]).toBeLessThan(550)
+    expect(center[2]).toBeGreaterThan(center[0] + 40)
+    expect(center[3]).toBe(255)
   })
 
   it.each([

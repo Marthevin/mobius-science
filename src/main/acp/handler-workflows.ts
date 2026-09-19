@@ -81,6 +81,10 @@ type InterruptedTurnSessionSource = {
 
 type SaveAsSkillAdmission = (sessionId: string) => void | Promise<void>
 
+type ResumeWorkspaceAvailability = {
+  ensureAvailable(session: PersistedChatSession): Promise<void>
+}
+
 const safeRead = (value: object, key: string): unknown => {
   try {
     return (value as Record<string, unknown>)[key]
@@ -272,7 +276,8 @@ const createAcpHandlerWorkflows = (
   taskNotifications?: PromptNotifications,
   archiveAvailability?: SessionArchiveAvailability,
   interruptedTurnSessions?: InterruptedTurnSessionSource,
-  saveAsSkillAdmission?: SaveAsSkillAdmission
+  saveAsSkillAdmission?: SaveAsSkillAdmission,
+  resumeWorkspace?: ResumeWorkspaceAvailability
 ): AcpHandlerWorkflows => ({
   async createSession(request): Promise<AcpCreateSessionResponse> {
     try {
@@ -297,11 +302,25 @@ const createAcpHandlerWorkflows = (
     logResumeDiagnostic('info', 'acp:resume-session started', context)
 
     try {
-      const resume = (projectId: string): Promise<AcpCreateSessionResponse> =>
-        runtime.resumeSession(bindResumeRequestToProject(request, projectId))
+      const resume = async (projectId: string): Promise<AcpCreateSessionResponse> => {
+        const bound = bindResumeRequestToProject(request, projectId)
+        if (resumeWorkspace) {
+          if (!interruptedTurnSessions) {
+            throw new Error('Session workspace recovery is unavailable.')
+          }
+          const session = await interruptedTurnSessions.loadSession(projectId, request.sessionId)
+          if (!session || session.projectId !== projectId || session.id !== request.sessionId) {
+            throw new Error('Session workspace recovery could not load the authoritative Session.')
+          }
+          await resumeWorkspace.ensureAvailable(session)
+        }
+        return runtime.resumeSession(bound)
+      }
       const result = archiveAvailability
         ? await archiveAvailability.withSessionAvailableById(request.sessionId, resume)
-        : await runtime.resumeSession(request)
+        : request.projectId
+          ? await resume(request.projectId)
+          : await runtime.resumeSession(request)
       logResumeDiagnostic('info', 'acp:resume-session completed', {
         ...context,
         durationMs: Math.max(0, Date.now() - startedAt),

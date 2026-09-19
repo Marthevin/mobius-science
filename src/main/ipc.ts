@@ -409,6 +409,7 @@ import { createDataRootSourceCleanup, DataRootCleanupJournal } from './storage/d
 import {
   markManagedProjectWorkspacesRetained,
   markManagedWorkspaceRetained,
+  recoverMissingManagedWorkspace,
   reconcileProvisionalManagedWorkspaces,
   restoreManagedProjectWorkspacesActive,
   restoreManagedWorkspaceActive
@@ -3609,7 +3610,7 @@ const createApplicationModules = async (
           // Keep those startup effects, but never make dispatch depend on catalog completeness.
           await Promise.all([
             jobPoller.start(),
-            loadAllSessions().catch((error) => {
+            sessionCatalogHydration.primeStartupLoad().catch((error) => {
               createLogger('session-persistence').warn(
                 'Startup Session hydration failed',
                 errorLogFields(error)
@@ -3722,6 +3723,11 @@ const createApplicationModules = async (
     (sessionId) => {
       if (sideChatRuntime.hasForParent(sessionId)) {
         throw new Error('Close Side chat before saving this conversation as a Skill.')
+      }
+    },
+    {
+      ensureAvailable: async (session) => {
+        await recoverMissingManagedWorkspace(session)
       }
     }
   )
@@ -4096,6 +4102,7 @@ const createApplicationModules = async (
       appVersion: app.getVersion(),
       configRoot,
       settingsService,
+      loadStartupSessionCatalog: () => sessionCatalogHydration.consumeStartupLoad(),
       sessionPersistenceBackend,
       sessionPersistenceCoordinator
     },
@@ -4110,8 +4117,7 @@ const createApplicationModules = async (
       })
       const owner = createSessionDetailsOwner({
         sessions: {
-          listSessions: async () =>
-            (await dependencies.sessionPersistenceBackend.loadAll()).sessions,
+          listSessions: async () => (await dependencies.loadStartupSessionCatalog()).sessions,
           mutateSession: (projectId, sessionId, mutation) =>
             dependencies.sessionPersistenceCoordinator.mutateSessionDetailsAuthority(
               projectId,

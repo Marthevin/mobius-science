@@ -339,6 +339,11 @@ describe('resolveDataRoot / initDataRoot', () => {
     expect(resolveDataRoot()).toBe(computeDefaultDataRoot())
   })
 
+  it('keeps the branded default after onboarding when settings.dataRoot is unset', () => {
+    initDataRoot(undefined, 1_700_000_000_000)
+    expect(resolveDataRoot()).toBe(join(homeDir, 'MobiusScience'))
+  })
+
   it('falls back to computeDefaultDataRoot() for a blank/whitespace-only settings.dataRoot', () => {
     initDataRoot('   ')
     expect(resolveDataRoot()).toBe(computeDefaultDataRoot())

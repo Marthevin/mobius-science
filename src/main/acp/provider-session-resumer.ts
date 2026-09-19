@@ -15,6 +15,7 @@ import type { EffectiveSpecialistSkills } from '../../shared/specialist'
 import { createLogger, diagnosticErrorFields, errorLogFields } from '../logger'
 import type { AcpBackendGenerationView } from './backend-generation-owner'
 import type { AcpProviderSessionAdopter } from './provider-session-adopter'
+import type { OpenCodeSessionDirectoryResumePreparation } from './opencode-session-directory'
 import {
   type AcpSessionCapabilityOwner,
   type SessionCapabilityPolicy,
@@ -59,6 +60,10 @@ type AcpProviderSessionResumerDependencies = Readonly<{
   resumeCapabilityAdvertised: () => boolean
   supportsSessionClose: () => boolean
   currentBackend: () => AcpBackendGenerationView
+  reconcileOpenCodeSessionDirectory?: (
+    providerSessionId: string,
+    cwd: string
+  ) => Promise<OpenCodeSessionDirectoryResumePreparation>
   registry: AcpSessionRegistry
   reserveIdentity: (sessionId: string) => AcpPrimarySessionIdentityReservationResult
   capabilities: Pick<AcpSessionCapabilityOwner, 'provision'> &
@@ -418,6 +423,29 @@ export class AcpProviderSessionResumer {
         ...this.deps.diagnosticContext()
       })
       return this.adopt(request, connection, cwd, projectId, identity)
+    }
+    if (backend.framework.id === 'opencode' && this.deps.reconcileOpenCodeSessionDirectory) {
+      const directory = await this.deps.reconcileOpenCodeSessionDirectory(
+        decision.providerSessionId,
+        cwd
+      )
+      if (directory === 'moved') {
+        log.info('reconciled OpenCode provider session directory before resume', {
+          sessionId: request.sessionId,
+          ...this.deps.diagnosticContext()
+        })
+      } else if (directory === 'unavailable') {
+        if (compatibleOnly) {
+          throw new Error(
+            'OpenCode provider session directory could not be reconciled for compatible resume.'
+          )
+        }
+        log.warn('OpenCode provider session directory unavailable; adopting fresh context', {
+          sessionId: request.sessionId,
+          ...this.deps.diagnosticContext()
+        })
+        return this.adopt(request, connection, cwd, projectId, identity)
+      }
     }
     return this.resumeCompatible(
       request,

@@ -5,6 +5,7 @@ import type { ProjectFileSource } from '../../shared/project-files'
 import { PENDING_UPLOAD_SESSION_ID } from '../../shared/uploads'
 import { createLogger } from '../logger'
 import {
+  ARTIFACT_PROJECT_FILE_VERSION_SELECT,
   buildProjectCollisionFilters,
   describeError,
   extractSessionFiles,
@@ -461,7 +462,11 @@ class ProjectFilesMutationOwner {
     const [lineages, uploads] = await Promise.all([
       client.artifactLineage.findMany({
         where: { projectId, sessionId },
-        include: { currentVersion: true }
+        select: {
+          id: true,
+          filename: true,
+          currentVersion: { select: ARTIFACT_PROJECT_FILE_VERSION_SELECT }
+        }
       }),
       client.uploadFile.findMany({
         where: { projectId, sessionId },
