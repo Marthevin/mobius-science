@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import type { PackageMirror } from '../../shared/mirror'
+import type { EffectivePackageMirrorPlan } from './mirror-probe'
 import type { NotebookEnvironmentOperations } from './environment-operations'
 import type {
   EnvironmentStateTracker,
@@ -37,7 +38,10 @@ const isArchiveEvidenceIncompleteError = (error: unknown): boolean =>
 
 type NotebookPackageMutationInput = Readonly<{
   target: NotebookPackageAdmittedTarget
-  mirror: PackageMirror | (() => Promise<PackageMirror>)
+  mirror:
+    | PackageMirror
+    | EffectivePackageMirrorPlan
+    | (() => Promise<PackageMirror | EffectivePackageMirrorPlan>)
 }>
 
 type NotebookPackageMutationOwnerOptions = {
@@ -187,8 +191,11 @@ class NotebookPackageMutationOwner {
             : undefined
           signal?.throwIfAborted()
           if (result) return result
-          const mirror =
+          const resolvedMirror =
             typeof requestedMirror === 'function' ? await requestedMirror() : requestedMirror
+          const mirrorPlan: EffectivePackageMirrorPlan =
+            'primary' in resolvedMirror ? resolvedMirror : { primary: resolvedMirror }
+          const mirror = mirrorPlan.primary
           signal?.throwIfAborted()
           const authorizationRefusal = await this.options.recheckAuthorization(target)
           if (authorizationRefusal) {
@@ -229,56 +236,102 @@ class NotebookPackageMutationOwner {
           try {
             try {
               if (journalTarget) discardImportedEnvironmentLock(runtimeRoot, journalTarget)
-              installResult = await this.options.installPackages(request, {
-                ...(this.options.packageSpawn
-                  ? { spawn: this.options.packageSpawn(target, mirror) }
-                  : {}),
-                micromambaRunner: this.options.micromambaRunner,
-                storageRoot: this.options.storageRoot,
-                condaChannel: mirror.condaChannel,
-                pypiIndex: mirror.pypiIndex,
-                cranMirror: mirror.cranMirror,
-                caBundle: mirror.caBundle,
-                interpreter,
-                signal,
-                // Re-arm before every installer spawn. A later spawn intent must supersede an earlier PID
-                // so recovery never treats the operation as stopped while another child may be starting.
-                onBeforeSpawn: () => recordSpawnIntentSync(runtimeRoot, operationId),
-                onChild: (childPid) => {
-                  const childStartedAt = Date.now()
-                  const childStartToken = readProcessStartToken(childPid)
-                  recordOperationChildSync(runtimeRoot, operationId, {
-                    childPid,
-                    childStartedAt,
-                    childStartToken
-                  })
-                  childJournalUpdate = journal
-                    .update(operationId, { childPid, childStartedAt, childStartToken })
-                    .catch(() => undefined)
-                },
-                onCacheMaintenanceSettled: async () => {
-                  // Cache cleanup reuses this operation's recovery barrier while its child is alive, but
-                  // it is not the installer transaction. Clear its settled identity before a dry-run or
-                  // real install can begin so a crash in that gap cannot be recovered as an interrupted
-                  // package mutation. Awaiting update also serializes behind the fire-and-forget PID write.
-                  await journal.update(operationId, {
-                    childPid: undefined,
-                    childStartedAt: undefined,
-                    childStartToken: undefined
-                  })
-                  removeOperationChildSync(runtimeRoot, operationId)
-                },
-                onCondaArchiveAuthorizations: (authorizations, workingRoot, evidenceComplete) => {
-                  if (!archiveCacheTransaction) return
-                  if (evidenceComplete === false) archiveEvidenceIncomplete = true
-                  if (authorizations.length === 0) return
-                  const previous = archivePublications.get(workingRoot)
-                  archivePublications.set(workingRoot, {
-                    workingRoot,
-                    authorizations: [...(previous?.authorizations ?? []), ...authorizations]
-                  })
+              const installWithMirror = (selected: PackageMirror): Promise<InstallResult> =>
+                this.options.installPackages(request, {
+                  ...(this.options.packageSpawn
+                    ? { spawn: this.options.packageSpawn(target, selected) }
+                    : {}),
+                  micromambaRunner: this.options.micromambaRunner,
+                  storageRoot: this.options.storageRoot,
+                  condaChannel: selected.condaChannel,
+                  pypiIndex: selected.pypiIndex,
+                  cranMirror: selected.cranMirror,
+                  caBundle: selected.caBundle,
+                  ...(mirrorPlan.networkPreflight ? { networkPreflight: true } : {}),
+                  interpreter,
+                  signal,
+                  // Re-arm before every installer spawn. A later spawn intent must supersede an earlier PID
+                  // so recovery never treats the operation as stopped while another child may be starting.
+                  onBeforeSpawn: () => recordSpawnIntentSync(runtimeRoot, operationId),
+                  onChild: (childPid) => {
+                    const childStartedAt = Date.now()
+                    const childStartToken = readProcessStartToken(childPid)
+                    recordOperationChildSync(runtimeRoot, operationId, {
+                      childPid,
+                      childStartedAt,
+                      childStartToken
+                    })
+                    childJournalUpdate = journal
+                      .update(operationId, { childPid, childStartedAt, childStartToken })
+                      .catch(() => undefined)
+                  },
+                  onCacheMaintenanceSettled: async () => {
+                    // Cache cleanup reuses this operation's recovery barrier while its child is alive, but
+                    // it is not the installer transaction. Clear its settled identity before a dry-run or
+                    // real install can begin so a crash in that gap cannot be recovered as an interrupted
+                    // package mutation. Awaiting update also serializes behind the fire-and-forget PID write.
+                    await journal.update(operationId, {
+                      childPid: undefined,
+                      childStartedAt: undefined,
+                      childStartToken: undefined
+                    })
+                    removeOperationChildSync(runtimeRoot, operationId)
+                  },
+                  onCondaArchiveAuthorizations: (authorizations, workingRoot, evidenceComplete) => {
+                    if (!archiveCacheTransaction) return
+                    if (evidenceComplete === false) archiveEvidenceIncomplete = true
+                    if (authorizations.length === 0) return
+                    const previous = archivePublications.get(workingRoot)
+                    archivePublications.set(workingRoot, {
+                      workingRoot,
+                      authorizations: [...(previous?.authorizations ?? []), ...authorizations]
+                    })
+                  }
+                })
+              installResult = await installWithMirror(mirror)
+              const attempts = installResult.attempts ?? []
+              const safeNetworkFailure =
+                request.operation !== 'uninstall' &&
+                !installResult.ok &&
+                !installResult.repairRequired &&
+                attempts.length > 0 &&
+                attempts.every(
+                  (attempt) =>
+                    attempt.status === 'failed' &&
+                    attempt.reason === 'network' &&
+                    attempt.mutationRisk === 'none'
+                )
+              if (mirrorPlan.networkFallback && safeNetworkFailure) {
+                const retry = await installWithMirror(mirrorPlan.networkFallback)
+                const nextGroup =
+                  attempts.reduce(
+                    (highest, attempt) => Math.max(highest, attempt.groupOrdinal),
+                    -1
+                  ) + 1
+                installResult = {
+                  ...retry,
+                  log: [installResult.log, retry.log].filter(Boolean).join('\n'),
+                  attempts: [
+                    ...attempts,
+                    ...(retry.attempts ?? []).map((attempt) => ({
+                      ...attempt,
+                      groupOrdinal: attempt.groupOrdinal + nextGroup
+                    }))
+                  ],
+                  fallbackUsed: true,
+                  ...((installResult.logTruncation?.droppedBytes ?? 0) +
+                    (retry.logTruncation?.droppedBytes ?? 0) >
+                  0
+                    ? {
+                        logTruncation: {
+                          droppedBytes:
+                            (installResult.logTruncation?.droppedBytes ?? 0) +
+                            (retry.logTruncation?.droppedBytes ?? 0)
+                        }
+                      }
+                    : { logTruncation: undefined })
                 }
-              })
+              }
               installerDurationMs = Date.now() - installerStartedAt
             } catch (error) {
               this.options.environmentOperations.logPackageFailure({
