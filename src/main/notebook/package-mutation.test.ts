@@ -104,6 +104,193 @@ const pending = (runtimeRoot: string): ReturnType<RuntimeOperationJournal['pendi
   RuntimeOperationJournal.forPath(operationJournalPath(runtimeRoot)).pending()
 
 describe('NotebookPackageMutationOwner', () => {
+  it('retries a sandbox-confirmed network failure on the official automatic fallback', async () => {
+    const installPackages = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        needsRestart: false,
+        log: 'mirror blocked',
+        method: 'pip',
+        attempts: [
+          {
+            groupOrdinal: 0,
+            installer: 'pip',
+            packages: ['numpy'],
+            status: 'failed',
+            reason: 'network',
+            mutationRisk: 'none'
+          }
+        ],
+        fallbackUsed: false
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        needsRestart: false,
+        log: 'official installed',
+        method: 'pip',
+        attempts: [
+          {
+            groupOrdinal: 0,
+            installer: 'pip',
+            packages: ['numpy'],
+            status: 'succeeded',
+            mutationRisk: 'confirmed'
+          }
+        ],
+        fallbackUsed: false
+      })
+    const packageSpawn = vi.fn(() => vi.fn())
+    const { owner, target } = ownerHarness({
+      canSkipInstall: () => false,
+      installPackages,
+      packageSpawn
+    })
+    const primary = { pypiIndex: 'https://mirror.test/simple' }
+    const official = { pypiIndex: 'https://pypi.org/simple' }
+
+    const result = await owner.mutate({
+      target,
+      mirror: { primary, networkPreflight: true, networkFallback: official }
+    })
+
+    expect(installPackages).toHaveBeenCalledTimes(2)
+    expect(installPackages).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({ pypiIndex: primary.pypiIndex, networkPreflight: true })
+    )
+    expect(installPackages).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({ pypiIndex: official.pypiIndex, networkPreflight: true })
+    )
+    expect(packageSpawn).toHaveBeenNthCalledWith(1, target, primary)
+    expect(packageSpawn).toHaveBeenNthCalledWith(2, target, official)
+    expect(result).toMatchObject({ ok: true, fallbackUsed: true })
+    expect(result.log).toContain('mirror blocked')
+    expect(result.log).toContain('official installed')
+    expect(result.attempts).toHaveLength(2)
+  })
+
+  it('does not retry a user-configured mirror without an automatic fallback', async () => {
+    const installPackages = vi.fn().mockResolvedValue({
+      ok: false,
+      needsRestart: false,
+      log: 'configured mirror blocked',
+      method: 'pip',
+      attempts: [
+        {
+          groupOrdinal: 0,
+          installer: 'pip',
+          packages: ['numpy'],
+          status: 'failed',
+          reason: 'network',
+          mutationRisk: 'none'
+        }
+      ],
+      fallbackUsed: false
+    })
+    const { owner, target } = ownerHarness({ canSkipInstall: () => false, installPackages })
+
+    await owner.mutate({ target, mirror: { pypiIndex: 'https://corp.example/simple' } })
+
+    expect(installPackages).toHaveBeenCalledTimes(1)
+    expect(installPackages).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.not.objectContaining({ networkPreflight: true })
+    )
+  })
+
+  it('preflights automatic official indexes even when there is no second fallback', async () => {
+    const installPackages = vi.fn().mockResolvedValue({
+      ok: true,
+      needsRestart: false,
+      log: 'official installed',
+      method: 'pip',
+      attempts: []
+    })
+    const { owner, target } = ownerHarness({ canSkipInstall: () => false, installPackages })
+
+    await owner.mutate({
+      target,
+      mirror: { primary: {}, networkPreflight: true }
+    })
+
+    expect(installPackages).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ networkPreflight: true })
+    )
+    expect(installPackages).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry an automatic mirror when any attempt may have mutated the environment', async () => {
+    const installPackages = vi.fn().mockResolvedValue({
+      ok: false,
+      needsRestart: false,
+      log: 'transaction may have started',
+      method: 'conda',
+      attempts: [
+        {
+          groupOrdinal: 0,
+          installer: 'conda',
+          packages: ['numpy'],
+          status: 'failed',
+          reason: 'network',
+          mutationRisk: 'possible'
+        }
+      ],
+      fallbackUsed: false
+    })
+    const { owner, target } = ownerHarness({ canSkipInstall: () => false, installPackages })
+
+    await owner.mutate({
+      target,
+      mirror: {
+        primary: { condaChannel: 'https://mirror.test/conda-forge/' },
+        networkPreflight: true,
+        networkFallback: { condaChannel: 'https://conda.anaconda.org/conda-forge/' }
+      }
+    })
+
+    expect(installPackages).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['permission', 'package-not-found', 'solver-failed'] as const)(
+    'does not treat a %s failure as permission to switch an automatic mirror',
+    async (reason) => {
+      const installPackages = vi.fn().mockResolvedValue({
+        ok: false,
+        needsRestart: false,
+        log: reason,
+        method: 'conda',
+        attempts: [
+          {
+            groupOrdinal: 0,
+            installer: 'conda',
+            packages: ['numpy'],
+            status: 'failed',
+            reason,
+            mutationRisk: 'none'
+          }
+        ],
+        fallbackUsed: false
+      })
+      const { owner, target } = ownerHarness({ canSkipInstall: () => false, installPackages })
+
+      await owner.mutate({
+        target,
+        mirror: {
+          primary: { condaChannel: 'https://mirror.test/conda-forge/' },
+          networkPreflight: true,
+          networkFallback: { condaChannel: 'https://conda.anaconda.org/conda-forge/' }
+        }
+      })
+
+      expect(installPackages).toHaveBeenCalledTimes(1)
+    }
+  )
+
   it('retains the install recovery path when repair is required', async () => {
     const { owner, options, target } = ownerHarness({ canSkipInstall: () => false })
     await owner.mutate({ target, mirror: {} })

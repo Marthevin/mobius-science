@@ -194,6 +194,20 @@ const withPipInstallEvidence = async (
   }
 }
 
+const withPipDryRunReport = async (
+  preflight: (reportPath: string) => Promise<SpawnResult>
+): Promise<SpawnResult> => {
+  // A report is part of the preflight contract: if its private directory cannot be created, fail
+  // closed rather than silently running a weaker probe and then allowing a real installation.
+  const temporary = await mkdtemp(join(tmpdir(), 'open-science-pip-report-'))
+  const reportPath = join(temporary, 'report.json')
+  try {
+    return await preflight(reportPath)
+  } finally {
+    await rm(temporary, { recursive: true, force: true }).catch(() => undefined)
+  }
+}
+
 const capturePipInstallEvidence = async (
   prefix: string
 ): Promise<Extract<NotebookEnvironmentLockComponent, { ecosystem: 'python' }> | undefined> => {
@@ -280,4 +294,9 @@ const recoverPipInstallEvidence = async (
   }
 }
 
-export { withPipInstallEvidence, capturePipInstallEvidence, recoverPipInstallEvidence }
+export {
+  withPipInstallEvidence,
+  withPipDryRunReport,
+  capturePipInstallEvidence,
+  recoverPipInstallEvidence
+}
