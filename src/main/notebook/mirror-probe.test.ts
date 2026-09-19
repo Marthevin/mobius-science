@@ -12,6 +12,7 @@ import {
 import {
   MIRROR_CANDIDATES,
   effectiveMirrorAsync,
+  effectiveMirrorPlanAsync,
   type MirrorCandidate,
   pickFastestMirror,
   resetAutoMirrorCache
@@ -208,6 +209,54 @@ describe('pickFastestMirror', () => {
 })
 
 describe('effectiveMirrorAsync', () => {
+  it('keeps an official fallback only for an automatically selected third-party mirror', async () => {
+    const plan = await effectiveMirrorPlanAsync(undefined, 'en-US', {
+      candidates,
+      probe: probeFrom(reachableLatencies)
+    })
+
+    expect(plan).toEqual({
+      primary: {
+        condaChannel: 'https://tuna/conda-forge/',
+        pypiIndex: 'https://tuna/pypi'
+      },
+      networkPreflight: true,
+      networkFallback: {
+        condaChannel: 'https://conda.anaconda.org/conda-forge/',
+        pypiIndex: 'https://pypi.org/simple',
+        cranMirror: 'https://cloud.r-project.org'
+      }
+    })
+  })
+
+  it('never overrides a user-configured mirror with the official fallback', async () => {
+    const probe = vi.fn()
+    const plan = await effectiveMirrorPlanAsync(
+      { pypiIndex: 'https://corp.example/simple' },
+      'en-US',
+      { candidates, probe }
+    )
+
+    expect(plan).toEqual({ primary: { pypiIndex: 'https://corp.example/simple' } })
+    expect(probe).not.toHaveBeenCalled()
+  })
+
+  it('still requires sandbox preflight when automatic selection uses the official indexes', async () => {
+    const plan = await effectiveMirrorPlanAsync(undefined, 'en-US', {
+      candidates,
+      probe: probeFrom({
+        'https://public/conda-forge/repodata.json': 10,
+        'https://public/bioconda/repodata.json': 10,
+        'https://tuna/conda-forge/repodata.json': null,
+        'https://tuna/bioconda/repodata.json': null,
+        'https://aliyun/conda-forge/repodata.json': null,
+        'https://aliyun/bioconda/repodata.json': null
+      })
+    })
+
+    expect(plan).toEqual({ primary: {}, networkPreflight: true })
+  })
+
   it('describes automatic selection when an unconfigured install selects a third-party mirror', async () => {
     const effective = await effectiveMirrorAsync(undefined, 'en-US', {
       candidates,

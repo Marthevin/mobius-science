@@ -25,7 +25,7 @@ import type { NotebookLanguage } from '../../shared/notebook-language-contract'
 import type { RuntimeEnablement, RuntimeTargetReceipt } from '../../shared/notebook-runtime'
 import type { NotebookEnvironmentOperations } from './environment-operations'
 import { boundedFailureDiagnostic } from './failure-diagnostic'
-import { effectiveMirrorAsync, type ProbeDeps } from './mirror-probe'
+import { effectiveMirrorPlanAsync, type ProbeDeps } from './mirror-probe'
 import type { NotebookPackageAdmittedTarget } from './package-admission'
 import { NotebookPackageAdmissionOwner } from './package-admission'
 import type { NotebookRuntimeRepairOwner } from './runtime-repair'
@@ -257,7 +257,7 @@ class NotebookPackageOperations {
         {
           target: admission.target,
           mirror: async () =>
-            effectiveMirrorAsync(
+            effectiveMirrorPlanAsync(
               await this.resolvePackageMirror(),
               this.options.locale,
               this.options.mirrorProbe
