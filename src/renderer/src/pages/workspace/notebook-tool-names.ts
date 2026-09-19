@@ -117,6 +117,26 @@ const getNotebookMemoryToolDisplayName = (
   }
 }
 
+const getNotebookToolDisplayName = (toolName: string | undefined | null): string | undefined => {
+  const memoryName = getNotebookMemoryToolDisplayName(toolName)
+  if (memoryName) return memoryName
+
+  if (matchNotebookRunTool(toolName)) return 'Notebook run'
+
+  switch (matchNotebookControlTool(toolName)) {
+    case 'notebook_state':
+      return 'Notebook state'
+    case 'notebook_restart':
+      return 'Notebook restart'
+    case 'notebook_shutdown':
+      return 'Notebook shutdown'
+    case undefined:
+      return undefined
+    default:
+      return 'Notebook'
+  }
+}
+
 const isNotebookManagePackagesToolName = (toolName: string | undefined | null): boolean =>
   matchNotebookControlTool(toolName) === 'manage_packages'
 
@@ -195,6 +215,7 @@ export {
   NOTEBOOK_CONTROL_TOOL_SUFFIXES,
   NOTEBOOK_MEMORY_TOOL_SUFFIXES,
   NOTEBOOK_SERVER_SEGMENT,
+  getNotebookToolDisplayName,
   getNotebookMemoryToolDisplayName,
   matchNotebookControlTool,
   matchNotebookMemoryTool,
