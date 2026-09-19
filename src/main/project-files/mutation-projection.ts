@@ -19,6 +19,21 @@ const UPLOADS_DIR = 'uploads'
 const PENDING_ARTIFACT_DIR = '.pending'
 const log = createLogger('project-files')
 
+// Artifact execution snapshots can be several megabytes each. Project Files only needs immutable
+// head metadata, so keep every startup and session-sync query bounded to this projection.
+const ARTIFACT_PROJECT_FILE_VERSION_SELECT = {
+  id: true,
+  state: true,
+  originKind: true,
+  checksum: true,
+  messageId: true,
+  filename: true,
+  contentStorageKey: true,
+  contentType: true,
+  sizeBytes: true,
+  createdAt: true
+} satisfies Prisma.ArtifactVersionSelect
+
 type ProjectFilesClient = Pick<
   PrismaClient,
   | 'managedFile'
@@ -146,7 +161,10 @@ const isFileProjectionCurrent = async (
   const [lineages, uploads, rows] = await Promise.all([
     client.artifactLineage.findMany({
       where: { projectId, sessionId },
-      include: { currentVersion: true }
+      select: {
+        id: true,
+        currentVersion: { select: ARTIFACT_PROJECT_FILE_VERSION_SELECT }
+      }
     }),
     client.uploadFile.findMany({
       where: { projectId, sessionId },
@@ -329,7 +347,11 @@ const extractSessionFiles = async (
     const client = await getClient()
     const lineages = await client.artifactLineage.findMany({
       where: { projectId: session.projectId, sessionId: session.id },
-      include: { currentVersion: true }
+      select: {
+        id: true,
+        filename: true,
+        currentVersion: { select: ARTIFACT_PROJECT_FILE_VERSION_SELECT }
+      }
     })
 
     for (const lineage of lineages) {
@@ -522,6 +544,7 @@ const isPendingArtifactPath = (path: string): boolean =>
   path.split(/[\\/]+/).includes(PENDING_ARTIFACT_DIR)
 
 export {
+  ARTIFACT_PROJECT_FILE_VERSION_SELECT,
   buildProjectCollisionFilters,
   describeError,
   extractSessionFiles,

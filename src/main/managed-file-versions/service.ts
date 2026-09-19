@@ -57,6 +57,24 @@ const STORAGE_COLLISION_MAX_ATTEMPTS = 16
 const INTEGRITY_AUDIT_BATCH_SIZE = 100
 const INTEGRITY_AUDIT_MAX_ERRORS = 1000
 const SAFE_STORAGE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/u
+const ARTIFACT_MANAGED_FILE_VERSION_SELECT = {
+  id: true,
+  artifactId: true,
+  versionNumber: true,
+  state: true,
+  managedVisibleAt: true,
+  originKind: true,
+  basedOnVersionId: true,
+  storageTag: true,
+  storedFilename: true,
+  writeOperationId: true,
+  contentStorageKey: true,
+  filename: true,
+  contentType: true,
+  sizeBytes: true,
+  checksum: true,
+  createdAt: true
+} satisfies Prisma.ArtifactVersionSelect
 
 type ManagedFileVersionRecoveryResult = {
   recovered: number
@@ -2364,7 +2382,14 @@ class ManagedFileVersionService {
     for (;;) {
       const artifacts = await client.artifactLineage.findMany({
         where: { currentVersionId: { not: null } },
-        include: { currentVersion: true },
+        select: {
+          id: true,
+          projectId: true,
+          sessionId: true,
+          filename: true,
+          currentVersionId: true,
+          currentVersion: { select: ARTIFACT_MANAGED_FILE_VERSION_SELECT }
+        },
         orderBy: { id: 'asc' },
         take: INTEGRITY_AUDIT_BATCH_SIZE,
         ...(artifactCursor ? { cursor: { id: artifactCursor }, skip: 1 } : {})
@@ -2477,7 +2502,14 @@ class ManagedFileVersionService {
     for (;;) {
       const artifacts = await client.artifactLineage.findMany({
         where: { currentVersionId: { not: null } },
-        include: { currentVersion: true },
+        select: {
+          id: true,
+          projectId: true,
+          sessionId: true,
+          filename: true,
+          currentVersionId: true,
+          currentVersion: { select: ARTIFACT_MANAGED_FILE_VERSION_SELECT }
+        },
         orderBy: { id: 'asc' },
         take: INTEGRITY_AUDIT_BATCH_SIZE,
         ...(artifactCursor ? { cursor: { id: artifactCursor }, skip: 1 } : {})

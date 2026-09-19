@@ -22,7 +22,7 @@ import { resolveDataRoot } from '../storage-root'
 export async function composeComputeRecovery({
   markComputeResultAuthorityReady,
   computeJobResultDelivery,
-  loadAllSessions,
+  primeStartupSessionCatalog,
   startupSessionDetails,
   computeIpcModule,
   computeService,
@@ -37,7 +37,7 @@ export async function composeComputeRecovery({
 }: {
   markComputeResultAuthorityReady: () => void
   computeJobResultDelivery: ComputeJobResultDeliveryAdapter
-  loadAllSessions: () => Promise<LoadAllSessionsResult>
+  primeStartupSessionCatalog: () => Promise<LoadAllSessionsResult>
   startupSessionDetails: { current: LoadAllSessionsResult['sessions'] | undefined }
   computeIpcModule: ReturnType<typeof createComputeIpcModule>
   computeService: ReturnType<typeof createComputeIpcModule>['computeService']
@@ -156,7 +156,7 @@ export async function composeComputeRecovery({
           composition.phase('session-catalog')
           await Promise.all([
             jobPoller.start(),
-            loadAllSessions()
+            primeStartupSessionCatalog()
               .then((catalog) => {
                 startupSessionDetails.current = selectSessionDetailsStartupCandidates(catalog)
               })
