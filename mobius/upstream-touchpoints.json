@@ -47,6 +47,10 @@
       "seam": "Registers native product identity and generated icons."
     },
     {
+      "path": "src/main/compute/session-catalog-hydration.ts",
+      "seam": "Coalesces Session catalog hydration and hands the primed snapshot only to startup recovery."
+    },
+    {
       "path": "src/main/tray.ts",
       "seam": "Combines the Mobius macOS status icon's 1x and Retina template representations."
     },
@@ -70,7 +74,10 @@
       "path": "src/main/remote-access/pairing-page.ts",
       "seam": "Uses the Mobius cosmic identity on the remote pairing page."
     },
-    { "path": "src/main/ipc.ts", "seam": "Applies update and Marketplace capability policy." },
+    {
+      "path": "src/main/ipc.ts",
+      "seam": "Applies update and Marketplace policy and reuses one primed Session catalog for Session details startup."
+    },
     { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
     {
       "path": "src/main/agent-framework/registry.ts",
@@ -83,6 +90,10 @@
     {
       "path": "src/main/acp/session-presentation-policy.ts",
       "seam": "Projects the Mobius product identity into agent instructions."
+    },
+    {
+      "path": "src/main/artifacts/provenance-finalization-recovery.ts",
+      "seam": "Keeps finalization recovery bounded on research databases with large execution snapshots."
     },
     {
       "path": "src/main/ipc-surfaces/desktop-utilities.ts",
@@ -128,6 +139,18 @@
     {
       "path": "src/main/notebook/runtime-paths.ts",
       "seam": "Removes the default upstream runtime CDN."
+    },
+    {
+      "path": "src/main/managed-file-versions/service.ts",
+      "seam": "Keeps startup recovery and integrity audits bounded on Artifact heads with large execution snapshots."
+    },
+    {
+      "path": "src/main/project-files/mutation-owner.ts",
+      "seam": "Keeps retained-session file projection recovery bounded on Artifact heads with large execution snapshots."
+    },
+    {
+      "path": "src/main/project-files/mutation-projection.ts",
+      "seam": "Keeps active-session file projection validation and sync bounded on Artifact heads with large execution snapshots."
     },
     {
       "path": "src/main/skills/marketplace-service.ts",

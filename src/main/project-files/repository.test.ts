@@ -77,6 +77,26 @@ describe('ManagedFileIndexRepository', () => {
     await rm(storageRoot, { recursive: true, force: true })
   }, WINDOWS_SQLITE_HOOK_TIMEOUT_MS)
 
+  const clientRejectingHeavyArtifactHeadReads = (): PrismaClient =>
+    client.$extends({
+      query: {
+        artifactLineage: {
+          findMany({ args, query }) {
+            const currentVersion = args.select?.currentVersion ?? args.include?.currentVersion
+            if (
+              currentVersion === true ||
+              (currentVersion &&
+                (!('select' in currentVersion) ||
+                  currentVersion.select?.executionSnapshotJson !== undefined))
+            ) {
+              throw new Error('Project Files attempted to load Artifact execution snapshots.')
+            }
+            return query(args)
+          }
+        }
+      }
+    }) as unknown as PrismaClient
+
   it('waits for a competing database transaction before syncing session files', async () => {
     const transaction = client.$transaction.bind(client)
     const spy = vi
@@ -107,6 +127,73 @@ describe('ManagedFileIndexRepository', () => {
     } finally {
       spy.mockRestore()
     }
+  })
+
+  it('syncs native Artifact heads without materializing execution snapshots', async () => {
+    const artifactPath = join(
+      storageRoot,
+      'artifacts',
+      PROJECT_ID,
+      SESSION_ID,
+      'message-1',
+      'report.pdf'
+    )
+    await writeManagedFile(artifactPath, 'pdf payload')
+    await repository.syncSession(
+      createSession({
+        artifacts: [
+          {
+            id: 'legacy-report',
+            kind: 'managed-file',
+            path: artifactPath,
+            name: 'report.pdf',
+            mimeType: 'application/pdf'
+          }
+        ]
+      })
+    )
+    const lineage = await client.artifactLineage.findUniqueOrThrow({
+      where: {
+        projectId_sessionId_normalizedFilename: {
+          projectId: PROJECT_ID,
+          sessionId: SESSION_ID,
+          normalizedFilename: 'report.pdf'
+        }
+      },
+      select: { id: true, currentVersionId: true }
+    })
+    const guardedClient = clientRejectingHeavyArtifactHeadReads()
+    const guardedRepository = new ManagedFileIndexRepository(
+      () => Promise.resolve(guardedClient),
+      storageRoot,
+      new ManagedFileVersionService({
+        storageRoot,
+        getClient: () => Promise.resolve(guardedClient)
+      }),
+      uploadRepository
+    )
+    const nativeSession = createSession({
+      filesRevision: 2,
+      artifacts: [
+        {
+          id: lineage.currentVersionId!,
+          artifactId: lineage.id,
+          versionId: lineage.currentVersionId!,
+          versionNumber: 1,
+          kind: 'managed-file',
+          path: artifactPath,
+          name: 'report.pdf',
+          mimeType: 'application/pdf'
+        }
+      ]
+    })
+
+    await expect(guardedRepository.syncSession(nativeSession)).resolves.toEqual(['artifact'])
+    await expect(guardedRepository.syncSession(nativeSession)).resolves.toEqual([])
+    await expect(guardedRepository.getOverview(PROJECT_ID)).resolves.toMatchObject({
+      artifactCount: 1,
+      isIndexComplete: true
+    })
   })
 
   it.each([

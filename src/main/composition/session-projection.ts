@@ -56,6 +56,8 @@ export function composeSessionProjection({
 }): {
   pendingSpecialistBindings: PendingSessionSpecialistBindings
   loadAllSessions: () => Promise<LoadAllSessionsResult>
+  primeStartupSessionCatalog: () => Promise<LoadAllSessionsResult>
+  consumeStartupSessionCatalog: () => Promise<LoadAllSessionsResult>
   startupSessionDetails: { current: LoadAllSessionsResult['sessions'] | undefined }
   ensureSessionProjection: () => Promise<{
     result?: LoadAllSessionsResult
@@ -210,6 +212,8 @@ export function composeSessionProjection({
   return {
     pendingSpecialistBindings,
     loadAllSessions,
+    primeStartupSessionCatalog: () => sessionCatalogHydration.primeStartupLoad(),
+    consumeStartupSessionCatalog: () => sessionCatalogHydration.consumeStartupLoad(),
     startupSessionDetails,
     ensureSessionProjection,
     sessionPersistenceBackend
