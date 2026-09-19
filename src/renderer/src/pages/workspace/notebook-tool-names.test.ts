@@ -1,12 +1,31 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  getNotebookToolDisplayName,
   isNotebookExecuteToolName,
   isNotebookManagePackagesToolName,
   matchNotebookControlTool,
   matchNotebookMemoryTool,
   matchNotebookRunTool
 } from './notebook-tool-names'
+
+describe('getNotebookToolDisplayName', () => {
+  it.each([
+    'mcp__open-science-notebook__inspect_packages',
+    'mcp__open_science_notebook__inspect_packages',
+    'mcp.open-science-notebook.inspect_packages',
+    'open-science-notebook/inspect_packages',
+    'open_science_notebook_inspect_packages'
+  ])('presents the package inspection tool as a user-facing action for %s', (toolName) => {
+    expect(getNotebookToolDisplayName(toolName)).toBe('Inspect packages')
+  })
+
+  it('presents the flattened package manager identity without its transport prefix', () => {
+    expect(getNotebookToolDisplayName('open_science_notebook_manage_packages')).toBe(
+      'Manage packages'
+    )
+  })
+})
 
 describe('isNotebookExecuteToolName', () => {
   it('matches the notebook server run tools in Claude Code mcp__ form', () => {

@@ -1748,6 +1748,7 @@
     "Open Network settings to review the required setup.": "必要な設定を確認するには、ネットワーク設定を開いてください。",
     "Open Network settings to review availability and allowed domains.": "利用可否と許可済みドメインを確認するには、ネットワーク設定を開いてください。",
     "Open Network settings to check again and review the setup.": "もう一度確認してセットアップを見直すには、ネットワーク設定を開いてください。",
+    "Inspect packages": "パッケージを確認",
     "Manage packages": "パッケージの管理",
     "Manage permissions": "権限の管理",
     "Manage tokens on GitHub": "GitHub でトークンを管理する",

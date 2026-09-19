@@ -1091,6 +1091,15 @@ describe('workspace conversation items', () => {
     'ask_user_question',
     'background_run',
     'request_network_access',
+    'notebook_state',
+    'list_notebook_runtimes',
+    'notebook_bind_runtime',
+    'notebook_switch_runtime',
+    'notebook_restart',
+    'notebook_shutdown',
+    'inspect_packages',
+    'manage_packages',
+    'manage_environments',
     'wsl_setup_diagnostics',
     'wsl_setup_install_platform',
     'wsl_setup_install_recommended_distro',
@@ -1105,6 +1114,20 @@ describe('workspace conversation items', () => {
         t
       )
     ).not.toContain('open_science_notebook')
+  })
+
+  it.each([
+    ['open_science_library_search_library', 'Literature library'],
+    ['open_science_literature_read_document', 'Reading'],
+    ['open_science_artifacts_write_artifact_file', 'Write file']
+  ])('hides the flattened first-party identity %s', (providerToolName, displayName) => {
+    expect(
+      formatActivityTitle(
+        createActivity({ status: 'completed', providerToolName, toolKind: 'other' }),
+        undefined,
+        t
+      )
+    ).toBe(`Used tool: ${displayName}`)
   })
 
   it('detects a Codex notebook activity whose MCP identity is only in the title', () => {
