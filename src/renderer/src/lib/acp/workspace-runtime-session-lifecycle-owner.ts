@@ -544,6 +544,7 @@ const cancelWorkspaceRun = async (
   }
 
   const wasCompacting = session?.compacting === true
+  const cancelledRun = session?.activeRun
   if (wasCompacting) cancelledSessionIds?.add(sessionId)
   const snapshot = await runtime.cancel(sessionId)
 
@@ -551,6 +552,22 @@ const cancelWorkspaceRun = async (
     cancelledSessionIds?.delete(sessionId)
     useSessionStore.getState().failRun(sessionId, 'Agent cancellation failed')
     throw new Error('Agent cancellation failed')
+  }
+
+  // A persistence/admission failure can leave an optimistic renderer run even though Main never
+  // acquired a matching interaction. In that state cancelPrompt legitimately returns a snapshot
+  // with no prompt to cancel, so no later runtime event can settle the UI. Treat Main's empty
+  // ownership snapshot as the terminal acknowledgement, while protecting a newer local run that
+  // may have started during the IPC await. Native compaction keeps its separate terminal-event lock.
+  const runtimeOwnsInteraction =
+    snapshot.promptInFlightSessionIds.includes(sessionId) ||
+    snapshot.pendingPermissions.some((request) => request.sessionId === sessionId) ||
+    snapshot.pendingElicitations?.some((request) => request.sessionId === sessionId) === true
+  if (!wasCompacting && cancelledRun && !runtimeOwnsInteraction) {
+    const current = workspaceSession(sessionId)
+    if (current?.activeRun === cancelledRun) {
+      useSessionStore.getState().finishRun(sessionId, undefined, cancelledRun.promptMessageId)
+    }
   }
 }
 const processContextOverflowRecovery = (
