@@ -435,6 +435,45 @@ describe('workspace conversation controller', () => {
     expect(input.composer.actions.setError).toHaveBeenCalledWith('save failed')
   })
 
+  it('hides the optimistic draft once the authoritative prompt is projected', async () => {
+    let resolveAdmission!: (value: { sessionId: string; messageId: string }) => void
+    const admission = new Promise<{ sessionId: string; messageId: string }>((resolve) => {
+      resolveAdmission = resolve
+    })
+    const input = options()
+    input.runtime.sendMessage = vi.fn(() => admission)
+    const hook = renderController(input)
+    mounted.push(hook)
+
+    act(() => hook.result.current.actions.submit.draft({ forcedSkillIds: [] }))
+    expect(hook.result.current.optimisticMessage?.content).toBe('hello')
+
+    const authoritativePrompt = {
+      id: 'message-a',
+      role: 'user' as const,
+      content: 'hello',
+      status: 'complete' as const,
+      eventIds: [],
+      createdAt: 2,
+      updatedAt: 2
+    }
+    const admittedSession = session({
+      status: 'running',
+      activeRun: { promptMessageId: authoritativePrompt.id, startedAt: 2 },
+      messages: [...input.activeSession!.messages, authoritativePrompt]
+    })
+    hook.rerender({
+      ...input,
+      activeSession: admittedSession,
+      actionability: projectSessionActionability(admittedSession),
+      getSession: () => admittedSession
+    })
+
+    expect(hook.result.current.optimisticMessage).toBeUndefined()
+
+    await act(async () => resolveAdmission({ sessionId: 'session-a', messageId: 'message-a' }))
+  })
+
   it('branches from a completed Agent Message without consuming the composer draft', async () => {
     const input = options()
     const hook = renderController(input)
