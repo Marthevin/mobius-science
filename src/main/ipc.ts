@@ -3594,7 +3594,8 @@ const createApplicationModules = async (
           composition.phase('session-catalog')
           await Promise.all([
             jobPoller.start(),
-            loadAllSessions()
+            sessionCatalogHydration
+              .primeStartupLoad()
               .then((catalog) => {
                 startupSessionDetails = selectSessionDetailsStartupCandidates(catalog)
               })
@@ -4090,6 +4091,7 @@ const createApplicationModules = async (
       appVersion: app.getVersion(),
       configRoot,
       settingsService,
+      loadStartupSessionCatalog: () => sessionCatalogHydration.consumeStartupLoad(),
       sessionPersistenceBackend,
       sessionPersistenceCoordinator
     },
@@ -4104,8 +4106,7 @@ const createApplicationModules = async (
       })
       const owner = createSessionDetailsOwner({
         sessions: {
-          listSessions: async () =>
-            (await dependencies.sessionPersistenceBackend.loadAll()).sessions,
+          listSessions: async () => (await dependencies.loadStartupSessionCatalog()).sessions,
           mutateSession: (projectId, sessionId, mutation) =>
             dependencies.sessionPersistenceCoordinator.mutateSessionDetailsAuthority(
               projectId,

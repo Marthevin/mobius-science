@@ -156,6 +156,27 @@ describe('ManagedFileVersionService (SQLite + filesystem)', () => {
     return { source, fileId, versionIds }
   }
 
+  const clientRejectingHeavyArtifactHeadReads = (): PrismaClient =>
+    client.$extends({
+      query: {
+        artifactLineage: {
+          findMany({ args, query }) {
+            const currentVersion = args.select?.currentVersion
+            if (
+              !args.select ||
+              currentVersion === true ||
+              !currentVersion ||
+              !('select' in currentVersion) ||
+              currentVersion.select?.executionSnapshotJson !== undefined
+            ) {
+              throw new Error('Artifact head query attempted to load execution snapshots.')
+            }
+            return query(args)
+          }
+        }
+      }
+    }) as unknown as PrismaClient
+
   it.each([
     ['artifact', true],
     ['upload', true],
@@ -3149,6 +3170,32 @@ describe('ManagedFileVersionService (SQLite + filesystem)', () => {
         versionId: fixture.versionIds[0]
       })
     ).rejects.toMatchObject({ code: 'INTEGRITY_FAILED' })
+  })
+
+  it('rebuilds active Artifact projections without materializing execution snapshots', async () => {
+    await createFixture('artifact')
+    const guardedClient = clientRejectingHeavyArtifactHeadReads()
+    const service = new ManagedFileVersionService({
+      storageRoot,
+      getClient: () => Promise.resolve(guardedClient)
+    })
+
+    await expect(service.recoverPendingWrites()).resolves.toMatchObject({
+      recovered: 0,
+      conflicted: 0,
+      failed: 0
+    })
+  })
+
+  it('audits active Artifact heads without materializing execution snapshots', async () => {
+    await createFixture('artifact')
+    const guardedClient = clientRejectingHeavyArtifactHeadReads()
+    const service = new ManagedFileVersionService({
+      storageRoot,
+      getClient: () => Promise.resolve(guardedClient)
+    })
+
+    await expect(service.auditActiveVersionIntegrity()).resolves.toEqual([])
   })
 
   it('keeps blocking journal recovery separate from the explicit active-head integrity audit', async () => {

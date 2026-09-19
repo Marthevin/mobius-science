@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { ComputeHost } from '../../shared/compute'
-import type { PersistedChatSession } from '../../shared/session-persistence'
+import type { LoadAllSessionsResult, PersistedChatSession } from '../../shared/session-persistence'
 import {
   SessionPersistenceCoordinator,
   type SessionFileIndex,
@@ -45,6 +45,77 @@ const computeHost: ComputeHost = {
 }
 
 describe('production Session catalog hydration wiring', () => {
+  it('hands the startup hydration to its explicit startup consumer and keeps later reads fresh', async () => {
+    const startupResult: LoadAllSessionsResult = {
+      sessions: [],
+      manifest: { version: 1 as const }
+    }
+    const refreshedResult: LoadAllSessionsResult = {
+      sessions: [createSession('recovered-session')],
+      manifest: { version: 1 as const }
+    }
+    let durableResult = startupResult
+    const loadAll = vi.fn(async () => durableResult)
+    const hydrateFromSessionCatalog = vi.fn(
+      async (loadCatalog: () => Promise<typeof startupResult>) => loadCatalog()
+    )
+    const hydration = createSessionCatalogHydration({
+      owner: () => ({ hydrateFromSessionCatalog }) as unknown as SessionEnabledComputeHostsOwner,
+      projectRecovery: { recoverPendingDeletions: async () => undefined },
+      sessionLoader: {
+        loadAll,
+        loadAllReadOnly: vi.fn(async () => startupResult)
+      }
+    })
+
+    const primed = await hydration.primeStartupLoad()
+    const consumed = await hydration.consumeStartupLoad()
+
+    expect(consumed).toBe(primed)
+    expect(loadAll).toHaveBeenCalledTimes(1)
+    expect(hydrateFromSessionCatalog).toHaveBeenCalledTimes(1)
+
+    durableResult = refreshedResult
+    const refreshed = await hydration.loadAll()
+    expect(refreshed.sessions).toEqual(refreshedResult.sessions)
+    expect(loadAll).toHaveBeenCalledTimes(2)
+    expect(hydrateFromSessionCatalog).toHaveBeenCalledTimes(2)
+  })
+
+  it('coalesces concurrent startup catalog hydration requests', async () => {
+    const release = Promise.withResolvers<void>()
+    const result = { sessions: [], manifest: { version: 1 as const } }
+    const loadAll = vi.fn(async () => {
+      await release.promise
+      return result
+    })
+    const hydrateFromSessionCatalog = vi.fn(async (loadCatalog: () => Promise<typeof result>) =>
+      loadCatalog()
+    )
+    const hydration = createSessionCatalogHydration({
+      owner: () => ({ hydrateFromSessionCatalog }) as unknown as SessionEnabledComputeHostsOwner,
+      projectRecovery: { recoverPendingDeletions: async () => undefined },
+      sessionLoader: {
+        loadAll,
+        loadAllReadOnly: vi.fn(async () => result)
+      }
+    })
+
+    const first = hydration.loadAll()
+    const second = hydration.loadAll()
+    await vi.waitFor(() => expect(loadAll).toHaveBeenCalledTimes(1))
+    release.resolve()
+
+    const [firstResult, secondResult] = await Promise.all([first, second])
+    expect(firstResult).toBe(secondResult)
+    expect(firstResult.sessions).toEqual([])
+    expect(hydrateFromSessionCatalog).toHaveBeenCalledTimes(1)
+
+    await hydration.loadAll()
+    expect(loadAll).toHaveBeenCalledTimes(2)
+    expect(hydrateFromSessionCatalog).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps the first Compute operation available to five Sessions created after an old complete snapshot', async () => {
     const durableSessions = new Map<string, PersistedChatSession>()
     const snapshotCaptured = Promise.withResolvers<void>()
