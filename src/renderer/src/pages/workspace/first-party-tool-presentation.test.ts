@@ -38,7 +38,9 @@ describe('getFirstPartyToolDisplayName', () => {
     'open_science_library_staging_search_library',
     'my_open_science_library_search_library',
     'open_science_library_unknown_tool',
-    'search_library'
+    'search_library',
+    'third-party/open-science-library/search_library',
+    'bogus.open-science-library.search_library'
   ])('does not hide an unknown or lookalike provider identity %s', (identity) => {
     expect(getFirstPartyToolDisplayName(identity)).toBeUndefined()
   })
