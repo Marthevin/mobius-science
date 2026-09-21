@@ -74,21 +74,41 @@ describe('Notebook destination policy', () => {
     })
   })
 
-  it('allows an exact hostname authorization through a synthetic Fake-IP DNS answer', async () => {
-    lookup.mockResolvedValue([
-      { address: '198.18.42.7', family: 4 },
-      { address: '::ffff:0:c612:2a07', family: 6 }
-    ])
-    const policy = new DestinationPolicy({
-      allowedDomains: ['conda.anaconda.org'],
-      deniedDomains: []
-    })
+  it.each(['::ffff:c612:2a07', '::ffff:0:c612:2a07'])(
+    'allows an exact hostname authorization through synthetic Fake-IP answer %s',
+    async (mappedAddress) => {
+      lookup.mockResolvedValue([
+        { address: '198.18.42.7', family: 4 },
+        { address: mappedAddress, family: 6 }
+      ])
+      const policy = new DestinationPolicy({
+        allowedDomains: ['conda.anaconda.org'],
+        deniedDomains: []
+      })
 
-    await expect(policy.inspect('conda.anaconda.org', 443)).resolves.toEqual({
-      kind: 'allow',
-      address: '198.18.42.7'
-    })
-  })
+      await expect(policy.inspect('conda.anaconda.org', 443)).resolves.toEqual({
+        kind: 'allow',
+        address: '198.18.42.7'
+      })
+    }
+  )
+
+  it.each(['::ffff:a00:1', '::ffff:0:a00:1'])(
+    'rejects mapped private DNS answer %s despite an exact hostname authorization',
+    async (mappedAddress) => {
+      lookup.mockResolvedValue([{ address: mappedAddress, family: 6 }])
+      const policy = new DestinationPolicy({
+        allowedDomains: ['conda.anaconda.org'],
+        deniedDomains: []
+      })
+
+      await expect(policy.inspect('conda.anaconda.org', 443)).resolves.toEqual({
+        kind: 'deny',
+        reason: 'destination resolves to a non-public network address',
+        configurable: false
+      })
+    }
+  )
 
   it('keeps synthetic Fake-IP access closed without an exact hostname authorization', async () => {
     lookup.mockResolvedValue([{ address: '198.18.42.7', family: 4 }])
