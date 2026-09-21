@@ -418,7 +418,7 @@ const buildGenericDetails = (activity: ToolActivity): ToolActivityDetails | unde
   const subtitle =
     candidateSubtitle &&
     candidateSubtitle !== displayName &&
-    !isFirstPartyToolIdentity(candidateSubtitle)
+    (primaryPath !== undefined || !isFirstPartyToolIdentity(candidateSubtitle))
       ? candidateSubtitle
       : undefined
 
