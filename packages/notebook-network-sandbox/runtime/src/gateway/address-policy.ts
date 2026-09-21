@@ -227,14 +227,23 @@ class DestinationPolicy {
     }
     if (addresses.some((address) => !isInternetAddress(address))) {
       // Transparent proxy "Fake-IP" modes map public hostnames into the IANA benchmarking range.
-      // Accept that mapping only for a hostname with an exact allow rule and only when every answer
-      // is synthetic. Literal IPs, wildcard grants, mixed answers, and all other private ranges stay
+      // Treat an all-synthetic hostname like a public hostname for the approval flow, but only an
+      // exact rule may auto-allow it. Literal IPs, mixed answers, and every other private range stay
       // blocked, so this compatibility path cannot broaden ordinary private-network access.
-      const exactSyntheticDnsAuthorization =
-        isIP(host) === 0 &&
-        addresses.every(isSyntheticDnsAddress) &&
-        this.#allowed.some((rule) => isExactHostRule(rule) && ruleAccepts(rule, host, port))
-      if (exactSyntheticDnsAuthorization) return { kind: 'allow', address: addresses[0]! }
+      const syntheticDnsAnswers = isIP(host) === 0 && addresses.every(isSyntheticDnsAddress)
+      if (syntheticDnsAnswers) {
+        const exactAuthorization = this.#allowed.some(
+          (rule) => isExactHostRule(rule) && ruleAccepts(rule, host, port)
+        )
+        if (exactAuthorization) return { kind: 'allow', address: addresses[0]! }
+        const needsApproval = this.#asked.some((rule) => ruleAccepts(rule, host, port))
+        return {
+          kind: 'ask',
+          source: needsApproval ? 'explicit' : 'unknown',
+          host,
+          address: addresses[0]!
+        }
+      }
       return {
         kind: 'deny',
         reason: 'destination resolves to a non-public network address',
