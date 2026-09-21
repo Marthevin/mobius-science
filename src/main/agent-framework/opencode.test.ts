@@ -1091,7 +1091,7 @@ it('prevents physical launch when delegated ownership admission fails', () => {
   expect(ordinarySpawn).not.toHaveBeenCalled()
   expect(ownedSpawn).toHaveBeenCalledWith(
     input.executablePath,
-    ['acp', '--trace'],
+    ['acp', '--pure', '--trace'],
     expect.objectContaining({
       env: expect.objectContaining({ OWNED: 'yes' }),
       stdio: 'pipe',
