@@ -971,19 +971,16 @@ describe('App startup routing', () => {
     expect(mocks.settings.openSettings).toHaveBeenCalledOnce()
   })
 
-  it('loads the update owner on first activation and retains it for its close lifecycle', async () => {
+  it('does not load the disabled upstream update owner', async () => {
     mocks.settings.isLoaded = true
     await render()
     expect(document.querySelector('[data-testid="update-dialog"]')).toBeNull()
 
     mocks.update.isDialogOpen = true
     await act(async () => root.render(<App />))
-    await vi.waitFor(() => expect(mocks.presentationProps.update?.active).toBe(true))
-
-    mocks.update.isDialogOpen = false
-    await act(async () => root.render(<App />))
-    expect(mocks.presentationProps.update?.active).toBe(false)
-    expect(document.querySelector('[data-testid="update-dialog"]')).not.toBeNull()
+    expect(mocks.presentationProps.update).toBeUndefined()
+    expect(document.querySelector('[data-testid="update-dialog"]')).toBeNull()
+    expect(mocks.initUpdates).not.toHaveBeenCalled()
   })
 
   it('closes the update dialog before underlying surfaces', async () => {
@@ -1465,7 +1462,7 @@ describe('App startup routing', () => {
     expect(container.querySelector('[data-testid="home-page"]')).not.toBeNull()
     expect(container.querySelector('[data-testid="env-banner"]')).not.toBeNull()
     expect(container.querySelector('[data-testid="settings-page"]')?.textContent).toBe('closed')
-    expect(mocks.initUpdates).toHaveBeenCalled()
+    expect(mocks.initUpdates).not.toHaveBeenCalled()
     expect(mocks.environment.init).toHaveBeenCalled()
     expect(mocks.loadProjects).toHaveBeenCalled()
     expect(mocks.loadDeletionCleanup).toHaveBeenCalled()
