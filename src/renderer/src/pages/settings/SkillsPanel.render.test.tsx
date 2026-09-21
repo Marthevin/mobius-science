@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { SkillImportPreviewContent } from '../../../../shared/settings'
 import type { AgentHomeSkillView } from '@aipoch/skills/document'
+import { APP } from '../../../../shared/app-config'
 import { SkillsPanel } from './SkillsPanel'
 import { SKILL_IMPORT_LIMITS } from '@aipoch/skills/document'
 import { createInitialSettingsState, useSettingsStore } from '@/stores/settings-store'
@@ -336,7 +337,7 @@ describe('SkillsPanel (list view)', () => {
     )
   })
 
-  it('promotes the Marketplace entry alongside installed Skills above the filters', () => {
+  it('keeps installed Skill actions above the filters without the upstream Marketplace', () => {
     act(() => {
       root.render(<SkillsPanel view={{ kind: 'list' }} onNavigate={vi.fn()} />)
     })
@@ -363,9 +364,8 @@ describe('SkillsPanel (list view)', () => {
     expect(actions?.compareDocumentPosition(filters!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     const marketplace = [...actions!.querySelectorAll('button')].find(
       (button) => button.textContent === 'Browse Marketplace'
-    )!
-    expect(marketplace.dataset.variant).toBe('default')
-    expect(marketplace.querySelector('svg')?.getAttribute('data-icon')).toBe('inline-start')
+    )
+    expect(marketplace).toBeUndefined()
     expect(document.querySelector('[data-slot="skills-header"] h3')?.textContent).toContain(
       'Installed'
     )
@@ -380,7 +380,7 @@ describe('SkillsPanel (list view)', () => {
     const importedGroup = document.body.querySelector<HTMLElement>(
       '[data-slot="skills-source-group"][data-source="imported"]'
     )
-    expect(importedGroup?.textContent).toContain('Skills you imported into Open-Science.')
+    expect(importedGroup?.textContent).toContain(`Skills you imported into ${APP.name}.`)
     expect(importedGroup?.textContent).toContain('No imported skills yet.')
 
     const importButton = Array.from(
@@ -435,7 +435,7 @@ describe('SkillsPanel (list view)', () => {
 
     expect(document.body.textContent).toContain('Conversation imports')
     expect(document.body.textContent).toContain(
-      'Choose what conversations can import into Open-Science.'
+      `Choose what conversations can import into ${APP.name}.`
     )
     expect(document.body.textContent).toContain('Skill packages')
     expect(document.body.textContent).toContain('ask before importing them')
@@ -547,7 +547,7 @@ describe('SkillsPanel (list view)', () => {
     })
 
     expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
-      'Open-Science could not load Skills.'
+      `${APP.name} could not load Skills.`
     )
     const retry = Array.from(document.body.querySelectorAll<HTMLButtonElement>('button')).find(
       (button) => button.textContent?.trim() === 'Retry'
