@@ -49,7 +49,9 @@ const matchesNamespacedTool = (
   if (!name) return false
 
   const segments = name.split(/__|\.|\//u)
-  if (segments.length >= 2) {
+  const hasManagedNamespaceShape =
+    segments.length === 2 || (segments.length === 3 && segments[0] === 'mcp')
+  if (hasManagedNamespaceShape) {
     const suffix = segments[segments.length - 1]
     const serverSegment = segments[segments.length - 2].replace(/_/gu, '-')
     if (serverSegment === server && suffixes.includes(suffix)) return true

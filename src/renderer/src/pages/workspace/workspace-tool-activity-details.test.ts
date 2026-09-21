@@ -59,6 +59,19 @@ describe('workspace tool activity details', () => {
     expect(JSON.stringify(details)).not.toContain('open_science_notebook')
   })
 
+  it('keeps a real file path even when its segments resemble a first-party tool identity', () => {
+    const activity = createActivity({
+      title: 'Read',
+      toolKind: 'read',
+      toolLocations: [{ path: '/tmp/open-science-library/search_library' }],
+      toolContent: [{ type: 'content', content: { type: 'text', text: 'result' } }]
+    })
+
+    expect(buildToolActivityDetails(activity)?.subtitle).toBe(
+      '/tmp/open-science-library/search_library'
+    )
+  })
+
   it('keeps native Skill instruction documents out of expandable activity details', () => {
     const activity = createActivity({
       title: 'Loaded skill: mcp-pubmed',
