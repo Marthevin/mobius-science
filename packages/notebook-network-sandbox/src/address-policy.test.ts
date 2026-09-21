@@ -110,7 +110,7 @@ describe('Notebook destination policy', () => {
     }
   )
 
-  it('keeps synthetic Fake-IP access closed without an exact hostname authorization', async () => {
+  it('requires explicit approval instead of auto-allowing a synthetic Fake-IP hostname', async () => {
     lookup.mockResolvedValue([{ address: '198.18.42.7', family: 4 }])
     const wildcard = new DestinationPolicy({
       allowedDomains: ['*.anaconda.org'],
@@ -118,13 +118,17 @@ describe('Notebook destination policy', () => {
     })
     const unknown = new DestinationPolicy({ allowedDomains: [], deniedDomains: [] })
 
-    await expect(wildcard.inspect('conda.anaconda.org', 443)).resolves.toMatchObject({
-      kind: 'deny',
-      configurable: false
+    await expect(wildcard.inspect('conda.anaconda.org', 443)).resolves.toEqual({
+      kind: 'ask',
+      source: 'unknown',
+      host: 'conda.anaconda.org',
+      address: '198.18.42.7'
     })
-    await expect(unknown.inspect('conda.anaconda.org', 443)).resolves.toMatchObject({
-      kind: 'deny',
-      configurable: false
+    await expect(unknown.inspect('conda.anaconda.org', 443)).resolves.toEqual({
+      kind: 'ask',
+      source: 'unknown',
+      host: 'conda.anaconda.org',
+      address: '198.18.42.7'
     })
   })
 
