@@ -206,7 +206,7 @@
     },
     {
       "path": "src/main/literature/full-text-download.ts",
-      "seam": "Uses the downstream HTTP identity."
+      "seam": "Uses the downstream HTTP identity and Mobius destination verifier for safe full-text proxy downloads."
     },
     {
       "path": "src/main/literature/metadata-enricher.ts",

@@ -22,6 +22,9 @@ vi.mock('node:https', () => ({
     return { on: vi.fn() }
   }
 }))
+vi.mock('node:dns/promises', () => ({
+  lookup: async () => [{ address: '8.8.8.8', family: 4 }]
+}))
 
 describe('full-text transfer progress', () => {
   it('honors source throttling without additional size or download requests during Retry-After', async () => {
