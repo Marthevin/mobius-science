@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, describe, expect, it } from 'vitest'
+import { PRODUCT } from '../shared/product-config'
 
 import {
   migrateLegacyProjectDatabase,
@@ -28,6 +29,16 @@ afterEach(() => {
 })
 
 describe('Mobius project database identity', () => {
+  it('creates only the branded database for a fresh Prisma client', async () => {
+    const root = temporaryRoot()
+    const client = createProjectDbClient(root)
+    await migrateApplicationDatabase(client)
+    await client.$disconnect()
+
+    expect(existsSync(join(root, 'mobius-science.db'))).toBe(true)
+    expect(existsSync(join(root, 'open-science.db'))).toBe(false)
+  })
+
   it('uses a Mobius-owned filename for new profiles', () => {
     const root = temporaryRoot()
 
@@ -96,7 +107,7 @@ describe('Mobius project database identity', () => {
   it('runs the compatibility migration before the production Prisma client opens', async () => {
     const root = temporaryRoot()
     const legacyPath = join(root, 'open-science.db')
-    const legacy = createProjectDbClient(root)
+    const legacy = createProjectDbClient(root, PRODUCT.legacyDatabaseFileNames[0])
     await migrateApplicationDatabase(legacy)
     await legacy.$disconnect()
 
