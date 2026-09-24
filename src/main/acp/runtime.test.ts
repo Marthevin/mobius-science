@@ -71,6 +71,8 @@ import type { ArtifactRunClaim } from '../artifacts/run-registry'
 const imageBytes = await sharp({ create: { width: 2, height: 2, channels: 3, background: 'red' } })
   .png()
   .toBuffer()
+const withoutMobiusReminder = (text: string): string =>
+  text.replace(/^<mobius_turn_presentation>[\s\S]*?<\/mobius_turn_presentation>\n\n/u, '')
 import { writeArtifactFileForCurrentRun } from '../artifacts/mcp-server'
 import { createArtifactVersionLocator } from '../../shared/artifact-provenance'
 import { BEGIN_ACTIVITY_GROUP_TOOL_NAME } from '../../shared/activity-groups'
@@ -279,6 +281,7 @@ const startFakeAgent = (
   authRequests: unknown[]
   providerConfigurations: unknown[]
   prompts: Array<{ sessionId: string; text: string }>
+  rawPrompts: Array<{ sessionId: string; text: string }>
   newSessions: Array<{ cwd: string; mcpServers: unknown[]; _meta?: unknown }>
   resumedSessions: Array<{ sessionId: string; cwd: string; mcpServers: unknown[]; _meta?: unknown }>
   closedSessions: string[]
@@ -292,6 +295,7 @@ const startFakeAgent = (
   const authRequests: unknown[] = []
   const providerConfigurations: unknown[] = []
   const prompts: Array<{ sessionId: string; text: string }> = []
+  const rawPrompts: Array<{ sessionId: string; text: string }> = []
   const newSessions: Array<{ cwd: string; mcpServers: unknown[]; _meta?: unknown }> = []
   const resumedSessions: Array<{
     sessionId: string
@@ -428,16 +432,25 @@ const startFakeAgent = (
     })
     .onRequest(acp.methods.agent.session.prompt, async (ctx) => {
       // Flatten text blocks because these tests only exercise plain prompts.
-      const text = ctx.params.prompt
+      const rawText = ctx.params.prompt
         .map((content) => (content.type === 'text' ? content.text : ''))
         .join('')
+      // These runtime tests assert the task text and routing. The policy and prompt-composition
+      // suites assert the per-turn Mobius reminder itself, while rawPrompts keeps it observable here.
+      const text = withoutMobiusReminder(rawText)
+      const taskPrompt = ctx.params.prompt.map((content, index) =>
+        index === 0 && content.type === 'text'
+          ? { ...content, text: withoutMobiusReminder(content.text) }
+          : content
+      )
 
+      rawPrompts.push({ sessionId: ctx.params.sessionId, text: rawText })
       prompts.push({ sessionId: ctx.params.sessionId, text })
       actions.push(`prompt:${text}`)
       const promptResponse = await options.onPrompt?.({
         sessionId: ctx.params.sessionId,
         text,
-        prompt: ctx.params.prompt
+        prompt: taskPrompt
       })
       const elicitation = options.elicitationForPrompt?.({
         sessionId: ctx.params.sessionId,
@@ -547,6 +560,7 @@ const startFakeAgent = (
     authRequests,
     providerConfigurations,
     prompts,
+    rawPrompts,
     newSessions,
     resumedSessions,
     closedSessions,
@@ -11719,7 +11733,7 @@ describe('ACP runtime session management', () => {
           throw new Error(`Unexpected prompt session: ${sessionId}`)
         }
 
-        prompts.push({ sessionId, text })
+        prompts.push({ sessionId, text: withoutMobiusReminder(text) })
         promptStarted.resolve(undefined)
 
         await promptCanStop.promise
@@ -21984,7 +21998,7 @@ describe('ACP runtime session management', () => {
     expect(fakeAgent.newSessions[0]._meta).toMatchObject({
       systemPrompt: {
         append: expect.stringContaining(
-          'If an Open-Science app-owned Connector result includes an `artifact_id`, do not call `mcp__open-science-artifacts__write_artifact_file` again for that file.'
+          'If a Mobius Science app-owned Connector result includes an `artifact_id`, do not call `mcp__open-science-artifacts__write_artifact_file` again for that file.'
         )
       }
     })
@@ -23685,7 +23699,7 @@ describe('ACP runtime session management', () => {
         const text = ctx.params.prompt
           .map((content) => (content.type === 'text' ? content.text : ''))
           .join('')
-        prompts.push(text)
+        prompts.push(withoutMobiusReminder(text))
 
         if (prompts.length === 1) {
           promptStarted.resolve()
@@ -24835,6 +24849,9 @@ describe('ACP runtime skill force-load + nudge', () => {
     expect(spawner.agents[0].prompts).toEqual([
       { sessionId: 'remote-session-1', text: 'plain prompt' }
     ])
+    expect(spawner.agents[0].rawPrompts[0]?.text).toContain(
+      'Your product identity is Mobius Science Agent.'
+    )
   })
 
   // End-to-end guard over the whole bundled set: for EVERY real bundled skill, the nudge the agent

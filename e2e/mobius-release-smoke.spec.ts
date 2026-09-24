@@ -11,6 +11,7 @@ test('packaged Mobius Science starts, saves research, and relaunches', async ({ 
   expect(brand.packaged).toBe(true)
   expect(brand.name).toBe('Mobius Science')
   expect(brand.title).toContain('Mobius Science')
+  expect(brand.windowTitles).not.toContain('Open-Science')
 
   const storage = await app.page.evaluate(() => window.api.storage.getInfo())
   expect(basename(storage.dataRoot)).toBe('MobiusScience')

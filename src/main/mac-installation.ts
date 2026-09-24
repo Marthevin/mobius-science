@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { basename, dirname, join, resolve } from 'node:path'
 import { app, BrowserWindow, shell } from 'electron'
+import { PRODUCT } from '../mobius/shared/product-config'
 
 import {
   MAC_INSTALLATION_ASSISTANT_ACTION_CHANNEL,
@@ -179,7 +180,7 @@ export const showMacInstallationGuidance = (reason: 'startup' | 'update'): Promi
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
-    title: 'Open-Science',
+    title: PRODUCT.displayName,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 15, y: 15 },
     backgroundColor: '#fbfcfb',
