@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PRODUCT } from '../../mobius/shared/product-config'
 
 import type { CreateArtifactVersionRequest } from '../../shared/artifact-provenance'
 import { NotebookRunRepository } from '../notebook/repository'
@@ -53,7 +54,7 @@ export const createProvenanceTestFixture = async (): Promise<{
   const storageRoot = await mkdtemp(join(tmpdir(), 'os-p-'))
   const client = createProjectDbClient(storageRoot)
   try {
-    const databasePath = join(storageRoot, 'open-science.db')
+    const databasePath = join(storageRoot, PRODUCT.databaseFileName)
     emptyDatabase ??= (async () => {
       await migrateApplicationDatabase(client)
       // Disconnect before copying so SQLite has flushed/closed any journal or WAL handles.

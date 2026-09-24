@@ -2,6 +2,7 @@ import './assets/installation-assistant.css'
 
 import darkAppIconUrl from '../../../mobius/generated/renderer/logo-dark.png'
 import lightAppIconUrl from '../../../mobius/generated/renderer/logo.png'
+import { PRODUCT } from '../../mobius/shared/product-config'
 import { initI18n, prepareI18nLocale } from './i18n'
 import { applyHtmlLang, resolveInitialLocale } from './lib/locale-preference'
 
@@ -89,7 +90,7 @@ const start = (): void => {
     else void install()
   })
   sourceIcon.addEventListener('dragstart', (event) => {
-    event.dataTransfer?.setData('text/plain', 'Open-Science')
+    event.dataTransfer?.setData('text/plain', PRODUCT.displayName)
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'copy'
   })
   targetItem.addEventListener('dragover', (event) => {

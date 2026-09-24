@@ -167,7 +167,7 @@ describe('mac installation location', () => {
     expect(showMacInstallationGuidance('update')).toBe(first)
     expect(native.windows).toHaveLength(1)
     expect(native.windowOptions).toHaveBeenLastCalledWith(
-      expect.objectContaining({ parent: native.parent })
+      expect.objectContaining({ parent: native.parent, title: 'Mobius Science' })
     )
     expect(native.windows[0].loadFile).toHaveBeenCalledWith(
       expect.stringContaining('installation-assistant.html'),

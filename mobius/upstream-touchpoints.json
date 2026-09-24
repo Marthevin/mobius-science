@@ -80,6 +80,10 @@
     },
     { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
     {
+      "path": "src/main/mac-installation.ts",
+      "seam": "Names the macOS installation assistant with the Mobius product identity."
+    },
+    {
       "path": "src/main/agent-framework/registry.ts",
       "seam": "Selects managed OpenCode as the fixed framework."
     },
@@ -90,6 +94,10 @@
     {
       "path": "src/main/acp/session-presentation-policy.ts",
       "seam": "Projects the Mobius product identity and turn narration guidance into agent instructions."
+    },
+    {
+      "path": "src/main/artifacts/provenance-test-fixtures.ts",
+      "seam": "Creates isolated Artifact test databases using the Mobius filename."
     },
     {
       "path": "src/main/acp/handler-workflows.ts",
@@ -277,8 +285,12 @@
       "seam": "Skips update-store startup."
     },
     {
+      "path": "src/renderer/installation-assistant.html",
+      "seam": "Shows Mobius branding in the installation assistant before scripts load."
+    },
+    {
       "path": "src/renderer/src/installation-assistant.ts",
-      "seam": "Registers the generated Mobius logo."
+      "seam": "Registers the generated Mobius logo and drag identity."
     },
     {
       "path": "src/renderer/src/lib/startup-issue.ts",
