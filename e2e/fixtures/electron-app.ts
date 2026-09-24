@@ -302,6 +302,7 @@ type BrandState = {
   profile: string
   logs: string
   title: string
+  windowTitles: string[]
   menus: string[]
 }
 type NativeMenuProbe = {
@@ -1570,6 +1571,7 @@ class ElectronAppHarness implements ElectronApp {
       profile: app.getPath('userData'),
       logs: app.getPath('logs'),
       title: BrowserWindow.getAllWindows()[0]?.getTitle() ?? '',
+      windowTitles: BrowserWindow.getAllWindows().map((window) => window.getTitle()),
       menus: Menu.getApplicationMenu()?.items.map((item) => item.label) ?? []
     }))
   }
