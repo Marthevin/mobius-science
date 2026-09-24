@@ -20,7 +20,7 @@
 - Legacy database, credential, and Electron-profile compatibility remains available for skipped-version upgrades; fresh clients default to `PRODUCT.databaseFileName`.
 - Mobius additions live under `src/mobius/`; upstream files receive only imports, registration, and default-selection changes recorded in `mobius/upstream-touchpoints.json`.
 - New renderer-visible copy, if needed, must be translated in all eight locales and pass `src/renderer/src/i18n/resources.test.ts`.
-- The validation artifact is Apple-silicon, ad-hoc signed, not notarized, and named `mobius-science-0.31.1-mac-arm64.dmg`.
+- The validation artifact is Apple-silicon, ad-hoc signed, not notarized, and named `mobius-science-0.33.0-mac-arm64.dmg` after the upstream version update.
 - Do not push any branch or publish any artifact during this plan; remote publication requires a separate explicit instruction.
 
 ## Review Focus

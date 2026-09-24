@@ -2,8 +2,8 @@
 
 ## Status
 
-Approved in conversation on 2026-09-21 for specification. Implementation remains gated on review
-of this document and the subsequent implementation plan.
+Approved in conversation on 2026-09-21. Implemented on the Session 15 runtime-hardening branch
+and rebased onto upstream `main` at `565b352e` on 2026-09-24.
 
 ## Context and intent
 
