@@ -96,3 +96,19 @@ test('uses the real Keychain and native identity probe for packaged macOS E2E', 
     executablePath: '/artifacts/Open-Science.app/Contents/MacOS/Open-Science'
   })
 })
+
+test('can isolate packaged macOS lifecycle tests from the host Keychain', () => {
+  expect(
+    electronLaunchTarget(
+      'profile-root',
+      {
+        OPEN_SCIENCE_E2E_EXECUTABLE: '/artifacts/Mobius Science.app/Contents/MacOS/Mobius Science',
+        OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '1'
+      },
+      'darwin'
+    )
+  ).toEqual({
+    args: ['--user-data-dir=profile-root', '--use-mock-keychain'],
+    executablePath: '/artifacts/Mobius Science.app/Contents/MacOS/Mobius Science'
+  })
+})
