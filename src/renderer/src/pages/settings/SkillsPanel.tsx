@@ -406,15 +406,6 @@ const SkillsPanel = ({
               {t('Browse Marketplace')}
             </Button>
           ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            data-settings-anchor="skills.manage"
-            onClick={() => onNavigate({ kind: 'manage' })}
-          >
-            <ListChecks data-icon="inline-start" aria-hidden="true" />
-            {t('Manage')}
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="shrink-0" data-settings-anchor="skills.add">
