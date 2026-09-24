@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "d36070cbd88e86c66e71f0e2f27251fe7178f569",
+  "comparisonBase": "aaba23a0d6348121003abc0b70e884bc1acff985",
   "productionFiles": [
     { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
     {
