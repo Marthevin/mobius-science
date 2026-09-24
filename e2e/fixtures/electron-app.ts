@@ -64,13 +64,16 @@ const electronLaunchTarget = (
   platform: NodeJS.Platform = process.platform
 ): { args: string[]; executablePath?: string } => {
   const executablePath = environment.OPEN_SCIENCE_E2E_EXECUTABLE
+  const useMockKeychain =
+    platform === 'darwin' &&
+    (!executablePath || environment.OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN === '1')
   return {
     args: [
       `--user-data-dir=${userDataRoot}`,
       ...(platform === 'linux' ? ['--password-store=basic'] : []),
+      ...(useMockKeychain ? ['--use-mock-keychain'] : []),
       ...(platform === 'darwin' && !executablePath
         ? [
-            '--use-mock-keychain',
             '--require',
             resolve(APP_ROOT, 'e2e/fixtures/mock-credential-identity.cjs')
           ]
