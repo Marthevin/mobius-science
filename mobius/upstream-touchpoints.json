@@ -89,7 +89,7 @@
     },
     {
       "path": "src/main/acp/session-presentation-policy.ts",
-      "seam": "Projects the Mobius product identity into agent instructions."
+      "seam": "Projects the Mobius product identity and turn narration guidance into agent instructions."
     },
     {
       "path": "src/main/acp/handler-workflows.ts",
