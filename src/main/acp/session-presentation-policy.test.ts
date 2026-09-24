@@ -85,6 +85,29 @@ const specialistSkillScope = (names: readonly string[]): string =>
 
 describe('ACP Session presentation policy', () => {
   const policy = new AcpSessionPresentationPolicy()
+  it.each([
+    ['new', undefined],
+    ['resumed', 'Baked OpenCode instructions.']
+  ])('injects the Mobius reminder once for a %s OpenCode turn', (_kind, persistentSystemPrompt) => {
+    const prefix = policy.buildTurnPromptPrefix({
+      framework: opencodeFramework,
+      tooling: { artifacts: false, notebook: false, skillImport: false },
+      persistentSystemPrompt
+    })!
+    expect(prefix.match(/<mobius_turn_presentation>/gu)).toHaveLength(1)
+    expect(prefix).toContain('Mobius Science Agent')
+    expect(prefix).toContain("latest user's conversational language")
+  })
+
+  it('does not inject primary presentation rules into reviewer turns', () => {
+    const prefix = policy.buildTurnPromptPrefix({
+      framework: opencodeFramework,
+      tooling: { artifacts: false, notebook: false, skillImport: false },
+      role: 'reviewer',
+      persistentSystemPrompt: 'Baked reviewer instructions.'
+    })
+    expect(prefix).toBeUndefined()
+  })
   it('keeps the Codex loader limited to the current primary Skill scope', () => {
     const input = {
       framework: codexFramework,
@@ -445,43 +468,42 @@ describe('ACP Session presentation policy', () => {
   })
 
   it('orders the OpenCode Specialist identity before exact per-turn Skill guidance', () => {
-    expect(
-      policy.buildTurnPromptPrefix({
-        framework: opencodeFramework,
-        tooling: { artifacts: false, notebook: false, skillImport: false },
-        persistentSystemPrompt: 'Baked OpenCode instructions.',
-        specialistPrefix: 'Specialist identity prefix.',
-        turnPromptReminders: [specialistSkillScope(['Research', 'mcp-pubmed'])]
-      })
-    ).toBe(
-      ['Specialist identity prefix.', specialistSkillScope(['Research', 'mcp-pubmed'])].join('\n\n')
+    const prefix = policy.buildTurnPromptPrefix({
+      framework: opencodeFramework,
+      tooling: { artifacts: false, notebook: false, skillImport: false },
+      persistentSystemPrompt: 'Baked OpenCode instructions.',
+      specialistPrefix: 'Specialist identity prefix.',
+      turnPromptReminders: [specialistSkillScope(['Research', 'mcp-pubmed'])]
+    })!
+    expect(prefix.startsWith('Specialist identity prefix.\n\n')).toBe(true)
+    expect(prefix.indexOf('<mobius_turn_presentation>')).toBeGreaterThan(0)
+    expect(prefix.indexOf('<open_science_specialist_skill_scope>')).toBeGreaterThan(
+      prefix.indexOf('</mobius_turn_presentation>')
     )
+    expect(prefix).toContain(specialistSkillScope(['Research', 'mcp-pubmed']))
   })
 
   it('uses the same per-turn prefix contract for Codex and preserves supplied Claude reminders', () => {
     const tooling = { artifacts: false, notebook: false, skillImport: false }
 
-    expect(
-      policy.buildTurnPromptPrefix({
-        framework: codexFramework,
-        tooling,
-        persistentSystemPrompt: 'Baked Codex instructions.',
-        specialistPrefix: 'Codex Specialist identity.',
-        turnPromptReminders: [specialistSkillScope(['Research'])]
-      })
-    ).toBe(
-      [
-        'Codex Specialist identity.',
-        '<open_science_specialist_skill_scope>\nSkill discovery for this Specialist is limited to the following Skills. This list does not grant tool or Connector permissions.\n- Research\n</open_science_specialist_skill_scope>'
-      ].join('\n\n')
+    const codexPrefix = policy.buildTurnPromptPrefix({
+      framework: codexFramework,
+      tooling,
+      persistentSystemPrompt: 'Baked Codex instructions.',
+      specialistPrefix: 'Codex Specialist identity.',
+      turnPromptReminders: [specialistSkillScope(['Research'])]
+    })!
+    expect(codexPrefix.startsWith('Codex Specialist identity.\n\n')).toBe(true)
+    expect(codexPrefix.indexOf('<open_science_specialist_skill_scope>')).toBeGreaterThan(
+      codexPrefix.indexOf('</mobius_turn_presentation>')
     )
-    expect(
-      policy.buildTurnPromptPrefix({
-        framework: claudeCodeFramework,
-        tooling,
-        turnPromptReminders: [specialistSkillScope(['Research'])]
-      })
-    ).toBe(specialistSkillScope(['Research']))
+    const claudePrefix = policy.buildTurnPromptPrefix({
+      framework: claudeCodeFramework,
+      tooling,
+      turnPromptReminders: [specialistSkillScope(['Research'])]
+    })!
+    expect(claudePrefix).toContain('<mobius_turn_presentation>')
+    expect(claudePrefix.endsWith(specialistSkillScope(['Research']))).toBe(true)
   })
 
   it.each([
@@ -491,14 +513,14 @@ describe('ACP Session presentation policy', () => {
   ] as const)(
     'keeps the %s Specialist identity after Project context on every turn',
     (_route, framework) => {
-      expect(
-        policy.buildTurnPromptPrefix({
-          framework,
-          tooling: { artifacts: false, notebook: false, skillImport: false },
-          specialistPrefix: 'Specialist identity.',
-          sessionSetupPromptPrefix: 'Project Agent Context.'
-        })
-      ).toBe('Project Agent Context.\n\nSpecialist identity.')
+      const prefix = policy.buildTurnPromptPrefix({
+        framework,
+        tooling: { artifacts: false, notebook: false, skillImport: false },
+        specialistPrefix: 'Specialist identity.',
+        sessionSetupPromptPrefix: 'Project Agent Context.'
+      })!
+      expect(prefix.startsWith('Project Agent Context.\n\nSpecialist identity.')).toBe(true)
+      expect(prefix).toContain('<mobius_turn_presentation>')
     }
   )
 
