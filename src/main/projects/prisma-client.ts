@@ -14,11 +14,10 @@ import {
 } from '../../mobius/main/project-database-identity'
 import { PRODUCT } from '../../mobius/shared/product-config'
 
-const PROJECT_DB_FILE = 'open-science.db'
 // SQLite PRAGMAs used by migrations are connection-scoped. Keeping a single connection also avoids
 // unnecessary SQLITE_BUSY contention for the local application database.
 const PROJECT_DB_CONNECTION_LIMIT = 1
-const projectDatabasePath = (configRoot: string, databaseFile = PROJECT_DB_FILE): string =>
+const projectDatabasePath = (configRoot: string, databaseFile = PRODUCT.databaseFileName): string =>
   join(configRoot, databaseFile).replace(/\\/g, '/')
 
 // Builds a client bound to the SQLite file under the given config root. Not a singleton, so tests can
@@ -26,7 +25,7 @@ const projectDatabasePath = (configRoot: string, databaseFile = PROJECT_DB_FILE)
 // Windows (Prisma's SQLite connector expects forward slashes).
 const createProjectDbClient = (
   configRoot: string,
-  databaseFile = PROJECT_DB_FILE
+  databaseFile = PRODUCT.databaseFileName
 ): PrismaClient => {
   const dbPath = projectDatabasePath(configRoot, databaseFile)
 
@@ -51,7 +50,7 @@ const getProjectDbClient = (
       try {
         await mkdir(configRoot, { recursive: true })
         migrateLegacyProjectDatabase(configRoot)
-        client = createProjectDbClient(configRoot, PRODUCT.databaseFileName)
+        client = createProjectDbClient(configRoot)
         await migrateApplicationDatabase(client, {
           ...migrationOptions,
           databasePath: mobiusProjectDatabasePath(configRoot)
