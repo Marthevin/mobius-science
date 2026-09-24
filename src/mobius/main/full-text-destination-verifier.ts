@@ -39,7 +39,7 @@ class FullTextDestinationError extends Error {
   constructor(readonly reason: FullTextDestinationReason) {
     super(
       reason === 'unsafe-destination'
-        ? 'Full-text host resolved to a private or reserved destination.'
+        ? 'Full-text host did not resolve to a public address; it resolved to a private or reserved destination.'
         : 'The proxy uses synthetic DNS, but Mobius Science could not independently verify a public destination.'
     )
     this.name = 'FullTextDestinationError'
