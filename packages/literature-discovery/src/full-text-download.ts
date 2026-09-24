@@ -69,7 +69,12 @@ export const downloadFullText = async (
   resolveProxy?: (url: string) => Promise<string | undefined>,
   requestSignal?: AbortSignal,
   tunnel?: ProxyTunnel,
-  options: { accept?: string; timeoutMs?: number } = {}
+  options: { accept?: string; timeoutMs?: number } = {},
+  resolveDestination?: (input: {
+    hostname: string
+    proxy?: URL
+    signal: AbortSignal
+  }) => Promise<{ addresses: readonly { address: string; family: number }[] }>
 ): Promise<Buffer> => {
   const timeout = AbortSignal.timeout(options.timeoutMs ?? 60_000)
   const signal = requestSignal ? AbortSignal.any([requestSignal, timeout]) : timeout
@@ -94,29 +99,41 @@ export const downloadFullText = async (
     if (retryAt && retryAt > Date.now()) throw new FullTextRateLimitError(retryAt)
     const proxy = await resolveProxy?.(url.href)
     signal.throwIfAborted()
+    const destinationInput = {
+      hostname: url.hostname,
+      ...(proxy ? { proxy: new URL(proxy) } : {}),
+      signal
+    }
+    const destination = resolveDestination
+      ? await resolveDestination(destinationInput)
+      : { addresses: await lookup(url.hostname, { all: true }) }
+    if (
+      !destination.addresses.length ||
+      destination.addresses.some(({ address }) => !isPublicFullTextAddress(address))
+    )
+      throw new Error('Full-text host did not resolve to a public address.')
     const agent = proxy ? new Agent({ keepAlive: false }) : undefined
     if (agent && proxy) {
       const target = url
       agent.createConnection = (_options, callback) => {
-        void lookup(target.hostname, { all: true })
-          .then(async (addresses) => {
+        void (async () => {
+          let lastError: unknown
+          for (const { address } of destination.addresses) {
             signal.throwIfAborted()
-            if (
-              !addresses.length ||
-              addresses.some(({ address }) => !isPublicFullTextAddress(address))
-            ) {
-              throw new Error('Full-text host did not resolve to a public address.')
+            try {
+              if (!tunnel)
+                throw new Error('A proxy tunnel adapter is required for proxied downloads.')
+              const socket = await tunnel(new URL(proxy), address, 443, signal)
+              return connectTls({ socket, servername: target.hostname, rejectUnauthorized: true })
+            } catch (error) {
+              lastError = error
             }
-            if (!tunnel)
-              throw new Error('A proxy tunnel adapter is required for proxied downloads.')
-            const socket = await tunnel(new URL(proxy), addresses[0]!.address, 443, signal)
-            // CONNECT uses the pinned IP. TLS still authenticates the original publisher hostname.
-            return connectTls({ socket, servername: target.hostname })
-          })
-          .then(
-            (socket) => callback?.(null, socket),
-            (error: Error) => callback?.(error, undefined!)
-          )
+          }
+          throw lastError ?? new Error('Full-text public destination was unreachable.')
+        })().then(
+          (socket) => callback?.(null, socket),
+          (error: Error) => callback?.(error, undefined!)
+        )
         return undefined
       }
     }
@@ -130,19 +147,13 @@ export const downloadFullText = async (
             Accept: options.accept ?? 'application/pdf',
             'User-Agent': 'MobiusScience/1.0'
           },
-          lookup: (hostname, options, callback) => {
-            void lookup(hostname, { all: true }).then(
-              (addresses) => {
-                const address = addresses.find((entry) => isPublicFullTextAddress(entry.address))
-                if (
-                  !address ||
-                  addresses.some((entry) => !isPublicFullTextAddress(entry.address))
-                ) {
-                  callback(new Error('Full-text host did not resolve to a public address.'), '', 4)
-                } else callback(null, options.all ? addresses : address.address, address.family)
-              },
-              (error: Error) => callback(error, '', 4)
-            )
+          lookup: (_hostname, options, callback) => {
+            const addresses = destination.addresses.map(({ address, family }) => ({
+              address,
+              family
+            }))
+            const first = addresses[0]!
+            callback(null, options.all ? addresses : first.address, first.family)
           }
         },
         resolve

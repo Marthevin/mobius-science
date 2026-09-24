@@ -1,3 +1,4 @@
+import { resolveFullTextDestination } from '../../mobius/main/full-text-destination-verifier'
 import { createLogger, errorLogFields } from '@aipoch/diagnostics/node'
 import { LiteratureCitationFormatter } from '@aipoch/literature-citations'
 import { LiteratureCitationStyleLibrary } from '@aipoch/literature-citations/styles'
@@ -185,7 +186,8 @@ export async function composeResearchCatalog({
       },
       signal,
       (proxy, address, port, signal) => tunnelThroughProxy(proxy, address, port, undefined, signal),
-      options
+      options,
+      resolveFullTextDestination
     )
   const literatureRelatedFinder = new LiteratureRelatedFinder({
     catalog: literatureCatalog,
