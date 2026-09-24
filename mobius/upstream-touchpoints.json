@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "7e9f1b7bc3ca5798c1d14231cb42200802fee2af",
+  "comparisonBase": "565b352e1d7879f63594e4a847282b1bc9d9c889",
   "productionFiles": [
     { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
     {
@@ -150,6 +150,26 @@
     {
       "path": "src/main/notebook/provisioner.ts",
       "seam": "Uses bundled runtimes without upstream CDN fallback."
+    },
+    {
+      "path": "src/main/notebook/mirror-probe.ts",
+      "seam": "Probes Python package mirrors through the same sandbox route used for installation."
+    },
+    {
+      "path": "src/main/notebook/package-manager.ts",
+      "seam": "Falls back among trusted Python package indexes after sandbox network failures."
+    },
+    {
+      "path": "src/main/notebook/package-mutation.ts",
+      "seam": "Coordinates sandboxed package installation and trusted mirror fallback."
+    },
+    {
+      "path": "src/main/notebook/package-operations.ts",
+      "seam": "Passes package installation operations through the sandbox-aware manager."
+    },
+    {
+      "path": "src/main/notebook/pip-install-evidence.ts",
+      "seam": "Classifies installation network failures for trusted index fallback."
     },
     {
       "path": "src/main/notebook/kernel-executor.ts",
@@ -307,6 +327,22 @@
     {
       "path": "src/renderer/src/pages/workspace/notebook-tool-names.ts",
       "seam": "Maps stable internal Notebook MCP identities to user-facing labels."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/WorkspaceToolDetailsRow.tsx",
+      "seam": "Uses branded labels for first-party tool activity."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/first-party-tool-presentation.ts",
+      "seam": "Matches first-party tool identities before selecting branded labels."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/workspace-conversation-controller.ts",
+      "seam": "Replaces an optimistic prompt with the admitted session message."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/workspace-tool-activity-details.ts",
+      "seam": "Keeps internal first-party tool names out of visible activity details."
     },
     {
       "path": "src/renderer/src/pages/workspace/workspace-conversation-items.ts",
