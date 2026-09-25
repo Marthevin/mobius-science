@@ -39,7 +39,7 @@ Place citations immediately after the supported clause or sentence. Avoid attach
 
 ## English language QA pass
 
-Read the rendered PDF, not only the source. Check:
+Read the rendered document, not only the source. Check:
 
 1. title, abstract, headings, captions, table headers, and references for untranslated text;
 2. subject–verb agreement, article use, singular/plural consistency, and incomplete sentences;
@@ -49,4 +49,4 @@ Read the rendered PDF, not only the source. Check:
 6. line breaks or font substitutions that split symbols, units, names, or DOI strings; and
 7. captions and table notes at their final printed size.
 
-When possible, extract text from the final PDF and search for CJK characters in an English-only deliverable, placeholder tokens, literal HTML entities, and repeated template text. Treat the result as a diagnostic and still review every rendered page.
+When possible, extract text from the final deliverable and search for CJK characters in an English-only report, placeholder tokens, literal HTML entities, and repeated template text. Treat the result as a diagnostic and still review every rendered page.
