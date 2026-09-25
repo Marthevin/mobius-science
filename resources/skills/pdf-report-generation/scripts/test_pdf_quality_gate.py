@@ -44,6 +44,13 @@ def reportlab_modules():
 
 
 class PdfQualityGateTests(unittest.TestCase):
+    def test_chinese_route_rejects_zero_extracted_hanzi_without_a_length_floor(self) -> None:
+        with patch("pdf_quality_gate.run", return_value="□□□ English text.\f"):
+            _, metrics, findings = inspect_text(Path("report.pdf"), "zh", 0)
+        self.assertEqual(metrics["cjk_characters"], 0)
+        self.assertIn(("missing-cjk-text", "error"),
+                      [(item.code, item.severity) for item in findings])
+
     def test_chinese_length_floor_counts_hanzi_instead_of_english_words(self) -> None:
         with patch("pdf_quality_gate.run", return_value="黄河中游遗址。\f"):
             _, metrics, findings = inspect_text(Path("report.pdf"), "zh", 6)

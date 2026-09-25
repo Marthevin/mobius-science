@@ -57,6 +57,8 @@ Keep correction history, discarded interpretations, and first-draft diagnostics 
 
 Let text, tables, references, and appendices flow. Use explicit page breaks only for intentional section boundaries such as an appendix or a landscape table. Embed fonts that cover every script in the report. Escape markup once. Size figures for their final printed width and keep legends outside data-dense regions.
 
+The ReportLab template registers fixed font names process-wide. When building documents with different font families (for example English then Chinese) from one script or Notebook, use separate Python processes/kernels for each font set, or adapt the template to register unique names per document. Otherwise a previously registered Latin font can silently replace Chinese glyphs with boxes; the QA gate now fails a `--language zh` PDF with zero extractable Hanzi, but still inspect every rendered page.
+
 Treat the document source as the rebuild authority. ReportLab Platypus consumes the flowables passed to `doc.build()`, so do not try to filter or reuse that `story` list after the first build; rerun the source that constructs a fresh list, apply the correction there, and build the new revision once.
 
 Use this release loop in order:
