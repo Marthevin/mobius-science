@@ -12,6 +12,8 @@ OpenCode's native file tools and a Notebook kernel are separate execution domain
 
 Do not try the materialized Skill path repeatedly through different Notebook execution mechanisms after the boundary has been established. Do not weaken path controls, modify the managed package, or use native Edit or Write as a bridge into a directory outside its sandbox. If an exact transfer cannot be verified, adapt only the required behavior in a complete local file, test that behavior, and describe it as an adaptation rather than an identical copy.
 
+If a required validator or style pass could not be loaded, do not write a simplified lookalike and report that the original check passed. Either transfer and verify the exact source as above, run an explicitly named independent check, or mark that validation unavailable in the QA record. A replacement with fewer rules cannot inherit the original tool's name or result.
+
 ## Preserve provenance
 
 Record four identities separately:
