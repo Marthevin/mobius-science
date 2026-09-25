@@ -104,6 +104,12 @@
       "updatedAt": "2026-09-16T00:00:00.000Z"
     },
     {
+      "id": "docx-generation",
+      "name": "DOCX Report Generation",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
+    },
+    {
       "id": "env-management",
       "name": "Environment & Packages",
       "source": "featured",
