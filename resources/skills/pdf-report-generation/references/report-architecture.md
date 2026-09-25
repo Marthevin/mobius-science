@@ -9,7 +9,7 @@ Match the structure to the reader's decision. A research report normally needs t
 - **Title:** specific about the subject, evidence type, and scope. Avoid conclusions stronger than the data.
 - **Report metadata:** author or agent role, date, data cutoff, software or database versions, and document version.
 - **Structured abstract:** Background, Objective, Methods, Results, and Conclusions. Include the central quantitative results, denominators, and primary limitation. Do not introduce facts absent from the body.
-- **Key findings:** three to five complete statements with evidence strength or qualification, not marketing bullets.
+- **Key findings (when useful or required by the target journal):** three to five complete statements with evidence strength or qualification. Omit this block when it merely repeats the abstract or creates a stranded list at the next page boundary.
 
 ## Main text
 

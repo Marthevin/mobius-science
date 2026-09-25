@@ -6,12 +6,14 @@ font files explicitly so the resulting PDF does not depend on viewer fonts.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
+from urllib.parse import quote
 from xml.sax.saxutils import escape
 
 from reportlab import rl_config
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -26,7 +28,6 @@ from reportlab.platypus import (
     Paragraph,
     SimpleDocTemplate,
     Spacer,
-    Table,
     TableStyle,
 )
 
@@ -43,6 +44,11 @@ def register_embedded_fonts(
     bold: str | Path | None = None,
     italic: str | Path | None = None,
     bold_italic: str | Path | None = None,
+    *,
+    reference: str | Path | None = None,
+    regular_subfont_index: int = 0,
+    bold_subfont_index: int = 0,
+    reference_subfont_index: int = 0,
 ) -> dict[str, str]:
     """Register fonts used by the template; all paths must resolve to font files."""
 
@@ -52,11 +58,21 @@ def register_embedded_fonts(
         "ResearchItalic": Path(italic or regular),
         "ResearchBoldItalic": Path(bold_italic or bold or italic or regular),
     }
+    if reference:
+        paths["ResearchReference"] = Path(reference)
     missing = [str(path) for path in paths.values() if not path.is_file()]
     if missing:
-        raise FileNotFoundError(f"Font file(s) not found: {', '.join(sorted(set(missing)))}")
+        raise FileNotFoundError(
+            f"Font file(s) not found: {', '.join(sorted(set(missing)))}"
+        )
     for name, path in paths.items():
-        pdfmetrics.registerFont(TTFont(name, str(path)))
+        if name == "ResearchReference":
+            index = reference_subfont_index
+        elif name in {"ResearchBold", "ResearchBoldItalic"}:
+            index = bold_subfont_index
+        else:
+            index = regular_subfont_index
+        pdfmetrics.registerFont(TTFont(name, str(path), subfontIndex=index))
     pdfmetrics.registerFontFamily(
         "Research",
         normal="ResearchRegular",
@@ -82,14 +98,32 @@ class ScientificReport:
         *,
         subtitle: str = "",
         metadata_line: str = "",
+        language: str = "en",
+        author: str = "Mobius Science",
+        reference_font: str | Path | None = None,
+        regular_subfont_index: int = 0,
+        bold_subfont_index: int = 0,
+        reference_subfont_index: int = 0,
         page_size=A4,
     ) -> None:
+        if language not in {"en", "zh", "mixed"}:
+            raise ValueError("language must be en, zh, or mixed")
         self.output = Path(output)
         self.title = title
         self.subtitle = subtitle
         self.metadata_line = metadata_line
-        register_embedded_fonts(regular_font, bold_font)
-        self.styles = self._styles()
+        self.language = language
+        register_embedded_fonts(
+            regular_font,
+            bold_font,
+            reference=reference_font,
+            regular_subfont_index=regular_subfont_index,
+            bold_subfont_index=bold_subfont_index,
+            reference_subfont_index=reference_subfont_index,
+        )
+        self.styles = self._styles(
+            language, separate_reference_face=reference_font is not None
+        )
         self.story: list[object] = []
         self.doc = SimpleDocTemplate(
             str(self.output),
@@ -99,11 +133,13 @@ class ScientificReport:
             topMargin=23 * mm,
             bottomMargin=20 * mm,
             title=title,
-            author="Open Science",
+            author=author,
         )
 
     @staticmethod
-    def _styles() -> dict[str, ParagraphStyle]:
+    def _styles(
+        language: str = "en", *, separate_reference_face: bool = False
+    ) -> dict[str, ParagraphStyle]:
         base = getSampleStyleSheet()
         styles = {
             "title": ParagraphStyle(
@@ -208,7 +244,42 @@ class ScientificReport:
                 spaceBefore=6,
                 spaceAfter=9,
             ),
+            "reference": ParagraphStyle(
+                "ResearchReference",
+                parent=base["BodyText"],
+                fontName="ResearchReference"
+                if separate_reference_face
+                else "ResearchRegular",
+                fontSize=9.2,
+                leading=13.2,
+                textColor=INK,
+                alignment=TA_LEFT,
+                leftIndent=12,
+                firstLineIndent=-12,
+                spaceAfter=4,
+            ),
         }
+        if language == "zh":
+            # ReportLab's full justification expands gaps around mixed Hanzi and
+            # Latin citations. A ragged right edge is more legible in Chinese.
+            for style in styles.values():
+                style.wordWrap = "CJK"
+            styles["title"].fontSize = 20
+            styles["title"].leading = 27
+            styles["body"].fontSize = 10.5
+            styles["body"].leading = 17
+            styles["body"].alignment = TA_LEFT
+            styles["meta"].fontSize = 9
+            styles["meta"].leading = 13
+            styles["caption"].fontSize = 9
+            styles["caption"].leading = 13
+            styles["table"].fontSize = 9
+            styles["table"].leading = 12.5
+            styles["table_head"].fontSize = 9
+            styles["table_head"].leading = 12.5
+            styles["reference"].fontSize = 9.6
+            styles["reference"].leading = 14.2
+            styles["reference"].spaceAfter = 5.5
         # ParagraphStyle inherits Helvetica as its bullet font even when the
         # visible text uses an embedded face. A bulletText paragraph would
         # otherwise leak an unembedded base-14 font into the PDF resources.
@@ -221,7 +292,9 @@ class ScientificReport:
         width, height = doc.pagesize
         canvas.setStrokeColor(RULE)
         canvas.setLineWidth(0.4)
-        canvas.line(doc.leftMargin, height - 14 * mm, width - doc.rightMargin, height - 14 * mm)
+        canvas.line(
+            doc.leftMargin, height - 14 * mm, width - doc.rightMargin, height - 14 * mm
+        )
         canvas.setFont("ResearchRegular", 7.5)
         canvas.setFillColor(MUTED)
         canvas.drawString(doc.leftMargin, 10 * mm, self.title[:72])
@@ -229,7 +302,9 @@ class ScientificReport:
         canvas.restoreState()
 
     @staticmethod
-    def _paragraph(text: str, style: ParagraphStyle, *, markup: bool = False) -> Paragraph:
+    def _paragraph(
+        text: str, style: ParagraphStyle, *, markup: bool = False
+    ) -> Paragraph:
         content = text if markup else escape(text).replace("\n", "<br/>")
         return Paragraph(content, style)
 
@@ -242,7 +317,9 @@ class ScientificReport:
         self.story.extend([HRFlowable(color=ACCENT, thickness=1.2), Spacer(1, 6 * mm)])
 
     def heading(self, text: str, level: int = 1) -> None:
-        self.story.append(self._paragraph(text, self.styles["h1" if level == 1 else "h2"]))
+        self.story.append(
+            self._paragraph(text, self.styles["h1" if level == 1 else "h2"])
+        )
 
     def paragraph(self, text: str, *, markup: bool = False) -> None:
         self.story.append(self._paragraph(text, self.styles["body"], markup=markup))
@@ -250,12 +327,29 @@ class ScientificReport:
     def callout(self, text: str, *, markup: bool = False) -> None:
         self.story.append(self._paragraph(text, self.styles["callout"], markup=markup))
 
+    def reference(self, citation: str, *, doi: str | None = None) -> None:
+        """Add a verified citation (without its DOI) and a clickable DOI when supplied."""
+
+        content = escape(citation)
+        if doi:
+            identifier = re.sub(
+                r"^https?://(?:dx\.)?doi\.org/", "", doi.strip(), flags=re.I
+            )
+            if not re.fullmatch(r"10\.\d{4,9}/\S+", identifier, flags=re.I):
+                raise ValueError(f"Invalid DOI: {doi}")
+            url = "https://doi.org/" + quote(identifier, safe="/-._;()")
+            href = escape(url, {'"': "&quot;"})
+            content += f' <link href="{href}">{escape(url)}</link>'
+        self.story.append(Paragraph(content, self.styles["reference"]))
+
     def table(
         self,
         rows: list[list[object]],
         *,
         column_widths: list[float] | None = None,
         repeat_header: bool = True,
+        caption: str | None = None,
+        keep_together: bool = False,
     ) -> None:
         if not rows or not rows[0]:
             raise ValueError("Table requires at least one non-empty row")
@@ -265,12 +359,18 @@ class ScientificReport:
         available = self.doc.width
         widths = column_widths or [available / columns] * columns
         if abs(sum(widths) - available) > 1:
-            raise ValueError(f"Column widths must sum to the content width ({available:.1f} points)")
+            raise ValueError(
+                f"Column widths must sum to the content width ({available:.1f} points)"
+            )
         wrapped = []
         for row_index, row in enumerate(rows):
-            style = self.styles["table_head" if row_index == 0 and repeat_header else "table"]
+            style = self.styles[
+                "table_head" if row_index == 0 and repeat_header else "table"
+            ]
             wrapped.append([self._paragraph(str(cell), style) for cell in row])
-        table = LongTable(wrapped, colWidths=widths, repeatRows=1 if repeat_header else 0)
+        table = LongTable(
+            wrapped, colWidths=widths, repeatRows=1 if repeat_header else 0
+        )
         table.hAlign = "LEFT"
         table_commands = [
             # Table's own cell style defaults to Helvetica even when every
@@ -292,12 +392,19 @@ class ScientificReport:
         ]
         if repeat_header:
             table_commands.insert(0, ("BACKGROUND", (0, 0), (-1, 0), ACCENT))
-        table.setStyle(
-            TableStyle(table_commands)
-        )
-        self.story.extend([table, Spacer(1, 3 * mm)])
+        table.setStyle(TableStyle(table_commands))
+        flowables: list[object] = [table]
+        if caption:
+            flowables.append(self._paragraph(caption, self.styles["caption"]))
+        flowables.append(Spacer(1, 3 * mm))
+        if keep_together:
+            self.story.append(KeepTogether(flowables))
+        else:
+            self.story.extend(flowables)
 
-    def figure(self, path: str | Path, caption: str, *, width: float | None = None) -> None:
+    def figure(
+        self, path: str | Path, caption: str, *, width: float | None = None
+    ) -> None:
         image = Image(str(path))
         target_width = min(width or self.doc.width, self.doc.width)
         ratio = image.imageHeight / image.imageWidth
@@ -316,5 +423,7 @@ class ScientificReport:
 
     def build(self) -> Path:
         self.output.parent.mkdir(parents=True, exist_ok=True)
-        self.doc.build(self.story, onFirstPage=self._on_page, onLaterPages=self._on_page)
+        self.doc.build(
+            self.story, onFirstPage=self._on_page, onLaterPages=self._on_page
+        )
         return self.output

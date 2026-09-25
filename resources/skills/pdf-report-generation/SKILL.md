@@ -13,10 +13,11 @@ Turn research records into a report that a domain reviewer can audit. A conversa
 1. Read [report-architecture.md](references/report-architecture.md) before outlining a full report or manuscript-like deliverable.
 2. Read [research-integrity.md](references/research-integrity.md) while building the evidence record and again before finalizing claims.
 3. For an English report, read [english-scientific-writing.md](references/english-scientific-writing.md) before drafting and use its language pass before export.
-4. Read [pdf-layout-qa.md](references/pdf-layout-qa.md) before choosing the document layout and again during final QA.
-5. When OpenCode and a Notebook kernel must use managed Skill files, read [runtime-boundaries.md](references/runtime-boundaries.md) before transferring or adapting any resource.
-6. When using ReportLab, adapt [reportlab-scientific-template.py](assets/reportlab-scientific-template.py). Do not copy placeholder content into the deliverable.
-7. After export, run `scripts/pdf_quality_gate.py` when its Poppler and Pillow dependencies are available. When the brief specifies a page range, pass `--min-pages` and `--max-pages`. For a deliberately dense report, use a justified `--max-bottom-blank` review threshold; `0.25` is a useful starting point. Treat the gate as a defect detector, not as a substitute for reviewing every rendered page.
+4. For a Chinese literature review, read [chinese-literature-review.md](references/chinese-literature-review.md) **before searching** and again before typesetting. A translated English-index synthesis does not establish coverage of Chinese primary literature.
+5. Read [pdf-layout-qa.md](references/pdf-layout-qa.md) before choosing the document layout and again during final QA.
+6. When OpenCode and a Notebook kernel must use managed Skill files, read [runtime-boundaries.md](references/runtime-boundaries.md) before transferring or adapting any resource.
+7. When using ReportLab, adapt [reportlab-scientific-template.py](assets/reportlab-scientific-template.py). Set `language="zh"` for Chinese prose and use `reference(citation, doi=...)` for verified DOI entries. Do not copy placeholder content into the deliverable.
+8. After export, run `scripts/pdf_quality_gate.py` when its Poppler and Pillow dependencies are available. For a substantial Chinese review, use `--language zh --min-cjk-chars 4000 --require-doi-links --strict`, adjusting the character floor to the justified scope; for an English report, use `--language en --min-words 2500 --require-doi-links --strict` as a starting point. When the brief specifies a page range, pass `--min-pages` and `--max-pages`. Treat the gate as a defect detector, not as a substitute for reviewing every rendered page or auditing the evidence.
 
 Managed Skill resources are read-only and may be outside the Notebook's execution root. OpenCode's native Read and the Notebook kernel have different path permissions; follow the transfer and verification procedure in `runtime-boundaries.md` instead of repeatedly trying the same external path through `%run`, `subprocess`, `importlib`, Shell, or Notebook `open()`.
 
@@ -33,6 +34,7 @@ Before typesetting, require all of the following:
 - A claim–evidence ledger covering every headline conclusion and every material mechanistic or clinical claim.
 - Discussion of alternative explanations, disagreements in the evidence, limitations, and what additional evidence would change the conclusion.
 - References verified for identity and placed next to the claims they support.
+- The complete author list and bibliographic fields verified from the source record before formatting. Never treat the first four authors returned by a search display as the complete list.
 - Standalone tables and figure captions that identify data source, population or universe, analysis, units, abbreviations, and uncertainty.
 
 For a broad literature-backed research report, a useful default is 2,500–5,000 English words or 4,000–8,000 Chinese characters and at least ten relevant references, including primary studies where available. These are depth prompts, not quotas: do not pad weak evidence. If the justified report is shorter or has fewer sources, state why its scope supports that length. A five-page file with sparse pages, oversized headings, or a references-only final page does not satisfy the depth gate.
@@ -46,6 +48,8 @@ Treat exact language as executable assertions. Compute the predicates behind wor
 Keep the reproducible record in the Notebook or code, but place enough methods, result tables, and provenance in the PDF for a reader to understand the work without opening the Notebook. Prefer a compact appendix over omitting query details, field definitions, data exclusions, or a claim–evidence table.
 
 Before the first PDF build, save the complete executable document source in the session data directory from the Notebook kernel, or ensure an existing Notebook cell sequence can be rerun without reconstructing prose from memory. Use that source for every revision and deliver it with the PDF.
+
+Freeze the retrieved bibliography and screening decisions as a machine-readable snapshot before writing the review. A transient Notebook variable, query list alone, or the final bibliography does not preserve the screened universe. If a required Skill script is blocked by the Notebook sandbox, follow `runtime-boundaries.md`; do not replace its checks with an ad hoc approximation and report it as the original check.
 
 Keep correction history, discarded interpretations, and first-draft diagnostics in the ledger or QA record. Put them in the report body only when the document is explicitly an audit report or the correction itself is scientifically material.
 
