@@ -144,6 +144,14 @@ def inspect_text(
                 f"English report contains {cjk_count} CJK characters; check for untranslated prose",
             )
         )
+    if language == "zh" and cjk_count == 0:
+        findings.append(
+            Finding(
+                "error",
+                "missing-cjk-text",
+                "Chinese PDF has no extractable Hanzi; check font coverage and rendered pages",
+            )
+        )
     cjk_floor = max(minimum_cjk_chars, minimum_words if language == "zh" else 0)
     if cjk_floor and cjk_count < cjk_floor:
         findings.append(
