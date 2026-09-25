@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { SkillRegistry } from './registry'
 import { ClaudeCodeSkillMaterializer } from './materializer'
 import { toUnpackedAsarPath } from './resource-path'
+import { HostSkillsService, type HostSkillsCatalog } from './host-skills-service'
 
 const seedRoot = async (): Promise<string> => {
   const root = await mkdtemp(join(tmpdir(), 'skills-reg-'))
@@ -168,6 +169,64 @@ describe('SkillRegistry', () => {
     await expect(readFile(join(fontDir, 'OFL.txt'), 'utf8')).resolves.toContain(
       'SIL OPEN FONT LICENSE'
     )
+  })
+
+  it('projects all four general research Skills with their scripts and references', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    const skills = await new SkillRegistry(skillsRoot).list()
+    const configDir = await mkdtemp(join(tmpdir(), 'general-research-skills-'))
+    const expected = [
+      ['literature-deep-review', 'evidence.py', 'evidence-contract.md'],
+      ['experimental-design-statistics', 'design.py', 'methods-and-boundaries.md'],
+      ['evidence-synthesis-meta-analysis', 'run_meta_analysis.py', 'extraction-contract.md'],
+      ['research-proposal-writing', 'proposal.py', 'proposal-templates.md']
+    ] as const
+    const selected = expected.map(([id]) => {
+      const found = skills.find((skill) => skill.id === id)
+      if (!found) throw new Error(`Bundled research Skill missing: ${id}`)
+      expect(found.name).toBe(id)
+      return found
+    })
+    await new ClaudeCodeSkillMaterializer().sync(configDir, selected)
+    for (const [id, script, reference] of expected) {
+      const root = join(configDir, 'skills', `os-${id}`)
+      await expect(readFile(join(root, 'scripts', script), 'utf8')).resolves.toContain(
+        'if __name__ == "__main__"'
+      )
+      await expect(readFile(join(root, 'references', reference), 'utf8')).resolves.toContain('# ')
+    }
+  })
+
+  it('lets the OpenCode host.skills reader open packaged research references and scripts', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    const registry = new SkillRegistry(skillsRoot)
+    const catalog: HostSkillsCatalog = {
+      list: () => registry.list(),
+      withSkillRead: async (id, read) => {
+        const skill = (await registry.list()).find((entry) => entry.id === id)
+        return skill ? read(skill) : undefined
+      },
+      publishPersonalDirectory: async () => {
+        throw new Error('not used')
+      },
+      deletePublished: async () => {
+        throw new Error('not used')
+      }
+    }
+    const service = new HostSkillsService({
+      storageRoot: await mkdtemp(join(tmpdir(), 'research-host-skills-')),
+      catalog
+    })
+    for (const [name, path] of [
+      ['literature-deep-review', 'references/evidence-contract.md'],
+      ['experimental-design-statistics', 'scripts/design.py'],
+      ['evidence-synthesis-meta-analysis', 'references/extraction-contract.md'],
+      ['research-proposal-writing', 'scripts/proposal.py']
+    ]) {
+      const result = await service.dispatch({ op: 'read', params: { name, path } })
+      expect(result).toMatchObject({ name, path, origin: 'featured' })
+      expect((result as { content: string }).content.length).toBeGreaterThan(100)
+    }
   })
 
   it('keeps scientific writing references identical across PDF and DOCX packages', async () => {

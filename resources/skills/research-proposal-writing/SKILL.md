@@ -1,0 +1,18 @@
+---
+name: research-proposal-writing
+description: Use to draft, revise, or audit a research proposal for a grant, thesis, fellowship, course, or internal review across disciplines. It orchestrates verified literature, an appropriate study design, and a persuasive but traceable document; it is not for writing completed-study results or a standalone review.
+license: Apache-2.0
+---
+
+# Research proposal writing
+
+A proposal is a testable promise, not a report of work not yet done. Read [proposal-templates.md](references/proposal-templates.md) after identifying the proposal route, [input-schema.md](references/input-schema.md) before building the structured draft, and [section-playbooks.md](references/section-playbooks.md) during self-review. If managed scripts must run in a Notebook, read [runtime-boundaries.md](references/runtime-boundaries.md).
+
+1. Establish proposal type, target reviewer, institution/call template, length limit, language, deadline, and whether this is exploratory or confirmatory. A supplied call or template takes precedence over generic headings. Ask only for missing constraints that change the document; otherwise state assumptions and proceed.
+2. Establish the evidence-supported gap with `literature-deep-review` for contested or high-stakes claims; a quick `literature-review` is enough for preliminary exploration. The gap must identify what is unknown, in which population/context, and why existing studies do not resolve it. Do not fabricate citation metadata, preliminary data, institutional resources, or novelty claims. If the evidence is conflicted or indirect, qualify the proposal rather than laundering it into certainty.
+3. Make 1–5 coherent aims with a falsifiable question, hypothesis, outcome, method, risk, and Plan B each. Specify the unit of analysis, contrast, data source/recruitment, feasibility, ethics, analysis, milestones, and dissemination. Call `experimental-design-statistics` for a supported quantitative design; otherwise use an appropriate specialist method and label that result separately.
+4. Save `proposal.json`, a reviewed `claim-states.json`, and `design-result.json`. Run `python scripts/proposal.py proposal.json claim-states.json design-result.json output_dir`. Add `--meta meta-result.json` when a compatible quantitative synthesis is available. The builder refuses unlinked background paragraphs, unresolved/unsupported claims, missing aim fallback, missing enrolment, or a meta source absent from the review ledger. It creates `proposal.md` and a hash-linked audit. Its structural pass cannot prove originality, feasibility, tone, or semantic truth.
+5. Re-read as a skeptical panelist using the section playbook: does the aim follow from the gap, does the analysis answer the aim, do effect and uncertainty support the sample size, does Plan B preserve the scientific question, and are consent/data stewardship workable? Revise the structured source, rerun the builder, and preserve the revisioned audit. For a qualitative proposal or an unsupported design, do not fabricate a numeric `design-result.json`; use the prose workflow and label the deterministic builder unavailable.
+6. Use `docx-generation` or `pdf-report-generation` on the approved Markdown and frozen inputs. Apply any funder/institution template, run the document-specific gate, and inspect every rendered page. A generic proposal template does not imply NIH, ERC, NSFC, or a journal's requirements are met.
+
+Deliver the proposal source, verified evidence and design dependencies, editable/final document, and QA record. Describe unresolved scientific risks as risks, not as a success story.
