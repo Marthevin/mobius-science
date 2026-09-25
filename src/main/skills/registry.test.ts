@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -121,6 +121,74 @@ describe('SkillRegistry', () => {
         'utf8'
       )
     ).resolves.toContain('class ScientificReport')
+  })
+
+  it('projects the DOCX report Skill with its own references, template, and validator', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    const skill = (await new SkillRegistry(skillsRoot).list()).find(
+      ({ id }) => id === 'docx-generation'
+    )
+    expect(skill).toMatchObject({ name: 'docx-generation', source: 'featured' })
+    if (!skill) throw new Error('DOCX report Skill missing from production manifest')
+
+    const configDir = await mkdtemp(join(tmpdir(), 'docx-report-skill-'))
+    await new ClaudeCodeSkillMaterializer().sync(configDir, [skill])
+    for (const reference of [
+      'research-integrity.md',
+      'report-architecture.md',
+      'english-scientific-writing.md',
+      'chinese-literature-review.md',
+      'docx-layout-qa.md',
+      'runtime-boundaries.md'
+    ]) {
+      await expect(
+        readFile(join(configDir, 'skills', 'os-docx-generation', 'references', reference), 'utf8')
+      ).resolves.toContain('# ')
+    }
+    await expect(
+      readFile(
+        join(configDir, 'skills', 'os-docx-generation', 'scripts', 'docx_quality_gate.py'),
+        'utf8'
+      )
+    ).resolves.toContain('def main()')
+    await expect(
+      readFile(
+        join(
+          configDir,
+          'skills',
+          'os-docx-generation',
+          'assets',
+          'python-docx-scientific-template.py'
+        ),
+        'utf8'
+      )
+    ).resolves.toContain('class ScientificDocxReport')
+    const fontDir = join(configDir, 'skills', 'os-docx-generation', 'assets', 'fonts')
+    expect((await stat(join(fontDir, 'NotoSerifSC-Regular.otf'))).size).toBeGreaterThan(1_000_000)
+    await expect(readFile(join(fontDir, 'OFL.txt'), 'utf8')).resolves.toContain(
+      'SIL OPEN FONT LICENSE'
+    )
+  })
+
+  it('keeps scientific writing references identical across PDF and DOCX packages', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    for (const reference of [
+      'research-integrity.md',
+      'report-architecture.md',
+      'english-scientific-writing.md',
+      'chinese-literature-review.md',
+      'runtime-boundaries.md'
+    ]) {
+      const canonical = await readFile(
+        join(skillsRoot, '_shared', 'scientific-report', reference),
+        'utf8'
+      )
+      for (const skill of ['pdf-report-generation', 'docx-generation']) {
+        await expect(
+          readFile(join(skillsRoot, skill, 'references', reference), 'utf8')
+        ).resolves.toBe(canonical)
+      }
+    }
   })
 
   it('lists skills merging manifest metadata with SKILL.md description', async () => {
