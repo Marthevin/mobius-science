@@ -92,6 +92,7 @@ describe('SkillRegistry', () => {
       'research-integrity.md',
       'report-architecture.md',
       'english-scientific-writing.md',
+      'chinese-literature-review.md',
       'pdf-layout-qa.md',
       'runtime-boundaries.md'
     ]) {

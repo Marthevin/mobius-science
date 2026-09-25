@@ -61,6 +61,8 @@ Evidence at one level does not automatically establish the next. Record model, i
 
 Verify publication identity, authors, year, journal, DOI, and correction or retraction status with a bibliographic service. Then inspect the source content that supports the claim; metadata alone cannot verify a paper's methods, figure, or conclusion. Where only an abstract is available, make that limit explicit. Do not supply a citation or numeric result from memory.
 
+Fetch the full ordered author list for each reference. A search result showing only four authors is a preview, not proof that the fourth is last; changing its delimiter to “&” silently misattributes the work. Preserve the source metadata alongside the formatted bibliography so an editor can compare them. In fields where local-language reports or monographs carry the primary evidence, include those sources or narrow the scope and label the missing coverage.
+
 Prefer the original study for a result and use reviews for context and synthesis. A platform methods paper describes the resource but is not a snapshot of current platform data; cite the live dataset or query separately. When evidence conflicts, report the disagreement and plausible reasons such as population, assay, endpoint, or analysis differences.
 
 ## Final audit
