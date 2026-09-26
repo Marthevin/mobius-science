@@ -29,6 +29,27 @@ const mainFilterWithExternalOutput = () => {
 }
 
 describe('Mobius electron-builder resolved configuration', () => {
+  it('excludes dependency author agent settings from the production dependency filter', () => {
+    const config = structuredClone(require(join(process.cwd(), 'mobius/electron-builder.cjs')))
+    const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher')
+    const matcher = getNodeModuleFileMatcher(
+      process.cwd(),
+      '/tmp/mobius-package-test/app',
+      (value: string) => value,
+      {},
+      { config, debugLogger: { isEnabled: false } }
+    )
+    const include = (path: string): boolean =>
+      matcher.createFilter()(join(process.cwd(), path), { isDirectory: () => false })
+    for (const path of [
+      'node_modules/resolve/.claude/notes.md',
+      'node_modules/resolve/.claude/settings.local.json',
+      'node_modules/example/.codex/config.toml'
+    ])
+      expect(include(path), path).toBe(false)
+    expect(include('node_modules/resolve/index.js')).toBe(true)
+    expect(include('node_modules/example/dist/index.js')).toBe(true)
+  })
   it('never nests previous releases or local files when the output directory is overridden', () => {
     const include = mainFilterWithExternalOutput()
     for (const path of [
