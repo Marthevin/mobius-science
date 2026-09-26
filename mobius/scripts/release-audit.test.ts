@@ -9,6 +9,42 @@ afterEach(async () => {
 })
 
 describe('release artifact acceptance', () => {
+  it('rejects stale runtime icons even when the package contains the new icon elsewhere', async () => {
+    const { createPackage } = await import('@electron/asar')
+    const { verifyBrandAssets } = await import('./release-audit.mjs')
+    const root = await mkdtemp(join(tmpdir(), 'mobius-brand-audit-'))
+    roots.push(root)
+    const source = join(root, 'source')
+    const packed = join(root, 'packed')
+    await mkdir(join(source, 'mobius/generated/app'), { recursive: true })
+    await mkdir(join(source, 'mobius/generated/tray'), { recursive: true })
+    await mkdir(join(packed, 'out/main/chunks'), { recursive: true })
+    const assets = [
+      ['app/icon.png', 'icon-fresh.png'],
+      ['tray/trayTemplate.png', 'trayTemplate-fresh.png'],
+      ['tray/trayTemplate@2x.png', 'trayTemplate@2x-fresh.png']
+    ]
+    for (const [input, output] of assets) {
+      await writeFile(join(source, 'mobius/generated', input), input)
+      await writeFile(join(packed, 'out/main/chunks', output), input)
+    }
+    const archive = join(root, 'app.asar')
+    await createPackage(packed, archive)
+    expect(await verifyBrandAssets({ asar: archive, sourceRoot: source })).toHaveLength(3)
+    await writeFile(join(packed, 'out/main/chunks/trayTemplate-old.png'), 'legacy icon')
+    const stale = join(root, 'stale.asar')
+    await createPackage(packed, stale)
+    await expect(verifyBrandAssets({ asar: stale, sourceRoot: source })).rejects.toThrow(
+      /brand asset/i
+    )
+    await rm(join(packed, 'out/main/chunks/trayTemplate-old.png'))
+    await rm(join(packed, 'out/main/chunks/trayTemplate@2x-fresh.png'))
+    const missing = join(root, 'missing.asar')
+    await createPackage(packed, missing)
+    await expect(verifyBrandAssets({ asar: missing, sourceRoot: source })).rejects.toThrow(
+      /missing.*brand asset/i
+    )
+  })
   it('accepts compiled dist folders inside production dependencies', async () => {
     const { inspectAsarHeader } = await import('./release-audit.mjs')
     const result = inspectAsarHeader(
