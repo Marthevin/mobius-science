@@ -264,6 +264,10 @@ downstream overlay whose first design goal is to remain easy to rebase and audit
   configuration when a dedicated Mobius overlay can extend it.
 - Use Mobius-specific Electron Builder and workflow entry points that extend or compose the upstream
   build. Limit changes to upstream `package.json` and workflows to additive script/dispatch entries.
+- Build macOS deliverables with `npm run release:mobius:mac` (see `mobius/BUILD.md`). Never hand off a
+  raw electron-builder output as a verified release. Require `release-manifest.json` status `ready`,
+  bundle inventory/size gates, DMG verification, and packaged startup/restart evidence. The workflow
+  exports committed HEAD to a temporary source snapshot; never copy old `dist/` into that snapshot.
 - Keep generated Mobius resources under `mobius/generated/`. Point packaging and the few central
   runtime/renderer registration points at those resources instead of replacing upstream source
   assets in place.

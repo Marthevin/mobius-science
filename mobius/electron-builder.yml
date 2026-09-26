@@ -13,6 +13,11 @@ directories:
   buildResources: build
 afterPack: build/adhoc-sign.cjs
 files:
+  # Positive inputs prevent local files and previous releases from being swept into app.asar,
+  # even when electron-builder's output directory is moved outside the project.
+  - 'out/**'
+  - 'resources/**'
+  - 'package.json'
   - '!**/.vscode/*'
   - '!.claude{,/**/*}'
   - '!.codex{,/**/*}'
@@ -21,6 +26,8 @@ files:
   - '!AGENTS.md'
   - '!docs{,/**/*}'
   - '!output{,/**/*}'
+  - '!dist{,/**/*}'
+  - '!{.scratch,test-results,playwright-report,e2e}{,/**/*}'
   - '!index.js'
   - '!mobius{,/**/*}'
   - '!cli{,/**/*}'
@@ -40,10 +47,12 @@ files:
   - '!node_modules/pdfjs-dist/image_decoders{,/**/*}'
   - '!node_modules/pdfjs-dist/types{,/**/*}'
   - '!node_modules/pdfjs-dist/**/*.map'
+  - '!resources/bin{,/**/*}'
   - '!**/*.{test,spec}.{js,jsx,ts,tsx,mjs,cjs}'
   - '!**/__fixtures__{,/**/*}'
 asarUnpack:
   - resources/**
+  - '!resources/bin{,/**/*}'
   - node_modules/@aipoch/credential-identity-probe-native/build/Release/credential_*
   - node_modules/@aipoch/process-tree-native/build/Release/*.node
   - node_modules/@aipoch/safe-file-publisher-native/build/Release/*.node
