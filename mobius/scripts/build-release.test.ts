@@ -14,6 +14,18 @@ const fixture = async (): Promise<string> => {
   return root
 }
 
+it('canonicalizes temporary-directory aliases before passing the executable to Electron tests', async () => {
+  const { realpath, symlink } = await import('node:fs/promises')
+  const { createBuildWorkspace } = await import('./build-release.mjs')
+  const parent = await fixture()
+  const aliases = await fixture()
+  const alias = join(aliases, 'var-alias')
+  await symlink(parent, alias, 'dir')
+  const workspace = createBuildWorkspace(alias)
+  expect(workspace).toBe(await realpath(workspace))
+  expect(workspace.startsWith((await realpath(parent)) + '/')).toBe(true)
+})
+
 it('can start from a fresh checkout before node_modules exists', async () => {
   const { mkdir, copyFile } = await import('node:fs/promises')
   const root = await fixture()
