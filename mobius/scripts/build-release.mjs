@@ -51,6 +51,59 @@ export const releaseEnvironment = (input = process.env) =>
     )
   )
 
+const hasProxy = (env) =>
+  ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY'].some(
+    (key) => env[key]
+  )
+
+export const buildEnvironment = (
+  input,
+  systemProxyText,
+  supportsEnvProxy = process.allowedNodeEnvironmentFlags.has('--use-env-proxy')
+) => {
+  const env = releaseEnvironment(input)
+  const settings = Object.fromEntries(
+    [...systemProxyText.matchAll(/^\s*(\w+)\s+:\s+([^\n]+)$/gm)].map((m) => [m[1], m[2].trim()])
+  )
+  if (!hasProxy(env)) {
+    for (const protocol of ['HTTP', 'HTTPS']) {
+      if (settings[`${protocol}Enable`] !== '1') continue
+      const host = settings[`${protocol}Proxy`]
+      const port = Number(settings[`${protocol}Port`])
+      if (
+        !host ||
+        !/^[\w.:[\]-]+$/.test(host) ||
+        !Number.isInteger(port) ||
+        port < 1 ||
+        port > 65535
+      )
+        throw new Error('Invalid macOS proxy setting; configure an explicit HTTP(S)_PROXY.')
+      env[`${protocol}_PROXY`] =
+        `http://${host.includes(':') && !host.startsWith('[') ? `[${host}]` : host}:${port}`
+    }
+    if (!hasProxy(env) && (settings.ProxyAutoConfigEnable === '1' || settings.SOCKSEnable === '1'))
+      throw new Error(
+        'PAC/SOCKS-only proxy cannot be used by this build. Set an explicit HTTP(S)_PROXY.'
+      )
+  }
+  const allProxy = env.all_proxy || env.ALL_PROXY
+  if (allProxy) {
+    if (!/^https?:\/\//i.test(allProxy))
+      throw new Error('Build downloads require an HTTP(S) proxy; SOCKS ALL_PROXY is unsupported.')
+    if (!env.http_proxy && !env.HTTP_PROXY) env.HTTP_PROXY = allProxy
+    if (!env.https_proxy && !env.HTTPS_PROXY) env.HTTPS_PROXY = allProxy
+  }
+  if (hasProxy(env)) {
+    if (!supportsEnvProxy)
+      throw new Error(
+        'This Node version lacks --use-env-proxy. Use a current Node release supporting it.'
+      )
+    env.NODE_USE_ENV_PROXY = '1'
+    if (!env.NO_PROXY && !env.no_proxy) env.NO_PROXY = 'localhost,127.0.0.1,::1'
+  }
+  return env
+}
+
 export const runReleaseSteps = async (output, identity, steps) => {
   const manifest = {
     schemaVersion: 1,
@@ -208,6 +261,10 @@ const main = async () => {
     )
   }
   const identity = sourceIdentity(ROOT)
+  const env = buildEnvironment(
+    process.env,
+    hasProxy(process.env) ? '' : execFileSync('/usr/sbin/scutil', ['--proxy'], { encoding: 'utf8' })
+  )
   const pkg = await readJson(join(ROOT, 'package.json'))
   const product = await readJson(join(ROOT, 'mobius/config/product.json'))
   const policy = await readJson(join(ROOT, 'mobius/config/release-policy.json'))
@@ -225,7 +282,6 @@ const main = async () => {
   const source = join(scratch, 'source')
   const build = join(scratch, 'package')
   const appPath = join(build, `mac${values.arch === 'arm64' ? '-arm64' : ''}`, 'Mobius Science.app')
-  const env = releaseEnvironment()
   const run = (name, executable, args, overrides = {}) =>
     command(source, join(output, 'logs', `${name}.log`), executable, args, { ...env, ...overrides })
   let audit, dmg, artifact
@@ -240,7 +296,7 @@ const main = async () => {
         arch: values.arch,
         node: process.version,
         policy,
-        signing: 'local macOS build; signature verified, notarization not requested',
+        signing: 'local macOS build; signature verification required, notarization not requested',
         testScope:
           'packaged smoke with isolated profile and mock keychain; not a live LLM research acceptance'
       },
