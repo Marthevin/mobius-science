@@ -1,10 +1,14 @@
 import { LiteratureProviderError } from './provider-error'
-import { lookup } from 'node:dns/promises'
 import { Agent, get } from 'node:https'
 import { connect as connectTls } from 'node:tls'
 import { tunnelThroughProxy } from '@aipoch/notebook-network-sandbox'
-import { BlockList, isIP } from 'node:net'
+import { isIP } from 'node:net'
 import type { LiteratureFullTextProgress } from '../../shared/literature'
+import {
+  isPublicFullTextAddress,
+  resolveFullTextDestination,
+  type FullTextDestinationDependencies
+} from '../../mobius/main/full-text-destination-verifier'
 
 export class FullTextRateLimitError extends Error {
   constructor(readonly retryAt: number) {
@@ -15,29 +19,7 @@ export class FullTextRateLimitError extends Error {
 }
 const retryAfterByOrigin = new Map<string, number>()
 
-const privateAddresses = new BlockList()
-for (const [address, prefix] of [
-  ['0.0.0.0', 8],
-  ['10.0.0.0', 8],
-  ['100.64.0.0', 10],
-  ['127.0.0.0', 8],
-  ['169.254.0.0', 16],
-  ['172.16.0.0', 12],
-  ['192.0.0.0', 24],
-  ['192.0.2.0', 24],
-  ['192.168.0.0', 16],
-  ['198.18.0.0', 15],
-  ['198.51.100.0', 24],
-  ['203.0.113.0', 24],
-  ['224.0.0.0', 4],
-  ['240.0.0.0', 4]
-] as const)
-  privateAddresses.addSubnet(address, prefix, 'ipv4')
-
-export const isPublicFullTextAddress = (address: string): boolean =>
-  isIP(address) === 4
-    ? !privateAddresses.check(address, 'ipv4')
-    : isIP(address) === 6 && /^[23][0-9a-f]{3}:/iu.test(address)
+export { isPublicFullTextAddress }
 
 export const fullTextUrl = (value: string): URL => {
   const url = new URL(value)
@@ -61,7 +43,8 @@ export const downloadFullText = async (
   maxBytes: number,
   onProgress?: (progress: LiteratureFullTextProgress) => void,
   resolveProxy?: (url: string) => Promise<string | undefined>,
-  requestSignal?: AbortSignal
+  requestSignal?: AbortSignal,
+  destinationDependencies?: FullTextDestinationDependencies
 ): Promise<Buffer> => {
   const timeout = AbortSignal.timeout(60_000)
   const signal = requestSignal ? AbortSignal.any([requestSignal, timeout]) : timeout
@@ -76,33 +59,36 @@ export const downloadFullText = async (
     if (retryAt && retryAt > Date.now()) throw new FullTextRateLimitError(retryAt)
     const proxy = await resolveProxy?.(url.href)
     signal.throwIfAborted()
+    const destination = await resolveFullTextDestination(
+      { hostname: url.hostname, ...(proxy ? { proxy: new URL(proxy) } : {}), signal },
+      destinationDependencies
+    )
     const agent = proxy ? new Agent({ keepAlive: false }) : undefined
     if (agent && proxy) {
       const target = url
       agent.createConnection = (_options, callback) => {
-        void lookup(target.hostname, { all: true })
-          .then(async (addresses) => {
+        void (async () => {
+          let lastError: unknown
+          for (const { address } of destination.addresses) {
             signal.throwIfAborted()
-            if (
-              !addresses.length ||
-              addresses.some(({ address }) => !isPublicFullTextAddress(address))
-            ) {
-              throw new Error('Full-text host did not resolve to a public address.')
+            try {
+              const socket = await tunnelThroughProxy(
+                new URL(proxy),
+                address,
+                443,
+                undefined,
+                signal
+              )
+              return connectTls({ socket, servername: target.hostname, rejectUnauthorized: true })
+            } catch (error) {
+              lastError = error
             }
-            const socket = await tunnelThroughProxy(
-              new URL(proxy),
-              addresses[0]!.address,
-              443,
-              undefined,
-              signal
-            )
-            // CONNECT uses the pinned IP. TLS still authenticates the original publisher hostname.
-            return connectTls({ socket, servername: target.hostname })
-          })
-          .then(
-            (socket) => callback?.(null, socket),
-            (error: Error) => callback?.(error, undefined!)
-          )
+          }
+          throw lastError ?? new Error('Full-text public destination was unreachable.')
+        })().then(
+          (socket) => callback?.(null, socket),
+          (error: Error) => callback?.(error, undefined!)
+        )
         return undefined
       }
     }
@@ -113,19 +99,13 @@ export const downloadFullText = async (
           signal,
           ...(agent ? { agent } : {}),
           headers: { Accept: 'application/pdf', 'User-Agent': 'MobiusScience/1.0' },
-          lookup: (hostname, options, callback) => {
-            void lookup(hostname, { all: true }).then(
-              (addresses) => {
-                const address = addresses.find((entry) => isPublicFullTextAddress(entry.address))
-                if (
-                  !address ||
-                  addresses.some((entry) => !isPublicFullTextAddress(entry.address))
-                ) {
-                  callback(new Error('Full-text host did not resolve to a public address.'), '', 4)
-                } else callback(null, options.all ? addresses : address.address, address.family)
-              },
-              (error: Error) => callback(error, '', 4)
-            )
+          lookup: (_hostname, options, callback) => {
+            const addresses = destination.addresses.map(({ address, family }) => ({
+              address,
+              family
+            }))
+            const first = addresses[0]!
+            callback(null, options.all ? addresses : first.address, first.family)
           }
         },
         resolve

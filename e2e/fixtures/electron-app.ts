@@ -64,13 +64,16 @@ const electronLaunchTarget = (
   platform: NodeJS.Platform = process.platform
 ): { args: string[]; executablePath?: string } => {
   const executablePath = environment.OPEN_SCIENCE_E2E_EXECUTABLE
+  const useMockKeychain =
+    platform === 'darwin' &&
+    (!executablePath || environment.OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN === '1')
   return {
     args: [
       `--user-data-dir=${userDataRoot}`,
       ...(platform === 'linux' ? ['--password-store=basic'] : []),
+      ...(useMockKeychain ? ['--use-mock-keychain'] : []),
       ...(platform === 'darwin' && !executablePath
         ? [
-            '--use-mock-keychain',
             '--require',
             resolve(APP_ROOT, 'e2e/fixtures/mock-credential-identity.cjs')
           ]
@@ -304,6 +307,7 @@ type BrandState = {
   profile: string
   logs: string
   title: string
+  windowTitles: string[]
   menus: string[]
 }
 type ElectronApp = {
@@ -1185,6 +1189,7 @@ class ElectronAppHarness implements ElectronApp {
       profile: app.getPath('userData'),
       logs: app.getPath('logs'),
       title: BrowserWindow.getAllWindows()[0]?.getTitle() ?? '',
+      windowTitles: BrowserWindow.getAllWindows().map((window) => window.getTitle()),
       menus: Menu.getApplicationMenu()?.items.map((item) => item.label) ?? []
     }))
   }

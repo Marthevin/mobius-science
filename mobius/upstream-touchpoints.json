@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "7e9f1b7bc3ca5798c1d14231cb42200802fee2af",
+  "comparisonBase": "aaba23a0d6348121003abc0b70e884bc1acff985",
   "productionFiles": [
     { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
     {
@@ -80,6 +80,10 @@
     },
     { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
     {
+      "path": "src/main/mac-installation.ts",
+      "seam": "Names the macOS installation assistant with the Mobius product identity."
+    },
+    {
       "path": "src/main/agent-framework/registry.ts",
       "seam": "Selects managed OpenCode as the fixed framework."
     },
@@ -89,7 +93,11 @@
     },
     {
       "path": "src/main/acp/session-presentation-policy.ts",
-      "seam": "Projects the Mobius product identity into agent instructions."
+      "seam": "Projects the Mobius product identity and turn narration guidance into agent instructions."
+    },
+    {
+      "path": "src/main/artifacts/provenance-test-fixtures.ts",
+      "seam": "Creates isolated Artifact test databases using the Mobius filename."
     },
     {
       "path": "src/main/acp/handler-workflows.ts",
@@ -152,6 +160,26 @@
       "seam": "Uses bundled runtimes without upstream CDN fallback."
     },
     {
+      "path": "src/main/notebook/mirror-probe.ts",
+      "seam": "Probes Python package mirrors through the same sandbox route used for installation."
+    },
+    {
+      "path": "src/main/notebook/package-manager.ts",
+      "seam": "Falls back among trusted Python package indexes after sandbox network failures."
+    },
+    {
+      "path": "src/main/notebook/package-mutation.ts",
+      "seam": "Coordinates sandboxed package installation and trusted mirror fallback."
+    },
+    {
+      "path": "src/main/notebook/package-operations.ts",
+      "seam": "Passes package installation operations through the sandbox-aware manager."
+    },
+    {
+      "path": "src/main/notebook/pip-install-evidence.ts",
+      "seam": "Classifies installation network failures for trusted index fallback."
+    },
+    {
       "path": "src/main/notebook/kernel-executor.ts",
       "seam": "Keeps scientific-library caches inside the sandbox-writable managed runtime cache."
     },
@@ -206,7 +234,7 @@
     },
     {
       "path": "src/main/literature/full-text-download.ts",
-      "seam": "Uses the downstream HTTP identity."
+      "seam": "Uses the downstream HTTP identity and Mobius destination verifier for safe full-text proxy downloads."
     },
     {
       "path": "src/main/literature/metadata-enricher.ts",
@@ -257,8 +285,12 @@
       "seam": "Skips update-store startup."
     },
     {
+      "path": "src/renderer/installation-assistant.html",
+      "seam": "Shows Mobius branding in the installation assistant before scripts load."
+    },
+    {
       "path": "src/renderer/src/installation-assistant.ts",
-      "seam": "Registers the generated Mobius logo."
+      "seam": "Registers the generated Mobius logo and drag identity."
     },
     {
       "path": "src/renderer/src/lib/startup-issue.ts",
@@ -307,6 +339,22 @@
     {
       "path": "src/renderer/src/pages/workspace/notebook-tool-names.ts",
       "seam": "Maps stable internal Notebook MCP identities to user-facing labels."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/WorkspaceToolDetailsRow.tsx",
+      "seam": "Uses branded labels for first-party tool activity."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/first-party-tool-presentation.ts",
+      "seam": "Matches first-party tool identities before selecting branded labels."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/workspace-conversation-controller.ts",
+      "seam": "Replaces an optimistic prompt with the admitted session message."
+    },
+    {
+      "path": "src/renderer/src/pages/workspace/workspace-tool-activity-details.ts",
+      "seam": "Keeps internal first-party tool names out of visible activity details."
     },
     {
       "path": "src/renderer/src/pages/workspace/workspace-conversation-items.ts",

@@ -777,8 +777,9 @@ describe('AcpPromptPreparationOwner', () => {
     expect(preparedText).toEqual(expect.stringContaining('<open_science_notebook_continuity>'))
     expect(preparedText).toEqual(expect.stringContaining('"label":"dataset"'))
     expect(preparedText).toMatch(
-      /^replayed history[\s\S]+Specialist identity\.\n\n<open_science_specialist_skill_scope>\n- Research\n<\/open_science_specialist_skill_scope>\n\nprepared task$/
+      /^replayed history[\s\S]+Specialist identity\.\n\n<mobius_turn_presentation>[\s\S]+<\/mobius_turn_presentation>\n\n<open_science_specialist_skill_scope>\n- Research\n<\/open_science_specialist_skill_scope>\n\nprepared task$/
     )
+    expect(preparedText?.match(/<mobius_turn_presentation>/gu)).toHaveLength(1)
     expect(fixture.authorizeReferencedUploads).toHaveBeenCalledWith('project-1', 'session-1', [
       '/uploads/Research.skill'
     ])
@@ -786,8 +787,8 @@ describe('AcpPromptPreparationOwner', () => {
       expect.objectContaining({ promptMessageId: 'prompt-fallback' })
     )
     expect(handle.content).toBe('provider-content')
-    expect(handle.promptPrefix).toBe(
-      'Specialist identity.\n\n<open_science_specialist_skill_scope>\n- Research\n</open_science_specialist_skill_scope>'
+    expect(handle.promptPrefix).toMatch(
+      /^Specialist identity\.\n\n<mobius_turn_presentation>[\s\S]+<\/mobius_turn_presentation>\n\n<open_science_specialist_skill_scope>\n- Research\n<\/open_science_specialist_skill_scope>$/
     )
     expect(handle.skillActivityInputs).toEqual([
       { name: 'Research', path: '/missing/Research/SKILL.md' }

@@ -7,6 +7,7 @@ import type { AcpPromptRequest } from '../../shared/acp'
 import type { ShellRuntimeAgentContract } from '../notebook/shell-runtime'
 import type { SessionCapabilityPolicy } from './session-capability-owner'
 import { PRODUCT } from '../../mobius/shared/product-config'
+import { mobiusTurnPresentationReminder } from '../../mobius/main/turn-presentation-reminder'
 
 type AcpSessionToolingAvailability = Readonly<{
   artifacts: boolean
@@ -217,12 +218,16 @@ class AcpSessionPresentationPolicy {
   }
 
   buildTurnPromptPrefix(input: AcpTurnPromptPrefixInput): string | undefined {
+    const productReminder = mobiusTurnPresentationReminder(input.role)
     const setup = input.framework.buildSessionSetup({
       // A launcher-owned Session setup prefix already contains the stable appends for frameworks
       // without dynamic system-prompt metadata. Reuse that exact prefix instead of duplicating the
       // same appends on every turn; turn-only reminders still flow through the framework adapter.
       systemPromptAppends: input.sessionSetupPromptPrefix ? [] : this.systemPromptAppends(input),
-      turnPromptReminders: [...(input.turnPromptReminders ?? [])],
+      turnPromptReminders: [
+        ...(productReminder ? [productReminder] : []),
+        ...(input.turnPromptReminders ?? [])
+      ],
       sessionOptions: input.sessionOptions
     })
 
