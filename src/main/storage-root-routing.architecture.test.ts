@@ -53,8 +53,8 @@ describe('storage root routing architecture', () => {
 
   it('names configuration-owned public seams configRoot', () => {
     const database = source('src/main/projects/prisma-client.ts')
-    expect(database).toContain('const projectDatabasePath = (configRoot: string)')
-    expect(database).toContain('const createProjectDbClient = (configRoot: string)')
+    expect(database).toMatch(/const projectDatabasePath = \(\s*configRoot: string[,)]/)
+    expect(database).toMatch(/const createProjectDbClient = \(\s*configRoot: string[,)]/)
     expect(database).toMatch(/const getProjectDbClient = \(\s+configRoot: string,/)
 
     const settings = source('src/main/settings/service.ts')
