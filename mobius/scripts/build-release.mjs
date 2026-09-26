@@ -286,6 +286,7 @@ const main = async () => {
   const source = join(scratch, 'source')
   const build = join(scratch, 'package')
   const appPath = join(build, `mac${values.arch === 'arm64' ? '-arm64' : ''}`, 'Mobius Science.app')
+  const installedApp = join(scratch, 'installed', 'Mobius Science.app')
   const run = (name, executable, args, overrides = {}) =>
     command(source, join(output, 'logs', `${name}.log`), executable, args, { ...env, ...overrides })
   let audit, dmg, artifact
@@ -302,7 +303,7 @@ const main = async () => {
         policy,
         signing: 'local macOS build; signature verification required, notarization not requested',
         testScope:
-          'packaged smoke with isolated profile and mock keychain; not a live LLM research acceptance'
+          'application copied from mounted DMG with exact ASAR/icon fingerprints; fresh/restart, legacy database filename migration with conversation/file retention and conflict rejection in isolated profiles with mock keychain; not all historical schemas, live LLM or real credential migration acceptance'
       },
       [
         {
@@ -378,7 +379,10 @@ const main = async () => {
             return {
               appBytes: audit.appBytes,
               asarBytes: audit.asarBytes,
-              asarSha256: audit.asarSha256
+              asarSha256: audit.asarSha256,
+              appIcon: audit.appIcon,
+              iconAssets: audit.iconAssets,
+              brandAssets: audit.brandAssets
             }
           }
         },
@@ -410,9 +414,40 @@ const main = async () => {
               if (mountedHash !== audit.asarSha256)
                 throw new Error('Mounted DMG does not match audited application')
               await copyFile(join(mount, '.background.png'), join(output, 'dmg-background.png'))
+              await mkdir(dirname(installedApp), { recursive: true })
+              await run('install-candidate', '/usr/bin/ditto', [
+                join(mount, 'Mobius Science.app'),
+                installedApp
+              ])
             } finally {
               await run('dmg-unmount', 'hdiutil', ['detach', mount])
             }
+          }
+        },
+        {
+          name: 'installed-candidate-audit',
+          run: async () => {
+            const installed = await auditMacApp({
+              appPath: installedApp,
+              arch: values.arch,
+              version: pkg.version,
+              product,
+              policy,
+              dependencyRoot: source
+            })
+            if (
+              installed.asarSha256 !== audit.asarSha256 ||
+              JSON.stringify(installed.iconAssets) !== JSON.stringify(audit.iconAssets)
+            )
+              throw new Error('Installed DMG candidate differs from audited application')
+            await run('installed-signature', 'codesign', [
+              '--verify',
+              '--deep',
+              '--strict',
+              '--verbose=2',
+              installedApp
+            ])
+            return { asarSha256: installed.asarSha256, iconAssets: installed.iconAssets }
           }
         },
         {
@@ -429,7 +464,8 @@ const main = async () => {
                 '--reporter=list'
               ],
               {
-                OPEN_SCIENCE_E2E_EXECUTABLE: join(appPath, 'Contents/MacOS/Mobius Science'),
+                OPEN_SCIENCE_E2E_EXECUTABLE: join(installedApp, 'Contents/MacOS/Mobius Science'),
+                OPEN_SCIENCE_E2E_EXPECTED_ASAR_SHA256: audit.asarSha256,
                 OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '1'
               }
             )

@@ -4,11 +4,26 @@ import { join } from 'node:path'
 export const prepareBrandStorageFixture = async (
   storageRoot: string,
   testRoot: string,
-  mode: 'legacy' | 'legacy-config' | 'custom' | 'onboarding',
+  mode: 'legacy' | 'legacy-config' | 'legacy-database' | 'custom' | 'onboarding',
   packaged: boolean
 ): Promise<void> => {
   const settingsPath = join(storageRoot, 'settings.json')
   const settings = JSON.parse(await readFile(settingsPath, 'utf8'))
+  if (mode === 'legacy-database') {
+    // The harness has fully closed Electron before altering this test-owned profile.
+    // Preserve any SQLite sidecars under the same name for the production checkpoint path.
+    for (const suffix of ['', '-wal', '-shm', '-journal']) {
+      try {
+        await rename(
+          join(storageRoot, `mobius-science.db${suffix}`),
+          join(storageRoot, `open-science.db${suffix}`)
+        )
+      } catch (error) {
+        if (suffix === '' || (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      }
+    }
+    return
+  }
   if (mode !== 'onboarding') {
     await mkdir(join(settings.dataRoot, 'workspaces', 'historical'), { recursive: true })
     await writeFile(
