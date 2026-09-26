@@ -5,10 +5,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useThemeStore } from '@/stores/theme-store'
 import { useUpdateStore } from '@/stores/update-store'
+import darkLogoUrl from '../../../../../mobius/generated/renderer/logo-dark.png'
+import lightLogoUrl from '../../../../../mobius/generated/renderer/logo.png'
 import { AppVersionSection } from './AppVersionSection'
 
-vi.mock('@/assets/logo.png', () => ({ default: 'logo.png' }))
-vi.mock('@/assets/logo-dark.png', () => ({ default: 'logo-dark.png' }))
+// Exercise the reusable upstream resource rows with fixture destinations. Mobius General
+// settings mount MobiusAppVersionSection and intentionally configure no upstream links.
+vi.mock('../../../../shared/app-config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../shared/app-config')>()
+  return {
+    ...actual,
+    APP: {
+      ...actual.APP,
+      links: {
+        ...actual.APP.links,
+        docs: 'https://example.test/docs/',
+        githubReleases: 'https://example.test/releases',
+        license: 'https://example.test/LICENSE'
+      }
+    }
+  }
+})
 
 let container: HTMLDivElement
 let root: Root
@@ -21,9 +38,9 @@ beforeEach(() => {
 
   useUpdateStore.setState({
     appInfo: {
-      name: 'Open-Science',
+      name: 'Mobius Science',
       version: '0.2.0',
-      copyright: '© 2026 AIPOCH. All rights reserved.'
+      copyright: '© 2026 Mobius Science. All rights reserved.'
     },
     status: { state: 'up-to-date', current: '0.2.0', latest: '0.2.0' }
   })
@@ -39,9 +56,7 @@ describe('AppVersionSection', () => {
   it('opens the project license from a resource row without an inline disclosure', () => {
     act(() => root.render(<AppVersionSection />))
     const link = container.querySelector('a[aria-label="Open-source license"]')
-    expect(link?.getAttribute('href')).toBe(
-      'https://github.com/aipoch/open-science/blob/main/LICENSE'
-    )
+    expect(link?.getAttribute('href')).toBe('https://example.test/LICENSE')
     expect(link?.textContent).toContain('Apache-2.0')
     expect(container.querySelector('details, pre')).toBeNull()
   })
@@ -51,9 +66,9 @@ describe('AppVersionSection', () => {
       root.render(<AppVersionSection />)
     })
 
-    expect(container.textContent).toContain('Open-Science')
+    expect(container.textContent).toContain('Mobius Science')
     expect(container.textContent).toContain('v0.2.0')
-    expect(container.textContent).toContain('© 2026 AIPOCH')
+    expect(container.textContent).toContain('© 2026 Mobius Science')
   })
 
   it('links help and release history to the canonical external resources', () => {
@@ -64,9 +79,9 @@ describe('AppVersionSection', () => {
     const links = Array.from(container.querySelectorAll('a'))
     expect(links).toHaveLength(3)
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      'https://www.aipoch.com/docs/',
-      'https://github.com/aipoch/open-science/releases',
-      'https://github.com/aipoch/open-science/blob/main/LICENSE'
+      'https://example.test/docs/',
+      'https://example.test/releases',
+      'https://example.test/LICENSE'
     ])
     expect(links.every((link) => link.target === '_blank' && link.rel === 'noreferrer')).toBe(true)
   })
@@ -132,11 +147,11 @@ describe('AppVersionSection', () => {
       root.render(<AppVersionSection />)
     })
 
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('logo.png')
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(lightLogoUrl)
 
     act(() => useThemeStore.getState().setPreference('dark'))
 
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('logo-dark.png')
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(darkLogoUrl)
   })
 
   it('switches the About logo when System follows an OS appearance change', () => {
@@ -157,12 +172,12 @@ describe('AppVersionSection', () => {
       useThemeStore.getState().setPreference('system')
       root.render(<AppVersionSection />)
     })
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('logo.png')
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(lightLogoUrl)
 
     act(() => systemListener?.({ matches: true }))
 
     expect(useThemeStore.getState().preference).toBe('system')
-    expect(container.querySelector('img')?.getAttribute('src')).toBe('logo-dark.png')
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(darkLogoUrl)
   })
 
   it('keeps the full update error available and routes retry to the existing owner', () => {
