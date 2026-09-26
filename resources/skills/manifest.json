@@ -98,10 +98,40 @@
       "updatedAt": "2026-07-14T00:00:00.000Z"
     },
     {
+      "id": "literature-deep-review",
+      "name": "Literature Deep Review",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
+    },
+    {
+      "id": "experimental-design-statistics",
+      "name": "Experimental Design & Statistics",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
+    },
+    {
+      "id": "evidence-synthesis-meta-analysis",
+      "name": "Evidence Synthesis & Meta-Analysis",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
+    },
+    {
+      "id": "research-proposal-writing",
+      "name": "Research Proposal Writing",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
+    },
+    {
       "id": "pdf-report-generation",
       "name": "PDF Report Generation",
       "source": "featured",
       "updatedAt": "2026-09-16T00:00:00.000Z"
+    },
+    {
+      "id": "docx-generation",
+      "name": "DOCX Report Generation",
+      "source": "featured",
+      "updatedAt": "2026-09-25T00:00:00.000Z"
     },
     {
       "id": "env-management",

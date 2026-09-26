@@ -1,0 +1,3 @@
+# Managed Skill execution
+
+If OpenCode marks a managed reference external, use `host.skills.read('research-proposal-writing', 'references/input-schema.md')` (or `scripts/proposal.py`) to obtain its content. This does not grant execution permission. When the Notebook kernel cannot execute the managed path, create a complete session-local source file and verify its SHA-256 and byte length before running it. Do not bypass a Notebook sandbox through `%run`, shell or subprocess. Keep the structured inputs and output source together so every revision is reproducible; record source identity and final document hash separately.

@@ -1,0 +1,7 @@
+# Methods and boundaries
+
+The bundled engine uses the two-sided standard-normal rejection probability for a noncentrality based on the declared mean difference and variance, or on two binary risks. It searches integer sample sizes until approximate power meets the target. It divides alpha by the primary hypothesis count for Bonferroni family-wise control and inflates analyzable n by `1/(1-attrition)` for planned enrolment. It does **not** implement an exact t test, logistic regression, hierarchical data, repeated measures, covariate adjustment, or FDR-aware high-dimensional power.
+
+The input effect is a scientific decision (smallest effect worth detecting), not a number the script discovers. Variance or baseline risk should come from a pilot, a relevant prior study, or an explicit planning range. The sensitivity grid exposes how much conclusions change as these assumptions change. If it moves substantially, prioritize a pilot or redesign before committing resources.
+
+Match the analysis method and estimand to the power model. See the primary methodological discussion of [continuous-outcome sample sizes](https://pmc.ncbi.nlm.nih.gov/articles/PMC5609001/) and [protocol review guidance](https://pmc.ncbi.nlm.nih.gov/articles/PMC8427547/). For a complex design, create a prespecified generative simulation and verify its operating characteristics rather than bending these simple formulas to fit.

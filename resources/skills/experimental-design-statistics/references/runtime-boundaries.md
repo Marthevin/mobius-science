@@ -1,0 +1,3 @@
+# Managed Skill execution
+
+OpenCode's native Read and a Notebook kernel have distinct file permissions. If a managed reference is denied as external, read it through `host.skills.read('experimental-design-statistics', 'references/input-schema.md')`; read script content with the same method and `scripts/design.py`. If the bundled script is outside the Notebook execution root, create a complete session-local copy in the Notebook workspace, compare SHA-256 and byte length with the source, compile or import the local copy, and execute that copy. Do not attempt `%run`, shell, subprocess or importlib against a blocked external path. Record source identity, local hash, input hash and output hash. A reimplementation is an adaptation, not the original calculator.

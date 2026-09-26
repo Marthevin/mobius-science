@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+from urllib.parse import unquote
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
@@ -56,7 +57,9 @@ def parse_page_count(pdf: Path) -> int:
     return int(match.group(1))
 
 
-def inspect_page_count(page_count: int, minimum: int = 0, maximum: int = 0) -> list[Finding]:
+def inspect_page_count(
+    page_count: int, minimum: int = 0, maximum: int = 0
+) -> list[Finding]:
     findings: list[Finding] = []
     if minimum and page_count < minimum:
         findings.append(
@@ -108,7 +111,7 @@ def inspect_fonts(pdf: Path) -> tuple[list[dict[str, str]], list[Finding]]:
 
 
 def inspect_text(
-    pdf: Path, language: str, minimum_words: int
+    pdf: Path, language: str, minimum_words: int, minimum_cjk_chars: int = 0
 ) -> tuple[str, dict[str, int], list[Finding]]:
     text = run(["pdftotext", "-layout", str(pdf), "-"])
     findings: list[Finding] = []
@@ -141,7 +144,24 @@ def inspect_text(
                 f"English report contains {cjk_count} CJK characters; check for untranslated prose",
             )
         )
-    if minimum_words and word_count < minimum_words:
+    if language == "zh" and cjk_count == 0:
+        findings.append(
+            Finding(
+                "error",
+                "missing-cjk-text",
+                "Chinese PDF has no extractable Hanzi; check font coverage and rendered pages",
+            )
+        )
+    cjk_floor = max(minimum_cjk_chars, minimum_words if language == "zh" else 0)
+    if cjk_floor and cjk_count < cjk_floor:
+        findings.append(
+            Finding(
+                "warning",
+                "short-report-cjk",
+                f"Extracted CJK character count {cjk_count} is below the requested floor {cjk_floor}",
+            )
+        )
+    if language != "zh" and minimum_words and word_count < minimum_words:
         findings.append(
             Finding(
                 "warning",
@@ -150,6 +170,43 @@ def inspect_text(
             )
         )
     return text, {"english_words": word_count, "cjk_characters": cjk_count}, findings
+
+
+def _doi_set(value: str) -> set[str]:
+    dois = set()
+    for match in re.finditer(
+        r"\b10\.\d{4,9}/[^\s<>]+", unquote(value), flags=re.IGNORECASE
+    ):
+        doi = match.group(0).rstrip(".,;:，。；：")
+        while doi.endswith(")") and doi.count(")") > doi.count("("):
+            doi = doi[:-1]
+        dois.add(doi.casefold())
+    return dois
+
+
+def inspect_doi_links(pdf: Path, extracted_text: str) -> list[Finding]:
+    """Check that visible DOI identifiers have matching PDF URI annotations."""
+
+    visible = _doi_set(extracted_text)
+    if not visible:
+        return []
+    annotations = run(["pdfinfo", "-url", str(pdf)])
+    linked = set()
+    for line in annotations.splitlines():
+        if re.search(r"https?://(?:dx\.)?doi\.org/", line, flags=re.IGNORECASE):
+            linked.update(_doi_set(line))
+    missing = sorted(visible - linked)
+    if not missing:
+        return []
+    preview = ", ".join(missing[:3])
+    suffix = f" (and {len(missing) - 3} more)" if len(missing) > 3 else ""
+    return [
+        Finding(
+            "warning",
+            "unlinked-doi",
+            f"{len(missing)} visible DOI(s) have no matching clickable link: {preview}{suffix}",
+        )
+    ]
 
 
 def render_pages(pdf: Path, pages_dir: Path, dpi: int) -> list[Path]:
@@ -164,7 +221,9 @@ def render_pages(pdf: Path, pages_dir: Path, dpi: int) -> list[Path]:
         stderr=subprocess.PIPE,
         text=True,
     )
-    return sorted(pages_dir.glob("page-*.png"), key=lambda p: int(p.stem.split("-")[-1]))
+    return sorted(
+        pages_dir.glob("page-*.png"), key=lambda p: int(p.stem.split("-")[-1])
+    )
 
 
 def page_metrics(image_path: Path) -> dict[str, float]:
@@ -188,7 +247,11 @@ def page_metrics(image_path: Path) -> dict[str, float]:
     active = [value >= max(2, int(width * 0.0025)) for value in row_ink]
     active_indices = [index for index, value in enumerate(active) if value]
     if not active_indices:
-        return {"ink_ratio": 0.0, "bottom_blank_ratio": 1.0, "largest_internal_gap": 1.0}
+        return {
+            "ink_ratio": 0.0,
+            "bottom_blank_ratio": 1.0,
+            "largest_internal_gap": 1.0,
+        }
     first, last = active_indices[0], active_indices[-1]
     longest = current = 0
     for value in active[first : last + 1]:
@@ -269,15 +332,26 @@ def main() -> int:
     parser.add_argument("pdf", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--language", choices=("en", "zh", "mixed"), default="mixed")
-    parser.add_argument("--min-words", type=int, default=0)
+    parser.add_argument(
+        "--min-words",
+        type=int,
+        default=0,
+        help="English word floor; with --language zh, this legacy option is a CJK character floor",
+    )
+    parser.add_argument("--min-cjk-chars", type=int, default=0)
     parser.add_argument("--min-pages", type=int, default=0)
     parser.add_argument("--max-pages", type=int, default=0)
     parser.add_argument("--max-bottom-blank", type=float, default=0.34)
     parser.add_argument("--dpi", type=int, default=120)
-    parser.add_argument("--strict", action="store_true", help="Treat warnings as failures")
+    parser.add_argument("--require-doi-links", action="store_true")
+    parser.add_argument(
+        "--strict", action="store_true", help="Treat warnings as failures"
+    )
     args = parser.parse_args()
     if args.min_pages < 0 or args.max_pages < 0:
         parser.error("page limits must be zero or positive")
+    if args.min_words < 0 or args.min_cjk_chars < 0:
+        parser.error("text length floors must be zero or positive")
     if args.min_pages and args.max_pages and args.min_pages > args.max_pages:
         parser.error("--min-pages cannot exceed --max-pages")
     if not 0 <= args.max_bottom_blank <= 1:
@@ -296,9 +370,13 @@ def main() -> int:
     if not any(item.severity == "error" for item in findings):
         try:
             page_count = parse_page_count(pdf)
-            findings.extend(inspect_page_count(page_count, args.min_pages, args.max_pages))
+            findings.extend(
+                inspect_page_count(page_count, args.min_pages, args.max_pages)
+            )
             fonts, font_findings = inspect_fonts(pdf)
-            text, text_metrics, text_findings = inspect_text(pdf, args.language, args.min_words)
+            text, text_metrics, text_findings = inspect_text(
+                pdf, args.language, args.min_words, args.min_cjk_chars
+            )
             (output_dir / "extracted.txt").write_text(text, encoding="utf-8")
             page_paths = render_pages(pdf, output_dir / "pages", args.dpi)
             if len(page_paths) != page_count:
@@ -314,6 +392,8 @@ def main() -> int:
             )
             make_contact_sheet(page_paths, output_dir / "contact-sheet.png")
             findings.extend(font_findings + text_findings + page_findings)
+            if args.require_doi_links:
+                findings.extend(inspect_doi_links(pdf, text))
             report.update(
                 {
                     "page_count": page_count,
@@ -336,7 +416,9 @@ def main() -> int:
 
     report["findings"] = [asdict(item) for item in findings]
     report_path = output_dir / "quality-report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     for item in findings:
         location = f" page={item.page}" if item.page else ""
