@@ -104,3 +104,47 @@ it('marks a build ready only after every gate completes and records the results'
   })
   expect(env).toEqual({ PATH: '/bin' })
 })
+
+const systemProxy = `<dictionary> {
+  HTTPEnable : 1
+  HTTPPort : 1082
+  HTTPProxy : 127.0.0.1
+  HTTPSEnable : 1
+  HTTPSPort : 1082
+  HTTPSProxy : 127.0.0.1
+}`
+
+it('uses the actual macOS proxy for Node downloads and child installers with TLS intact', async () => {
+  const { buildEnvironment } = await import('./build-release.mjs')
+  expect(buildEnvironment({ PATH: '/bin' }, systemProxy, true)).toEqual({
+    PATH: '/bin',
+    HTTP_PROXY: 'http://127.0.0.1:1082',
+    HTTPS_PROXY: 'http://127.0.0.1:1082',
+    NODE_USE_ENV_PROXY: '1',
+    NO_PROXY: 'localhost,127.0.0.1,::1'
+  })
+})
+
+it('gives explicit proxy settings precedence and preserves bypass policy', async () => {
+  const { buildEnvironment } = await import('./build-release.mjs')
+  const env = buildEnvironment(
+    { https_proxy: 'http://proxy.example:8080', no_proxy: 'localhost,.example' },
+    systemProxy,
+    true
+  )
+  expect(env.https_proxy).toBe('http://proxy.example:8080')
+  expect(env.HTTP_PROXY).toBeUndefined()
+  expect(env.no_proxy).toBe('localhost,.example')
+  expect(env.NO_PROXY).toBeUndefined()
+  expect(env.NODE_USE_ENV_PROXY).toBe('1')
+})
+
+it('fails clearly for unsupported proxy configurations without disabling TLS', async () => {
+  const { buildEnvironment } = await import('./build-release.mjs')
+  expect(() => buildEnvironment({}, systemProxy, false)).toThrow(/Node.*use-env-proxy/)
+  expect(() => buildEnvironment({}, 'ProxyAutoConfigEnable : 1', true)).toThrow(/PAC/)
+  expect(() => buildEnvironment({ ALL_PROXY: 'socks5://127.0.0.1:1080' }, '', true)).toThrow(
+    /HTTP.*proxy/
+  )
+  expect(buildEnvironment({}, '<dictionary> {}', false)).toEqual({})
+})
