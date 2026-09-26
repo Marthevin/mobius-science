@@ -113,7 +113,7 @@ describe('localizeProviderResourceMessage', () => {
     ],
     [
       'Open-Science could not find a file-backed Codex credential to import. Your existing Codex sign-in may be stored in the system credential store, which Open-Science cannot import from. Continue with the Open-Science Codex sign-in instead.',
-      'Open-Science 未找到可导入的基于文件的 Codex 凭据。你已有的 Codex 登录可能存储在系统凭据库中，Open-Science 无法从中导入。请改用 Open-Science 的 Codex 登录继续。'
+      'Mobius Science 未找到可导入的基于文件的 Codex 凭据。你已有的 Codex 登录可能存储在系统凭据库中，Mobius Science 无法从中导入。请改用 Mobius Science 的 Codex 登录继续。'
     ]
   ])('localizes a custom provider Base URL error', (message, expected) => {
     expect(localizeProviderResourceMessage(message, i18next.getFixedT('zh-Hans'))).toBe(expected)
