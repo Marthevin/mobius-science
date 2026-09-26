@@ -894,14 +894,14 @@ describe('StoragePanel', () => {
     })
 
     // The warning is gated behind the confirm step — not shown on the collapsed panel.
-    expect(container.textContent).not.toContain('Open-Science manages this folder')
+    expect(container.textContent).not.toContain('Mobius Science manages this folder')
 
     await act(async () => {
       clickButton((button) => button.textContent?.trim() === 'Change location')
       await Promise.resolve()
     })
 
-    expect(document.body.textContent).toContain('Open-Science manages this folder')
+    expect(document.body.textContent).toContain('Mobius Science manages this folder')
     expect(document.body.textContent).toContain(
       "Don't move, rename, or delete files inside it — doing so can break your projects and history."
     )
@@ -1158,7 +1158,7 @@ describe('StoragePanel', () => {
       await Promise.resolve()
     })
 
-    expect(container.textContent).toContain('already contains Open-Science data')
+    expect(container.textContent).toContain('already contains Mobius Science data')
     expect(container.textContent).toContain('Data will be stored in')
     expect(container.textContent).toContain('/mnt/existing/OpenScience')
     expect(

@@ -14,6 +14,13 @@ import {
   marketplaceEntry
 } from '../../../../shared/__fixtures__/skill-marketplace'
 
+// This generic view is gated off in Mobius. A fixture catalog destination keeps its
+// source/publisher separation covered without enabling an upstream product link.
+vi.mock('../../../../shared/skill-marketplace', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../shared/skill-marketplace')>()),
+  skillMarketplaceRepository: 'https://example.test/skill-catalog'
+}))
+
 const entries: SkillMarketplaceEntry[] = Array.from({ length: 40 }, (_, index) => ({
   ...marketplaceEntry,
   id: 'skill-' + index,
@@ -1621,7 +1628,7 @@ describe('Skill Marketplace', () => {
     expect(assessmentTable.querySelector('dt')?.nextElementSibling?.tagName).toBe('DD')
     const links = [...container.querySelectorAll('a')].map((a) => a.href)
     expect(links).toContain('https://aipoch.com/agent-skills')
-    expect(links).toContain('https://github.com/aipoch/openscience-skill-marketplace')
+    expect(links).toContain('https://example.test/skill-catalog')
     expect(links.some((url) => url.includes('/Academic%20Writing/abstract-trimmer'))).toBe(true)
     expect(container.textContent).toContain('License evidence')
     detail.mockResolvedValueOnce({
