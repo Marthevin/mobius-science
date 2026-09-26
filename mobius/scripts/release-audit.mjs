@@ -14,6 +14,36 @@ export const sha256File = async (path) => {
   return hash.digest('hex')
 }
 
+// Inspect the compiled runtime assets, not merely the existence of source artwork.
+// Vite can deduplicate identical light/dark icons; every matching emitted variant must be current.
+export const verifyBrandAssets = async ({ asar, sourceRoot }) => {
+  const require = createRequire(join(sourceRoot, 'package.json'))
+  let archive
+  try {
+    archive = require('@electron/asar')
+  } catch {
+    archive = createRequire(import.meta.url)('@electron/asar')
+  }
+  const entries = archive.listPackage(asar).map((path) => path.replace(/^\//, ''))
+  const expected = [
+    ['app/icon.png', /^out\/main\/chunks\/icon(?:-dark)?-[^/]+\.png$/],
+    ['tray/trayTemplate.png', /^out\/main\/chunks\/trayTemplate-[^/]+\.png$/],
+    ['tray/trayTemplate@2x.png', /^out\/main\/chunks\/trayTemplate@2x-[^/]+\.png$/]
+  ]
+  const result = []
+  for (const [source, pattern] of expected) {
+    const sha256 = await sha256File(join(sourceRoot, 'mobius/generated', source))
+    const matches = entries.filter((path) => pattern.test(path))
+    if (!matches.length) throw new Error(`Missing compiled brand asset: ${source}`)
+    for (const path of matches) {
+      const actual = createHash('sha256').update(archive.extractFile(asar, path)).digest('hex')
+      if (actual !== sha256) throw new Error(`Stale compiled brand asset: ${path}`)
+      result.push({ source, path, sha256 })
+    }
+  }
+  return result
+}
+
 export const inspectAsarHeader = (header, maxBytes) => {
   const entries = []
   const violations = []
@@ -139,16 +169,32 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
   }
   await access(join(resources, 'node_modules/.prisma/client/index.js'))
   await access(join(resources, 'micromamba'))
-  const plist = (key) =>
-    execFileSync('/usr/libexec/PlistBuddy', ['-c', `Print :${key}`, join(contents, 'Info.plist')], {
+  const info = JSON.parse(
+    execFileSync('/usr/bin/plutil', ['-convert', 'json', '-o', '-', join(contents, 'Info.plist')], {
       encoding: 'utf8'
-    }).trim()
+    })
+  )
+  const plist = (key) => info[key]
   if (
     plist('CFBundleIdentifier') !== product.appId ||
     plist('CFBundleName') !== product.displayName ||
     plist('CFBundleShortVersionString') !== version
   )
     throw new Error('Packaged product identity mismatch')
+  const iconName = plist('CFBundleIconFile')
+  if (basename(iconName) !== iconName) throw new Error('Invalid application icon path')
+  const appIconPath = join(resources, iconName.endsWith('.icns') ? iconName : `${iconName}.icns`)
+  const appIconSha256 = await sha256File(appIconPath)
+  const iconAssets = [{ path: relative(appPath, appIconPath), sha256: appIconSha256 }]
+  if (plist('CFBundleIconName'))
+    iconAssets.push({
+      path: 'Contents/Resources/Assets.car',
+      sha256: await sha256File(join(resources, 'Assets.car'))
+    })
+  const brandAssets = await verifyBrandAssets({
+    asar,
+    sourceRoot: dependencyRoot ?? process.cwd()
+  })
   const binaryArch = execFileSync(
     'lipo',
     ['-archs', join(contents, 'MacOS', product.displayName)],
@@ -167,6 +213,9 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
     appBytes,
     asarBytes: (await lstat(asar)).size,
     asarSha256: await sha256File(asar),
+    appIcon: { path: relative(appPath, appIconPath), sha256: appIconSha256 },
+    iconAssets,
+    brandAssets,
     inventory,
     runtimes,
     opencode
