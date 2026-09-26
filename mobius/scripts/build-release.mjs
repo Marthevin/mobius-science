@@ -14,6 +14,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
 
+// Electron reports canonical executable paths (macOS /var aliases /private/var).
+export const createBuildWorkspace = (parent = tmpdir()) =>
+  realpathSync(mkdtempSync(join(parent, 'mobius-release-build-')))
+
 export const sourceIdentity = (root) => {
   if (git(root, 'status', '--porcelain', '--untracked-files=normal')) {
     throw new Error(
@@ -278,7 +282,7 @@ const main = async () => {
   await mkdir(dirname(output), { recursive: true })
   await mkdir(output)
   await mkdir(join(output, 'logs'))
-  const scratch = mkdtempSync(join(tmpdir(), 'mobius-release-build-'))
+  const scratch = createBuildWorkspace()
   const source = join(scratch, 'source')
   const build = join(scratch, 'package')
   const appPath = join(build, `mac${values.arch === 'arm64' ? '-arm64' : ''}`, 'Mobius Science.app')
