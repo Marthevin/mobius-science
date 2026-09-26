@@ -21,7 +21,7 @@ files:
   - '!**/.vscode/*'
   - '!.claude{,/**/*}'
   - '!.codex{,/**/*}'
-  - '!**/{.worktree,.worktrees,.codegraph,.agents}{,/**/*}'
+  - '!**/{.worktree,.worktrees,.codegraph,.agents,.claude,.codex}{,/**/*}'
   - '!.github{,/**/*}'
   - '!AGENTS.md'
   - '!docs{,/**/*}'
