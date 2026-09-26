@@ -45,10 +45,16 @@ containing files you want to keep. The command refuses to overwrite existing out
 6. Generate brand assets; run the complete typecheck and application build.
 7. Package a DMG with the Mobius overlay and publishing disabled.
 8. Inspect the **actual app.asar**. Reject old `dist/`, nested Apps/DMGs/ZIPs, local agent state,
-   missing application entries, missing Skill references/scripts, and oversized output.
+   missing application entries, missing Skill references/scripts, and oversized output. Compare
+   compiled Dock and 1x/2x menu-bar artwork against the freshly generated sources; stale or missing
+   runtime variants fail. Record the installed ICNS and modern macOS `Assets.car` fingerprints too.
 9. Verify the deep code signature, DMG integrity, and that the mounted DMG contains the same ASAR.
-10. Launch the packaged application with an isolated test profile; create a project, restart and
-    verify persistence. Test credentials use a mock keychain; the user's research profile is untouched.
+   Copy the application from the read-only mounted DMG to an isolated installation directory, unmount
+   the DMG, then repeat bundle and signature audits on the installed copy.
+10. Launch that installed copy by absolute executable path and verify its ASAR fingerprint.
+    In isolated profiles, verify fresh start/restart; a legacy database filename migration retaining an actual
+    saved conversation, SQLite Project rows and research file; and refusal of two competing databases without changing
+    either file. Test credentials use a mock keychain; the user's research profile is untouched.
 11. Verify source HEAD has not changed; copy only the accepted DMG and write its SHA-256.
 12. Mark the release manifest `ready` only after all mandatory phases pass.
 
@@ -95,3 +101,24 @@ The packaging smoke test certifies startup, branding and persistence. It does **
 provider networking, full research workflows, scientific validity, or Apple notarization. Use the
 separate end-to-end acceptance record for those claims. This entry does not request notarization;
 current local signing remains suitable for local test distribution, not a notarized public release.
+
+## Launch the build you actually tested
+
+macOS can register several same-name applications (including old repository `dist/` copies).
+Never select a test client by display name. After installing the accepted DMG, use:
+
+```bash
+node mobius/scripts/verified-app.mjs --manifest /absolute/path/release-manifest.json --launch
+```
+
+This fingerprints `/Applications/Mobius Science.app` against a ready release before opening its
+absolute path. Override with `--app /absolute/path/Mobius\ Science.app` only for a deliberate test.
+Keep the manifest with the installer. A same-version older build is still rejected if its bytes
+differ. New manifests also bind ICNS and the modern macOS icon catalog; older manifests verify only
+ASAR bytes. Launch additionally requires a valid deep/strict code signature and refuses while any
+Mobius Science or legacy Open Science main process is running, since a single-instance handoff could
+otherwise return to the old process. Quit those applications normally, then retry; the helper never
+kills processes or changes profiles. This is build provenance, not visual design acceptance.
+Direct Playwright invocations also need `env -u ELECTRON_RUN_AS_NODE`; the release entry
+already clears this variable. A successful isolated smoke run does not certify every historical
+user schema or real Keychain migration: those require separate, backed-up upgrade acceptance.
