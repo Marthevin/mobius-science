@@ -19,6 +19,13 @@ Prerequisites: Git, Node/npm compatible with this repository, Xcode Command Line
 for npm and first-time runtime staging, and enough free space for an isolated npm installation and
 the native application. The process uses the committed package lock via `npm ci`.
 
+Explicit `HTTP_PROXY`/`HTTPS_PROXY` (including lowercase variants) take precedence. Otherwise the
+entry reads the macOS system HTTP/HTTPS proxy and propagates it to Node downloads and runtime
+installers. Node must support `--use-env-proxy` when a proxy is used (check `node --help`). TLS
+verification remains enabled. PAC/SOCKS-only setups need an explicit HTTP CONNECT proxy; the build
+fails with guidance rather than silently bypassing it. Localhost stays excluded from proxying by
+default; explicit `NO_PROXY`/`no_proxy` is preserved. No system network setting is changed.
+
 Optional output path (must not already exist):
 
 ```bash
