@@ -1,5 +1,6 @@
 import { expect, test as base, type TestInfo } from '@playwright/test'
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   appendFile,
   chmod,
@@ -70,10 +71,7 @@ const electronLaunchTarget = (
       ...(platform === 'linux' ? ['--password-store=basic'] : []),
       ...(useMockKeychain ? ['--use-mock-keychain'] : []),
       ...(platform === 'darwin' && !executablePath
-        ? [
-            '--require',
-            resolve(APP_ROOT, 'e2e/fixtures/mock-credential-identity.cjs')
-          ]
+        ? ['--require', resolve(APP_ROOT, 'e2e/fixtures/mock-credential-identity.cjs')]
         : []),
       ...(executablePath ? [] : [APP_ROOT])
     ],
@@ -317,7 +315,7 @@ type NativeMenuProbe = {
 type ElectronApp = {
   captureBrandState: () => Promise<BrandState>
   restartWithBrandFixture: (
-    mode: 'legacy' | 'legacy-config' | 'custom' | 'onboarding'
+    mode: 'legacy' | 'legacy-config' | 'legacy-database' | 'custom' | 'onboarding'
   ) => Promise<Page>
 
   readonly page: Page
@@ -1396,7 +1394,7 @@ class ElectronAppHarness implements ElectronApp {
   }
 
   async restartWithBrandFixture(
-    mode: 'legacy' | 'legacy-config' | 'custom' | 'onboarding'
+    mode: 'legacy' | 'legacy-config' | 'legacy-database' | 'custom' | 'onboarding'
   ): Promise<Page> {
     await this.close()
     await prepareBrandStorageFixture(
@@ -1598,22 +1596,32 @@ class ElectronAppHarness implements ElectronApp {
     await this.resourceProfiler?.attach(this.application)
     try {
       if (process.env.OPEN_SCIENCE_E2E_EXECUTABLE) {
-        const evidence = await this.application.evaluate(({ app }) => ({
-          packaged: app.isPackaged,
-          appPath: app.getAppPath(),
-          executable: process.execPath,
-          version: app.getVersion()
-        }))
+        const evidence = await this.application.evaluate(({ app }) => {
+          return {
+            packaged: app.isPackaged,
+            appPath: app.getAppPath(),
+            executable: process.execPath,
+            version: app.getVersion()
+          }
+        })
+        // Hash outside Electron: its patched fs treats the ASAR itself as a directory.
+        const expectedAsar = process.env.OPEN_SCIENCE_E2E_EXPECTED_ASAR_SHA256
+        const asarSha256 = expectedAsar
+          ? createHash('sha256')
+              .update(await readFile(evidence.appPath))
+              .digest('hex')
+          : undefined
         const revision = process.env.OPEN_SCIENCE_E2E_EXPECTED_BUILD_SHA
         if (
           !evidence.packaged ||
           !evidence.appPath.endsWith('app.asar') ||
           evidence.executable !== process.env.OPEN_SCIENCE_E2E_EXECUTABLE ||
+          (expectedAsar && asarSha256 !== expectedAsar) ||
           (revision && !evidence.version.endsWith(`-nightly.${revision.slice(0, 7)}`))
         ) {
           throw new Error(`Packaged Electron identity mismatch: ${JSON.stringify(evidence)}`)
         }
-        console.info('Packaged Electron identity:', JSON.stringify(evidence))
+        console.info('Packaged Electron identity:', JSON.stringify({ ...evidence, asarSha256 }))
       }
       this.currentPage = await openMainWindow(
         this.application,
