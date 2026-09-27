@@ -113,3 +113,14 @@ complete the system authorization. Credentials/profile were not reset or edited.
 Live writing acceptance remains pending until the client is usable. The isolated
 release gate explicitly uses a mock credential store; it does not claim real
 Keychain authorization coverage.
+
+## Later upstream synchronization
+
+The branch was subsequently integrated with upstream main
+`93127a122b2a7b3ad4cf595c9da2c64396ceaf5e`, including Electron 43. The ready
+DMG above predates that integration and does not validate the rebased package.
+The rebased source passed type checks, 1,406 tests across the 13 changed
+integration suites, 154 writing/runtime/release tests, and 31 Python audit/export
+tests. The full exploratory test run exposed additional failures outside the
+corrected suites; not all have been classified. Keep the PR in draft while these
+failures, a fresh packaged test, and real-client writing acceptance remain open.
