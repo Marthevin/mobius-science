@@ -1596,8 +1596,8 @@ it.each(['en', 'zh-Hans'] as const)(
     try {
       const message =
         locale === 'en'
-          ? 'This Session package requires a newer version of Open Science. Update Open Science, then try importing it again.'
-          : '此会话研究包需要更新版本的 Open Science。请更新 Open Science 后重新导入。'
+          ? 'This Session package requires a newer version of Mobius Science. Update Mobius Science, then try importing it again.'
+          : '此会话研究包需要更新版本的 Mobius Science。请更新 Mobius Science 后重新导入。'
       await expect(
         desktop.import(undefined, undefined, { projectName: 'Research' }, archive)
       ).rejects.toThrow(message)
