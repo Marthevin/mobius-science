@@ -13,7 +13,8 @@ const names = [
   'report-architecture.md',
   'english-scientific-writing.md',
   'chinese-literature-review.md',
-  'runtime-boundaries.md'
+  'runtime-boundaries.md',
+  'manuscript-export.md'
 ]
 const destinations = ['pdf-report-generation', 'docx-generation']
 const drift = []
@@ -29,6 +30,15 @@ for (const name of names) {
       if (!source.equals(current)) drift.push(`${skill}/references/${name}`)
     }
   }
+}
+
+// The prose exporter is shared code, but each published Skill is self-contained.
+const exporter = await readFile(join(root, '_shared/scientific-report/build_manuscript.py'))
+for (const skill of destinations) {
+  const target = join(root, skill, 'scripts/build_manuscript.py')
+  if (mode === '--write') await writeFile(target, exporter)
+  else if (!exporter.equals(await readFile(target)))
+    drift.push(`${skill}/scripts/build_manuscript.py`)
 }
 
 if (drift.length) {

@@ -25,6 +25,14 @@ Use literature and analysis Skills to collect evidence and create figures. Their
 
 ## Content acceptance gate
 
+When `academic-writing` or `research-proposal-writing` supplies a prose manuscript,
+preserve that genre and its evidence contract. A critical essay needs no invented
+experiment, a proposal has planned rather than achieved results, and an archival
+source needs no invented DOI. The report defaults below apply when that report
+genre is appropriate; they are not mandatory source/length quotas for every task.
+For ordinary Markdown prose, read [manuscript-export.md](references/manuscript-export.md)
+and use `scripts/build_manuscript.py` with the original template and verified fonts.
+
 Before typesetting, require all of the following:
 
 - A precise research question, intended audience, scope, data cutoff, and definitions for central terms.
