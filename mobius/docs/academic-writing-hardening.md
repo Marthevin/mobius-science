@@ -90,6 +90,26 @@ unbalanced long titles and widows; incomplete DOCX visual QA.
 - [x] Implement skill resources and deterministic export checks.
 - [ ] Verify built-in registry, resource transfer and stale-import distinction.
 - [x] Run affected unit tests, type/lint checks; commit build inputs locally.
-- [ ] Run mandatory package/install/startup release gates.
-- [ ] Build DMG through the supported release workflow.
+- [x] Run mandatory package/install/startup release gates (isolated profiles).
+- [x] Build DMG through the supported release workflow.
 - [ ] Run client acceptance, inspect final artifacts and report remaining defects.
+
+## Packaged acceptance checkpoint (2026-09-27)
+
+Commit `2d2e39fa8d661807e84c5a47acacc700432fb73c` produced a `ready`
+release manifest. All three installed-package smoke cases passed, including an
+actual bundled OpenCode conversation using a test-owned loopback model endpoint,
+restart retention, legacy filename migration and conflicting-file preservation.
+The actual packaged resources and runtime provenance passed the bundle audit.
+This synthetic endpoint verifies transport and persistence, not writing quality.
+
+The candidate was installed into `/Applications/Mobius Science.app`; its ASAR
+matched the ready manifest (`edf36ff628459135ddc81683df80441711a7090f41744c1fa297c5507ef8ae34`).
+Existing-profile startup then waited inside macOS `SecItemCopyMatching` /
+`SecKeychainItemCopyContent`, before a renderer was created. A process sample
+confirmed the system credential request, and SecurityAgent was running. The UI
+automation tool prohibits controlling SecurityAgent, so the user was asked to
+complete the system authorization. Credentials/profile were not reset or edited.
+Live writing acceptance remains pending until the client is usable. The isolated
+release gate explicitly uses a mock credential store; it does not claim real
+Keychain authorization coverage.
