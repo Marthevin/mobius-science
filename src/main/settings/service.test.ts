@@ -2157,6 +2157,7 @@ describe('SettingsService: validation', () => {
   })
 
   it('probes the route the active framework drives for a multi-route provider', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     const fetchMock = vi.fn().mockResolvedValue({ status: 200 })
     vi.stubGlobal('fetch', fetchMock)
@@ -2174,7 +2175,7 @@ describe('SettingsService: validation', () => {
       })
     ).providers[0]
 
-    // Default framework is Claude Code (Anthropic only).
+    // Select Claude explicitly; Mobius defaults to OpenCode.
     await service.validateProvider({ providerId: created.id })
 
     expect(fetchMock).toHaveBeenCalledOnce()
@@ -2440,6 +2441,7 @@ describe('SettingsService: validation', () => {
 
 describe('SettingsService: preflight & spawn config', () => {
   it('gates on a detected claude and a validated active provider', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(validAnthropicResponse()))
 
@@ -2576,6 +2578,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('shares one in-flight shared Claude status check across concurrent preflights', async () => {
+    await repository.setAgentFramework('claude-code')
     let resolveStatus:
       ((status: { supported: boolean; authenticated: boolean }) => void) | undefined
     const claudeSharedAuth: ClaudeSharedAuthControllerPort = {
@@ -2614,6 +2617,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('does not cache a shared Claude status that resolves after login invalidation', async () => {
+    await repository.setAgentFramework('claude-code')
     let resolveStaleStatus:
       ((status: { supported: boolean; authenticated: boolean }) => void) | undefined
     const claudeSharedAuth: ClaudeSharedAuthControllerPort = {
@@ -2653,6 +2657,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('invalidates a stale shared Claude status after browser login', async () => {
+    await repository.setAgentFramework('claude-code')
     const claudeSharedAuth: ClaudeSharedAuthControllerPort = {
       getStatus: vi
         .fn()
@@ -2682,6 +2687,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('reuses an explicit shared Claude status check in the next preflight', async () => {
+    await repository.setAgentFramework('claude-code')
     const claudeSharedAuth: ClaudeSharedAuthControllerPort = {
       getStatus: vi.fn().mockResolvedValue({ supported: true, authenticated: true }),
       loginShared: vi.fn(),
@@ -2709,6 +2715,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('does not reuse an authenticated shared Claude cache after app disconnect', async () => {
+    await repository.setAgentFramework('claude-code')
     const claudeSharedAuth: ClaudeSharedAuthControllerPort = {
       getStatus: vi
         .fn()
@@ -3960,6 +3967,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('builds spawn env from the active provider with the decrypted key', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
 
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
@@ -3996,6 +4004,7 @@ describe('SettingsService: preflight & spawn config', () => {
   })
 
   it('does not inject WebFetch preflight settings into isolated Claude sessions', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     const { encryptKey, maskKey } = await import('./crypto.js')
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
@@ -4094,6 +4103,7 @@ describe('SettingsService: official vendors', () => {
   })
 
   it('builds spawn env from the registry base URL and the active model', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
     const created = (
@@ -4223,6 +4233,7 @@ describe('SettingsService: official vendors', () => {
   })
 
   it('keeps a captured DeepSeek session model usable and passes its original id after refresh', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
     const created = (
@@ -4943,6 +4954,7 @@ describe('SettingsService: skills', () => {
   })
 
   it('force-loads a disabled picked skill for the turn without mutating stored settings', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = await createSkillService()
 
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
@@ -4988,6 +5000,7 @@ describe('SettingsService: skills', () => {
   })
 
   it('keeps the shared Claude profile private while exposing only canonical Skill identities', async () => {
+    await repository.setAgentFramework('claude-code')
     const userClaudeDir = join(storageRoot, 'shared-claude')
     const userSkillDir = join(userClaudeDir, 'skills', 'os-user-owned')
     const userConnectorDir = join(userClaudeDir, 'skills', 'mcp-pubmed')
@@ -5083,6 +5096,7 @@ describe('SettingsService: skills', () => {
   })
 
   it('injects the selected shared Claude model context window into the spawn config', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
     await service.upsertProvider({ type: 'claude-shared', model: 'claude-opus-4-8' })
@@ -5753,6 +5767,7 @@ describe('detectClaude hardening', () => {
 
 describe('checkEnvironment', () => {
   it('keeps a cached executable that still runs when a GUI PATH cannot rediscover it', async () => {
+    await repository.setAgentFramework('claude-code')
     await repository.setClaudeInfo({ resolvedPath: execPath, version: '2.1.118' })
     const service = new SettingsService({
       repository,
@@ -5775,6 +5790,7 @@ describe('checkEnvironment', () => {
   })
 
   it('does not overwrite a healthy recorded executable with a freshly detected PATH entry', async () => {
+    await repository.setAgentFramework('claude-code')
     // Pinned platform is 'linux', so use posix literals; a host join() would splice a win32 drive
     // letter into PATH and be mis-split on ':' by the posix delimiter.
     const other = '/other-bin/claude'
@@ -5802,6 +5818,7 @@ describe('checkEnvironment', () => {
   })
 
   it('re-detects when the recorded executable no longer reports a version', async () => {
+    await repository.setAgentFramework('claude-code')
     // Pinned platform is 'linux', so use posix literals (see the note above about PATH splitting).
     const stale = '/stale/claude'
     const found = '/found-bin/claude'
@@ -6674,6 +6691,7 @@ describe('SettingsService: Reviewer model', () => {
   })
 
   it('admits the configured fixed Reviewer backend for one Review chain', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     const created = await service.upsertProvider({
       type: 'custom',
@@ -6839,6 +6857,7 @@ describe('SettingsService: Vision model', () => {
   })
 
   it('persists and admits one image-capable fixed target', async () => {
+    await repository.setAgentFramework('claude-code')
     const service = createService()
     const created = await service.upsertProvider({
       type: 'custom',
@@ -8771,6 +8790,7 @@ describe('SettingsService: claude-shared login orchestration', () => {
   })
 
   it('logoutClaudeShared disconnects locally without logging out the global CLI profile', async () => {
+    await repository.setAgentFramework('claude-code')
     const globalLogout = vi.fn().mockResolvedValue({ supported: true, authenticated: false })
     const auth = { ...sharedAuth(), logoutShared: globalLogout }
     const service = createService(undefined, {

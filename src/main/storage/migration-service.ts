@@ -14,6 +14,7 @@ import type {
 } from '../../shared/storage'
 import {
   dataRootForPicked,
+  dataFolderName,
   isPathInsideOrEqual,
   resolveConfigRoot,
   samePath
@@ -425,7 +426,9 @@ export const classifyDataRoot = async (
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
       return { kind: 'invalid', error: 'The selected folder is not usable.' }
   }
-  const branded = /^Open-?Science(?:-DEV)?$/i.test(basename(target))
+  const branded =
+    samePath(basename(target), dataFolderName()) ||
+    /^Open-?Science(?:-DEV)?$/i.test(basename(target))
   const looksLikeOurData = ownedWorkspace || (branded && hasLegacyResearchData(target))
   if (looksLikeOurData) return { kind: 'adopt' }
 
