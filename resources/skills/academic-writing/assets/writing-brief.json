@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "task": "Fill from the actual request; this example is not evidence.",
+  "genre": "unspecified",
+  "audience": "unspecified",
+  "conversation_language": "unspecified",
+  "manuscript_language": "unspecified",
+  "length": {"target": null, "unit": "unspecified", "excludes": ["references"]},
+  "citation_style": "unspecified",
+  "heading_case": "venue_or_task",
+  "deliverables": [],
+  "source_policy": {"allowed_languages": [], "allowed_types": [], "forbid_cjk": false},
+  "user_requirements": [],
+  "agent_assumptions": [],
+  "supplied_material": [],
+  "question": "unspecified",
+  "provisional_answer": "undetermined",
+  "strongest_alternative": "undetermined",
+  "source_functions_needed": [],
+  "current_stage": "brief",
+  "next_action": "Resolve the task and source needs before drafting."
+}

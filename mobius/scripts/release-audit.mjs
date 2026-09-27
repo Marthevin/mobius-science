@@ -108,6 +108,7 @@ export const verifyRuntimePacks = async (directory, subdir) => {
 }
 
 export const verifyOpenCode = async (directory, arch, version) => {
+  const { assertSourceReceipt } = await import('./managed-opencode-source.mjs')
   const manifest = await json(join(directory, 'manifest.json'))
   if (
     manifest.schemaVersion !== 1 ||
@@ -116,6 +117,7 @@ export const verifyOpenCode = async (directory, arch, version) => {
     manifest.binary !== 'opencode'
   )
     throw new Error('OpenCode pin/target mismatch')
+  assertSourceReceipt(manifest.sourceBuild)
   const binary = join(directory, 'opencode')
   if ((await lstat(binary)).isSymbolicLink() || (await sha256File(binary)) !== manifest.sha256) {
     throw new Error('OpenCode checksum mismatch')
@@ -138,6 +140,34 @@ export const directoryBytes = async (directory, root = directory) => {
     else total += (await lstat(path)).size
   }
   return total
+}
+
+export const verifySkillResources = async (packagedRoot, sourceRoot, requiredSkills) => {
+  const catalog = await json(join(packagedRoot, 'manifest.json'))
+  const checked = []
+  const visit = async (path) => {
+    for (const entry of await readdir(join(sourceRoot, path), { withFileTypes: true })) {
+      if (entry.name === '__pycache__' || entry.name === '.DS_Store') continue
+      const name = join(path, entry.name)
+      if (entry.isSymbolicLink()) throw new Error(`Unexpected source Skill symlink: ${name}`)
+      if (entry.isDirectory()) await visit(name)
+      else {
+        const target = join(packagedRoot, name)
+        if (
+          (await lstat(target)).isSymbolicLink() ||
+          (await sha256File(target)) !== (await sha256File(join(sourceRoot, name)))
+        )
+          throw new Error(`Stale packaged Skill resource: ${name}`)
+        checked.push(name)
+      }
+    }
+  }
+  for (const id of requiredSkills) {
+    if (!catalog.skills.some((skill) => skill.id === id && skill.source === 'featured'))
+      throw new Error(`Missing built-in Skill registration: ${id}`)
+    await visit(id)
+  }
+  return checked
 }
 
 export const auditMacApp = async ({ appPath, arch, version, product, policy, dependencyRoot }) => {
@@ -167,6 +197,11 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
       if (!(await readdir(join(root, folder))).length) throw new Error(`Missing ${skill}/${folder}`)
     }
   }
+  const skillResources = await verifySkillResources(
+    join(resources, 'app.asar.unpacked/resources/skills'),
+    join(dependencyRoot ?? process.cwd(), 'resources/skills'),
+    policy.requiredSkills
+  )
   await access(join(resources, 'node_modules/.prisma/client/index.js'))
   await access(join(resources, 'micromamba'))
   const info = JSON.parse(
@@ -210,6 +245,7 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
     product.managedOpencodeVersion
   )
   return {
+    skillResources,
     appBytes,
     asarBytes: (await lstat(asar)).size,
     asarSha256: await sha256File(asar),

@@ -142,6 +142,21 @@ class ScientificDocxTests(unittest.TestCase):
             {item.code for item in findings}, {"short-report", "unlinked-doi"}
         )
 
+    def test_academic_profile_removes_theme_borders_and_grid(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            report = self.template.ScientificDocxReport(
+                Path(directory) / 'essay.docx', 'A Scholarly Essay', profile='academic'
+            )
+            report.add_front_matter()
+            report.heading('References')
+            report.reference('Synthetic reference for layout testing.')
+            document = self.Document(report.build())
+        self.assertFalse(document.sections[0]._sectPr.xpath('./w:docGrid'))
+        for name in ['Title', 'Heading 1', 'Heading 2', 'Report Reference']:
+            self.assertFalse(document.styles[name].element.xpath('./w:pPr/w:pBdr'))
+            self.assertEqual(str(document.styles[name].font.color.rgb), '000000')
+        self.assertGreaterEqual(document.styles['Report Reference'].font.size.pt, 10)
+
     def test_render_does_not_accept_a_stale_pdf_from_an_earlier_revision(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)

@@ -43,6 +43,34 @@ const seedRoot = async (): Promise<string> => {
 }
 
 describe('SkillRegistry', () => {
+  it('materializes the academic writing evidence and revision resources intact', async () => {
+    const skillsRoot = join(__dirname, '..', '..', '..', 'resources', 'skills')
+    const skill = (await new SkillRegistry(skillsRoot).list()).find(
+      ({ id }) => id === 'academic-writing'
+    )
+    expect(skill).toMatchObject({ name: 'academic-writing', source: 'featured' })
+    if (!skill) throw new Error('Academic writing Skill missing from production manifest')
+    const configDir = await mkdtemp(join(tmpdir(), 'academic-writing-skill-'))
+    await new ClaudeCodeSkillMaterializer().sync(configDir, [skill])
+    for (const file of [
+      'references/genres.md',
+      'references/evidence.md',
+      'references/argument-and-revision.md',
+      'references/language.md',
+      'references/quality-rubric.md',
+      'references/record-contract.md',
+      'references/runtime-and-delivery.md',
+      'references/brief-and-source-policy.md',
+      'references/source-and-argument-review.md',
+      'assets/writing-brief.json',
+      'SHA256SUMS',
+      'scripts/audit_writing.py'
+    ]) {
+      expect(await readFile(join(configDir, 'skills/os-academic-writing', file), 'utf8')).toBe(
+        await readFile(join(skillsRoot, 'academic-writing', file), 'utf8')
+      )
+    }
+  })
   it('resolves packaged Skill resources outside app.asar without consulting the cwd', () => {
     expect(
       toUnpackedAsarPath(

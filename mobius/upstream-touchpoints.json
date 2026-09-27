@@ -140,7 +140,7 @@
     },
     {
       "path": "src/main/settings/agent-runtime-manager.ts",
-      "seam": "Detects packaged managed OpenCode."
+      "seam": "Verifies and prefers the packaged patched OpenCode runtime; never falls back to a stale saved executable or PATH in packaged mode."
     },
     {
       "path": "src/main/session-persistence/paths.ts",
