@@ -73,7 +73,7 @@ const seedVerifiedMarker = async (
 }
 
 // Data folder name mirrors dataFolderName() for a packaged build (see the electron mock above).
-const dataRootFor = (parent: string): string => join(parent, 'Open-Science')
+const dataRootFor = (parent: string): string => join(parent, 'MobiusScience')
 
 let currentParent: string
 let currentDataRoot: string

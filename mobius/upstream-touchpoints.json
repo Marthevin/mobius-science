@@ -2,6 +2,10 @@
   "schemaVersion": 1,
   "comparisonBase": "93127a122b2a7b3ad4cf595c9da2c64396ceaf5e",
   "productionFiles": [
+    {
+      "path": "src/main/storage/migration-service.ts",
+      "seam": "Recognizes the configured branded research directory while retaining legacy content and ownership checks."
+    },
     { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
     {
       "path": "package-lock.json",

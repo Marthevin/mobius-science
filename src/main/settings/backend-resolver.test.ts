@@ -1686,7 +1686,8 @@ describe('AgentBackendResolver runtime delegation', () => {
       const snapshot = backend.opencodeConfigFiles![0].content
       files[0].content = 'a later materialization must not change the admitted snapshot'
       expect(backend.opencodeConfigFiles![0].content).toBe(snapshot)
-      expect(backend.opencodeConfigFiles!.some((file) => file.path.includes('plugins'))).toBe(true)
+      // Mobius keeps OpenCode pure mode and implements webfetch hardening in the bundled binary.
+      expect(backend.opencodeConfigFiles!.some((file) => file.path.includes('plugins'))).toBe(false)
     } else {
       expect(backend.opencodeConfigFiles).toBeUndefined()
     }
