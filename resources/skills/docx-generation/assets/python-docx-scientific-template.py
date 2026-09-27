@@ -127,6 +127,7 @@ class ScientificDocxReport:
         author: str = "Mobius Science",
         latin_font: str = "Times New Roman",
         cjk_font: str = "Noto Serif SC",
+        profile: str = "research",
     ) -> None:
         if language not in {"en", "zh", "mixed"}:
             raise ValueError("language must be en, zh, or mixed")
@@ -142,6 +143,22 @@ class ScientificDocxReport:
             "zh-CN" if language == "zh" else "en-US"
         )
         self._configure_styles(latin_font, cjk_font)
+        if profile not in {"research", "academic"}:
+            raise ValueError("profile must be research or academic")
+        if profile == "academic":
+            # Quiet essay/proposal typography, independent of Word's built-in theme.
+            for grid in self.document.sections[0]._sectPr.xpath("./w:docGrid"):
+                grid.getparent().remove(grid)
+            for name in ["Normal", "Title", "Heading 1", "Heading 2", "Heading 3", "Report Reference"]:
+                style = self.document.styles[name]
+                style.font.color.rgb = RGBColor(0, 0, 0)
+                for border in style.element.xpath("./w:pPr/w:pBdr"):
+                    border.getparent().remove(border)
+            self.document.styles["Title"].font.size = Pt(16)
+            self.document.styles["Title"].paragraph_format.line_spacing = Pt(21)
+            self.document.styles["Title"].paragraph_format.keep_with_next = True
+            self.document.styles["Report Reference"].font.size = Pt(10.5)
+            self.document.styles["Report Reference"].paragraph_format.keep_together = True
 
     def _configure_styles(self, latin_font: str, cjk_font: str) -> None:
         section = self.document.sections[0]

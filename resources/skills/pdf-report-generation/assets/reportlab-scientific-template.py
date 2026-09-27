@@ -13,6 +13,7 @@ from xml.sax.saxutils import escape
 
 from reportlab import rl_config
 from reportlab.lib import colors
+from reportlab.platypus import paragraph as paragraph_engine
 from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -25,7 +26,7 @@ from reportlab.platypus import (
     KeepTogether,
     LongTable,
     PageBreak,
-    Paragraph,
+    Paragraph as BaseParagraph,
     SimpleDocTemplate,
     Spacer,
     TableStyle,
@@ -37,6 +38,73 @@ MUTED = colors.HexColor("#52636F")
 ACCENT = colors.HexColor("#087F8C")
 PALE = colors.HexColor("#EAF4F4")
 RULE = colors.HexColor("#CBD5DA")
+
+class Paragraph(BaseParagraph):
+    """CJK wrapping with punctuation pairs kept inside the text frame.
+
+    ReportLab's default CJK splitter hangs one closing mark, leaving a second
+    at the next line's start. Keep its glyph/fragment representation (including
+    links and font changes), but choose a legal boundary before emitting a line.
+    English layout and the process-wide ReportLab configuration stay unchanged.
+    """
+
+    def _get_split_blParaFunc(self):
+        if self.style.wordWrap == 'CJK':
+            # ReportLab's rich-text splitter adds Western word separators at
+            # soft wraps, mutating the original fragments. Chinese line breaks
+            # contain no implicit spaces. Clone the exact fragments for reflow.
+            return lambda layout, start, stop: [word.clone() for line in layout.lines[start:stop] for word in line.words]
+        return super()._get_split_blParaFunc()
+
+    def breakLinesCJK(self, maxWidths):
+        if getattr(self, '_splitpara', False) and hasattr(self, 'blPara'):
+            return self.blPara
+        widths = list(maxWidths) if isinstance(maxWidths, (list, tuple)) else [maxWidths]
+        paragraph_engine._handleBulletWidth(self.bulletText, self.style, widths)
+        glyphs = [paragraph_engine.cjkU(char, frag, 'utf8') for frag in self.frags
+                  for char in (frag.text or [''])]
+        closing = set(paragraph_engine.ALL_CANNOT_START + '，；：！？）》〉」』】〕］｝”’…')
+        opening = set('（《〈「『【〔［｛“‘(')
+        lines, start = [], 0
+        calc_bounds = getattr(self.style, 'autoLeading', '') not in ('', 'off')
+        while start < len(glyphs):
+            limit = widths[min(len(lines), len(widths) - 1)]
+            used, end, legal, preferred = 0, start, None, None
+            measured = [0.0]
+            forced = False
+            while end < len(glyphs):
+                glyph = glyphs[end]
+                width = glyph.width
+                if hasattr(width, 'normalizedValue'):
+                    width = width.normalizedValue(limit)
+                if used + width > limit + 1e-6 and end > start:
+                    break
+                used += width
+                measured.append(used)
+                end += 1
+                forced = hasattr(glyph.frag, 'lineBreak')
+                if forced:
+                    break
+                next_char = str(glyphs[end]) if end < len(glyphs) else ''
+                if str(glyph) not in opening and next_char not in closing:
+                    legal = end
+                    # Keep Latin words intact when a recent natural boundary
+                    # exists; long URLs can still wrap character by character.
+                    if not (str(glyph).isascii() and next_char.isascii()
+                            and str(glyph).isalnum() and next_char.isalnum()):
+                        preferred = end
+            if end < len(glyphs) and not forced:
+                end = preferred if preferred and measured[preferred - start] >= limit / 2 else legal or end
+            # An exceptionally narrow frame or oversized punctuation cluster
+            # cannot satisfy both constraints; keep it together and let QA flag
+            # the overflow instead of dropping characters or looping forever.
+            while end < len(glyphs) and not forced and str(glyphs[end]) in closing:
+                end += 1
+            selected = glyphs[start:end]
+            actual = sum(float(g.width.normalizedValue(limit)) if hasattr(g.width, 'normalizedValue') else g.width for g in selected)
+            lines.append(paragraph_engine.makeCJKParaLine(selected, limit, actual, limit - actual, forced, calc_bounds))
+            start = end
+        return paragraph_engine.ParaLines(kind=1, lines=lines)
 
 
 def register_embedded_fonts(
@@ -80,6 +148,10 @@ def register_embedded_fonts(
         italic="ResearchItalic",
         boldItalic="ResearchBoldItalic",
     )
+    pdfmetrics.registerFontFamily(
+        "ResearchRegular", normal="ResearchRegular", bold="ResearchBold",
+        italic="ResearchItalic", boldItalic="ResearchBoldItalic",
+    )
     # ReportLab otherwise inserts an unused Helvetica resource at the start of
     # every page, which makes strict font-embedding checks fail.
     rl_config.canvas_basefontname = "ResearchRegular"
@@ -101,10 +173,13 @@ class ScientificReport:
         language: str = "en",
         author: str = "Mobius Science",
         reference_font: str | Path | None = None,
+        italic_font: str | Path | None = None,
+        bold_italic_font: str | Path | None = None,
         regular_subfont_index: int = 0,
         bold_subfont_index: int = 0,
         reference_subfont_index: int = 0,
         page_size=A4,
+        profile: str = "research",
     ) -> None:
         if language not in {"en", "zh", "mixed"}:
             raise ValueError("language must be en, zh, or mixed")
@@ -113,9 +188,14 @@ class ScientificReport:
         self.subtitle = subtitle
         self.metadata_line = metadata_line
         self.language = language
+        if profile not in {"research", "academic"}:
+            raise ValueError("profile must be research or academic")
+        self.profile = profile
         register_embedded_fonts(
             regular_font,
             bold_font,
+            italic_font,
+            bold_italic_font,
             reference=reference_font,
             regular_subfont_index=regular_subfont_index,
             bold_subfont_index=bold_subfont_index,
@@ -124,6 +204,19 @@ class ScientificReport:
         self.styles = self._styles(
             language, separate_reference_face=reference_font is not None
         )
+        if profile == "academic":
+            for style in self.styles.values():
+                style.textColor = colors.black
+                style.allowWidows = 0
+                style.allowOrphans = 0
+            self.styles["title"].fontSize = 16
+            self.styles["title"].leading = 21
+            self.styles["title"].keepWithNext = True
+            self.styles["body"].fontSize = 10.5 if language == "zh" else 11
+            self.styles["body"].leading = 17 if language == "zh" else 16
+            self.styles["reference"].fontSize = 10.5
+            self.styles["reference"].leading = 14.5
+            self.styles["reference"].splitLongWords = True
         self.story: list[object] = []
         self.doc = SimpleDocTemplate(
             str(self.output),
@@ -290,6 +383,12 @@ class ScientificReport:
     def _on_page(self, canvas, doc) -> None:
         canvas.saveState()
         width, height = doc.pagesize
+        if self.profile == "academic":
+            canvas.setFont("ResearchRegular", 9)
+            canvas.setFillColor(colors.black)
+            canvas.drawRightString(width - doc.rightMargin, 10 * mm, str(doc.page))
+            canvas.restoreState()
+            return
         canvas.setStrokeColor(RULE)
         canvas.setLineWidth(0.4)
         canvas.line(
@@ -314,7 +413,8 @@ class ScientificReport:
             self.story.append(self._paragraph(self.subtitle, self.styles["subtitle"]))
         if self.metadata_line:
             self.story.append(self._paragraph(self.metadata_line, self.styles["meta"]))
-        self.story.extend([HRFlowable(color=ACCENT, thickness=1.2), Spacer(1, 6 * mm)])
+        if self.profile != "academic":
+            self.story.extend([HRFlowable(color=ACCENT, thickness=1.2), Spacer(1, 6 * mm)])
 
     def heading(self, text: str, level: int = 1) -> None:
         self.story.append(

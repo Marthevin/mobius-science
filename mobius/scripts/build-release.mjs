@@ -184,6 +184,7 @@ const runtimeFiles = (arch) => [
   'mobius/runtime/default-envs/r-4.4.tar.zst',
   `mobius/runtime/opencode/darwin/${arch}/manifest.json`,
   `mobius/runtime/opencode/darwin/${arch}/opencode`,
+  `mobius/runtime/opencode/darwin/${arch}/LICENSE.opencode.txt`,
   `resources/bin/mac/${arch}/micromamba`
 ]
 const copyRuntimeFiles = async (from, to, arch) => {
@@ -199,6 +200,11 @@ const stageRuntimes = async ({ source, arch, product, run, cacheRoot }) => {
     'mobius/config/product.json',
     'mobius/scripts/stage-managed-runtimes.mjs',
     'mobius/scripts/stage-managed-opencode.mjs',
+    'mobius/scripts/managed-opencode-source.mjs',
+    'mobius/opencode/source-pin.json',
+    'mobius/opencode/patches/webfetch-whole-response.patch',
+    'mobius/opencode/tests/webfetch-deadline.test.ts.txt',
+    'mobius/opencode/models-api.json.gz',
     'scripts/stage-default-envs.mjs',
     'scripts/pack-archive.mjs',
     'scripts/fetch-micromamba.mjs',
