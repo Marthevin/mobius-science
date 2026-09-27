@@ -59,7 +59,9 @@ containing files you want to keep. The command refuses to overwrite existing out
 10. Launch that installed copy by absolute executable path and verify its ASAR fingerprint.
     In isolated profiles, verify fresh start/restart; a legacy database filename migration retaining an actual
     saved conversation, SQLite Project rows and research file; and refusal of two competing databases without changing
-    either file. Test credentials use a mock keychain; the user's research profile is untouched.
+    either file. The retained-conversation test uses the actual bundled OpenCode with a loopback-only
+    synthetic model endpoint; it does not replace the managed binary with an ACP stub. Test credentials
+    use a mock keychain; the user's research profile is untouched.
 11. Verify source HEAD has not changed; copy only the accepted DMG and write its SHA-256.
 12. Mark the release manifest `ready` only after all mandatory phases pass.
 
