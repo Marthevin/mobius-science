@@ -1,0 +1,99 @@
+// Copied into the pinned OpenCode source tree by the managed runtime builder.
+// Exercises its real tool + FetchHttpClient against a local HTTP server.
+import { describe, expect } from "bun:test"
+import { LayerNode } from "@opencode-ai/core/effect/layer-node"
+import { httpClient } from "@opencode-ai/core/effect/app-node-platform"
+import { Cause, Effect, Exit, Layer } from "effect"
+import { FetchHttpClient, HttpClient } from "effect/unstable/http"
+import { Agent } from "../../src/agent/agent"
+import { Truncate } from "../../src/tool/truncate"
+import { WebFetchTool } from "../../src/tool/webfetch"
+import { SessionID, MessageID } from "../../src/session/schema"
+import { testEffect } from "../lib/effect"
+
+const it = testEffect(LayerNode.compile(LayerNode.group([httpClient, Truncate.node, Agent.node]), [
+  [httpClient, FetchHttpClient.layer as Layer.Layer<HttpClient.HttpClient>],
+]))
+const context = {
+  sessionID: SessionID.make("ses_deadline"), messageID: MessageID.make("msg_deadline"),
+  callID: "", agent: "build", abort: AbortSignal.any([]), messages: [],
+  metadata: () => Effect.void, ask: () => Effect.void,
+}
+const execute = (url: string, timeout = 0.1, ctx = context) => Effect.gen(function* () {
+  const info = yield* WebFetchTool
+  const tool = yield* info.init()
+  return yield* tool.execute({ url, format: "text", timeout }, ctx)
+})
+const withServer = (fetch: (r: Request) => Response | Promise<Response>, body: (url: string) => any) =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => Bun.serve({ port: 0, fetch })),
+    (server) => body(server.url.toString()),
+    (server) => Effect.sync(() => server.stop(true)),
+  )
+const failure = (task: ReturnType<typeof execute>) => task.pipe(
+  Effect.timeoutOrElse({ duration: 1500, orElse: () => Effect.die(new Error("TEST_GUARD: tool exceeded its deadline")) }),
+  Effect.exit,
+  Effect.map((exit) => Exit.isFailure(exit) ? Cause.pretty(exit.cause) : "UNEXPECTED_SUCCESS"),
+)
+
+describe("Mobius managed webfetch deadline", () => {
+  it.instance("aborts a body that stalls after headers and first bytes", () => {
+    let firstBytes = false, cancelled = false
+    return withServer(() => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode("first bytes")); firstBytes = true },
+      cancel() { cancelled = true },
+    }), { headers: { "content-type": "text/plain" } }), (url) => Effect.gen(function* () {
+      const result = yield* failure(execute(url))
+      expect(firstBytes).toBe(true)
+      expect(result).toContain("Request timed out")
+      expect(result).not.toContain("TEST_GUARD")
+      yield* Effect.sleep("50 millis")
+      expect(cancelled).toBe(true)
+    }))
+  })
+  it.instance("uses one total deadline even while chunks keep arriving", () => {
+    let timer: ReturnType<typeof setInterval> | undefined
+    return withServer(() => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode("start")); timer = setInterval(() => controller.enqueue(new Uint8Array([65])), 20) },
+      cancel() { clearInterval(timer) },
+    })), (url) => failure(execute(url)).pipe(Effect.tap((result) => Effect.sync(() => {
+      expect(result).toContain("Request timed out")
+      expect(result).not.toContain("TEST_GUARD")
+    })))).pipe(Effect.ensuring(Effect.sync(() => clearInterval(timer))))
+  })
+  it.instance("retains header timeout", () => withServer(async () => {
+    await Bun.sleep(350)
+    return new Response("late")
+  }, (url) => failure(execute(url)).pipe(Effect.tap((result) => Effect.sync(() => expect(result).toContain("Request timed out"))))))
+  it.instance("shares the deadline across redirects and response body", () => withServer(async (request) => {
+    await Bun.sleep(80)
+    return new URL(request.url).pathname === "/" ? Response.redirect(new URL("/body", request.url).href) : new Response("late body")
+  }, (url) => failure(execute(url)).pipe(Effect.tap((result) => Effect.sync(() => expect(result).toContain("Request timed out"))))))
+  it.instance("shares the deadline across the Cloudflare retry and body", () => withServer(async (request) => {
+    await Bun.sleep(80)
+    return request.headers.get("user-agent") === "opencode" ? new Response("late retry") : new Response("challenge", { status: 403, headers: { "cf-mitigated": "challenge" } })
+  }, (url) => failure(execute(url)).pipe(Effect.tap((result) => Effect.sync(() => expect(result).toContain("Request timed out"))))))
+  it.instance("returns completed readable text", () => withServer(() => new Response("readable scholarly page"), (url) =>
+    execute(url, 1).pipe(Effect.tap((result) => Effect.sync(() => expect(result.output).toBe("readable scholarly page"))))))
+  it.instance("does not spend the network deadline on permission approval", () => withServer(() => new Response("approved"), (url) =>
+    execute(url, 0.1, { ...context, ask: () => Effect.sleep("250 millis") }).pipe(
+      Effect.tap((result) => Effect.sync(() => expect(result.output).toBe("approved"))))))
+  it.instance("cancels an unread PDF response on early rejection", () => {
+    let cancelled = false
+    return withServer(() => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new TextEncoder().encode("%PDF-1.5")) },
+      cancel() { cancelled = true },
+    }), { headers: { "content-type": "application/pdf" } }), (url) => Effect.gen(function* () {
+      expect(yield* failure(execute(url))).toContain("acquire_pdf")
+      yield* Effect.sleep("50 millis")
+      expect(cancelled).toBe(true)
+    }))
+  })
+  for (const mime of ["application/pdf", "application/octet-stream"]) {
+    it.instance(`does not decode PDF as evidence (${mime})`, () => withServer(() => new Response("%PDF-1.5\n1 0 obj\n", { headers: { "content-type": mime } }), (url) =>
+      failure(execute(url, 1)).pipe(Effect.tap((result) => Effect.sync(() => {
+        expect(result).toContain("acquire_pdf")
+        expect(result).toContain("PDF")
+      })))))
+  }
+})

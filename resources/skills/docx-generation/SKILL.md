@@ -26,6 +26,8 @@ Before the first build, freeze the source records and computed results. Make the
 
 ## Build an editable DOCX
 
+For prose-first essays and proposals, read [manuscript-export.md](references/manuscript-export.md) and use `scripts/build_manuscript.py` with the original template. It preserves italics, bibliography separation and hyperlinks and rejects unsupported Markdown. Preserve the academic-writing / proposal brief's genre, language, source policy and justified length; do not force a short essay into Methods/Results or a minimum reference quota.
+
 Check that the working environment has `python-docx`; page proofs need LibreOffice plus Poppler's `pdftoppm` and `pdffonts`. Adapt [python-docx-scientific-template.py](assets/python-docx-scientific-template.py) when those dependencies are available. Use genuine Word `Title`/`Heading` styles, editable tables, inline figures with captions, and `reference(citation, doi=...)` with verified citation text **excluding** the DOI. The default CJK font, Noto Serif SC, is bundled under `assets/fonts/` with its license. The QA script exposes it to LibreOffice without installing it globally; verify the intended Word installation has the font or choose and inspect an available substitute. Check CJK, diacritics, Greek letters, and symbols after rendering. The template is a starting point, not a substitute for a supplied journal or institutional style.
 
 Keep captions paired with figures and short tables, repeat long-table headers, and let rows grow rather than fixing heights or shrinking scientific text to meet an arbitrary page count. Keep the authoritative source file and rebuild from it after every correction. Do not patch only the final `.docx` and lose the source revision.
