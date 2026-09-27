@@ -1902,6 +1902,7 @@ describe('ProviderAccountsModule', () => {
   })
 
   it('probes a custom gateway over its own route under a foreign framework and persists health only', async () => {
+    await repository.setAgentFramework('claude-code')
     // An incompatible pairing no longer short-circuits the probe. The endpoint is still tested over
     // its own declared route (framework-agnostic), the framework mismatch rides along as a flag,
     // and the outcome persists as endpoint health — never as an 'incompatible' failure that would
@@ -1947,6 +1948,7 @@ describe('ProviderAccountsModule', () => {
   })
 
   it('probes an official vendor over its own route under a foreign framework and persists health only', async () => {
+    await repository.setAgentFramework('claude-code')
     // OpenCode Zen speaks only /v1/chat/completions; Claude Code cannot drive it. The vendor's own
     // route is still probed, the pairing rides along as a flag, and the vendor's default model is
     // the persisted target.
@@ -1981,6 +1983,7 @@ describe('ProviderAccountsModule', () => {
   })
 
   it('keeps the actionable probe failure when an incompatible pairing also fails its probe', async () => {
+    await repository.setAgentFramework('claude-code')
     vi.stubGlobal(
       'fetch',
       vi.fn(
