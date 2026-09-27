@@ -11,7 +11,7 @@ import { DEFAULT_UPLOAD_PROJECT_ID } from '../../shared/uploads'
 import { STAGING_UPLOAD_SESSION_ID, UPLOADS_DIR } from '../uploads/storage-helpers'
 
 // Capture ipcMain.handle registrations; stub dialog/BrowserWindow/app so handlers can be invoked
-// directly without a real Electron runtime. isPackaged: true means dataFolderName() === 'Open-Science'.
+// directly without a real Electron runtime. isPackaged: true means dataFolderName() === 'MobiusScience'.
 const handlers = new Map<string, (event: unknown, payload?: unknown) => unknown>()
 const showOpenDialog = vi.fn()
 const sentWindows: {
@@ -155,7 +155,7 @@ const diagnosticRecords = (logger: Logger): Record<string, unknown>[] =>
   )
 
 // Data folder name mirrors dataFolderName() for a packaged build (see the electron mock above).
-const dataRootFor = (parent: string): string => join(parent, 'Open-Science')
+const dataRootFor = (parent: string): string => join(parent, 'MobiusScience')
 
 let currentParent: string
 let dataRoot: string
@@ -605,9 +605,9 @@ describe('storage IPC handlers', () => {
     const status = await invoke('storage:get-status')
 
     expect(status).toEqual({
-      dataRoot: join('/home/user', 'Open-Science'),
+      dataRoot: join('/home/user', 'MobiusScience'),
       isDefault: true,
-      defaultDataRoot: join('/home/user', 'Open-Science'),
+      defaultDataRoot: join('/home/user', 'MobiusScience'),
       defaultParent: '/home/user',
       dataRootMissing: false,
       legacyDataMovePrompt: false,
@@ -623,7 +623,7 @@ describe('storage IPC handlers', () => {
     await expect(invoke('storage:reveal-app-storage', '/untrusted/path')).resolves.toEqual({
       revealed: true
     })
-    expect(openPath).toHaveBeenCalledWith(join('/home/user', '.open-science'))
+    expect(openPath).toHaveBeenCalledWith(join('/home/user', '.mobius-science'))
   })
 
   it('converts a rejected reveal into a renderer-safe failure result', async () => {
@@ -651,7 +651,7 @@ describe('storage IPC handlers', () => {
     expect(info.isDefault).toBe(true)
     // The default root is `<home>/Open-Science` (home mocked to /home/user), reproducible from home.
     // Derive with join so the assertion holds on Windows (backslashes), not just POSIX.
-    expect(info.defaultDataRoot).toBe(join('/home/user', 'Open-Science'))
+    expect(info.defaultDataRoot).toBe(join('/home/user', 'MobiusScience'))
     expect(info.defaultParent).toBe('/home/user')
     expect(info.canAutoSelectDataDrive).toBe(true)
   })
@@ -663,7 +663,7 @@ describe('storage IPC handlers', () => {
       await mkdir(
         join(
           home,
-          'Open-Science',
+          'MobiusScience',
           UPLOADS_DIR,
           DEFAULT_UPLOAD_PROJECT_ID,
           STAGING_UPLOAD_SESSION_ID
@@ -689,14 +689,14 @@ describe('storage IPC handlers', () => {
     try {
       const staging = join(
         home,
-        'Open-Science',
+        'MobiusScience',
         UPLOADS_DIR,
         DEFAULT_UPLOAD_PROJECT_ID,
         STAGING_UPLOAD_SESSION_ID
       )
       await mkdir(staging, { recursive: true })
       await writeFile(join(staging, 'transfer.part'), 'pending upload')
-      initDataRoot(join(home, 'Open-Science'))
+      initDataRoot(join(home, 'MobiusScience'))
       registerStorageIpcHandlers(fakeDeps())
 
       const info = (await invoke('storage:get-info')) as { canAutoSelectDataDrive: boolean }
@@ -704,7 +704,7 @@ describe('storage IPC handlers', () => {
       expect(info.canAutoSelectDataDrive).toBe(false)
     } finally {
       electronHome.path = '/home/user'
-      initDataRoot(join(home, 'Open-Science'))
+      initDataRoot(join(home, 'MobiusScience'))
       await rm(home, { recursive: true, force: true })
     }
   })
@@ -733,7 +733,7 @@ describe('storage IPC handlers', () => {
     const home = await mkdtemp(join(tmpdir(), 'ds-runtime-home-'))
     electronHome.path = home
     try {
-      await mkdir(join(home, 'Open-Science', 'runtime'), { recursive: true })
+      await mkdir(join(home, 'MobiusScience', 'runtime'), { recursive: true })
       initDataRoot(undefined)
       registerStorageIpcHandlers(fakeDeps())
 
@@ -752,14 +752,14 @@ describe('storage IPC handlers', () => {
     electronHome.path = home
     try {
       // Legacy layout: user data sits directly in the hidden config root, no Open-Science folder yet.
-      await mkdir(join(home, '.open-science', 'artifacts'), { recursive: true })
-      await writeFile(join(home, '.open-science', 'artifacts', 'history.json'), '{}')
-      initDataRoot(join(home, '.open-science')) // explicitly saved legacy location
+      await mkdir(join(home, '.mobius-science', 'artifacts'), { recursive: true })
+      await writeFile(join(home, '.mobius-science', 'artifacts', 'history.json'), '{}')
+      initDataRoot(join(home, '.mobius-science')) // explicitly saved legacy location
       registerStorageIpcHandlers(
         fakeDeps({
           settingsService: {
             ...fakeDeps().settingsService,
-            getStoredSettings: async () => ({ dataRoot: join(home, '.open-science') })
+            getStoredSettings: async () => ({ dataRoot: join(home, '.mobius-science') })
           }
         })
       )
@@ -770,7 +770,7 @@ describe('storage IPC handlers', () => {
         canAutoSelectDataDrive: boolean
       }
 
-      expect(info.dataRoot).toBe(join(home, '.open-science'))
+      expect(info.dataRoot).toBe(join(home, '.mobius-science'))
       expect(info.legacyDataMovePrompt).toBe(true)
       expect(info.canAutoSelectDataDrive).toBe(false)
     } finally {
@@ -784,14 +784,17 @@ describe('storage IPC handlers', () => {
     const home = await mkdtemp(join(tmpdir(), 'ds-legacy-workspace-home-'))
     electronHome.path = home
     try {
-      await mkdir(join(home, '.open-science', 'workspaces', 'session-1'), { recursive: true })
-      await writeFile(join(home, '.open-science', 'workspaces', 'session-1', 'history.json'), '{}')
-      initDataRoot(join(home, '.open-science'))
+      await mkdir(join(home, '.mobius-science', 'workspaces', 'session-1'), { recursive: true })
+      await writeFile(
+        join(home, '.mobius-science', 'workspaces', 'session-1', 'history.json'),
+        '{}'
+      )
+      initDataRoot(join(home, '.mobius-science'))
       registerStorageIpcHandlers(
         fakeDeps({
           settingsService: {
             ...fakeDeps().settingsService,
-            getStoredSettings: async () => ({ dataRoot: join(home, '.open-science') })
+            getStoredSettings: async () => ({ dataRoot: join(home, '.mobius-science') })
           }
         })
       )
@@ -802,7 +805,7 @@ describe('storage IPC handlers', () => {
         canAutoSelectDataDrive: boolean
       }
 
-      expect(info.dataRoot).toBe(join(home, '.open-science'))
+      expect(info.dataRoot).toBe(join(home, '.mobius-science'))
       expect(info.legacyDataMovePrompt).toBe(true)
       expect(info.canAutoSelectDataDrive).toBe(false)
     } finally {
@@ -816,19 +819,19 @@ describe('storage IPC handlers', () => {
     const home = await mkdtemp(join(tmpdir(), 'ds-legacy-evidence-home-'))
     electronHome.path = home
     try {
-      await mkdir(join(home, '.open-science', 'notebook-file-evidence', 'project-1'), {
+      await mkdir(join(home, '.mobius-science', 'notebook-file-evidence', 'project-1'), {
         recursive: true
       })
       await writeFile(
-        join(home, '.open-science', 'notebook-file-evidence', 'project-1', 'history.json'),
+        join(home, '.mobius-science', 'notebook-file-evidence', 'project-1', 'history.json'),
         '{}'
       )
-      initDataRoot(join(home, '.open-science'))
+      initDataRoot(join(home, '.mobius-science'))
       registerStorageIpcHandlers(
         fakeDeps({
           settingsService: {
             ...fakeDeps().settingsService,
-            getStoredSettings: async () => ({ dataRoot: join(home, '.open-science') })
+            getStoredSettings: async () => ({ dataRoot: join(home, '.mobius-science') })
           }
         })
       )
@@ -839,7 +842,7 @@ describe('storage IPC handlers', () => {
         canAutoSelectDataDrive: boolean
       }
 
-      expect(info.dataRoot).toBe(join(home, '.open-science'))
+      expect(info.dataRoot).toBe(join(home, '.mobius-science'))
       expect(info.legacyDataMovePrompt).toBe(true)
       expect(info.canAutoSelectDataDrive).toBe(false)
     } finally {
@@ -853,12 +856,12 @@ describe('storage IPC handlers', () => {
     const home = await mkdtemp(join(tmpdir(), 'ds-legacy-home-'))
     electronHome.path = home
     try {
-      await mkdir(join(home, '.open-science', 'artifacts'), { recursive: true })
-      await writeFile(join(home, '.open-science', 'artifacts', 'history.json'), '{}')
-      initDataRoot(join(home, '.open-science'))
+      await mkdir(join(home, '.mobius-science', 'artifacts'), { recursive: true })
+      await writeFile(join(home, '.mobius-science', 'artifacts', 'history.json'), '{}')
+      initDataRoot(join(home, '.mobius-science'))
       const deps = fakeDeps()
       vi.mocked(deps.settingsService.getStoredSettings).mockResolvedValue({
-        dataRoot: join(home, '.open-science'),
+        dataRoot: join(home, '.mobius-science'),
         legacyDataMovePromptDismissedAt: 123
       })
       registerStorageIpcHandlers(deps)
@@ -915,7 +918,7 @@ describe('storage IPC handlers', () => {
     expect(info.isDefault).toBe(false)
     // Even from a custom root, the default and its parent are reported so Settings can offer a
     // one-click return to `<home>/Open-Science` and show the destination.
-    expect(info.defaultDataRoot).toBe(join('/home/user', 'Open-Science'))
+    expect(info.defaultDataRoot).toBe(join('/home/user', 'MobiusScience'))
     expect(info.defaultParent).toBe('/home/user')
     expect(info.usage.totalBytes).toBe(0)
     expect(info.availableBytes).toBeGreaterThan(0)
@@ -3176,7 +3179,7 @@ it('inspects and adopts the legacy child without adopting unrelated parent model
 it.each(['models', 'uploads', 'runtime'])(
   'does not adopt a branded folder based on unrelated %s content',
   async (directory) => {
-    const picked = join(targetParent, 'Open-Science')
+    const picked = join(targetParent, 'MobiusScience')
     await mkdir(join(picked, directory), { recursive: true })
     await writeFile(join(picked, directory, 'unrelated.bin'), 'outside data')
     initDataRoot(dataRoot)
@@ -3229,7 +3232,7 @@ it.each([
     electronHome.packaged = packaged
     electronHome.path = currentParent
     const old = join(config, packaged ? 'OpenScience' : 'OpenScience-DEV')
-    const expected = join(config, packaged ? 'Open-Science' : 'Open-Science-DEV')
+    const expected = join(config, packaged ? 'MobiusScience' : 'MobiusScience-DEV')
     await mkdir(join(old, 'workspaces'), { recursive: true })
     await writeFile(join(old, 'workspaces', 'history.json'), 'original research')
     if (populated) {
@@ -3327,14 +3330,38 @@ it.each(['fresh', 'moved', 'empty-legacy'] as const)(
 )
 
 it.each([true, false])(
-  'treats a completed implicit legacy root as existing storage (missing=%s)',
+  'uses the branded default after onboarding instead of an implicit legacy root (missing=%s)',
   async (missing) => {
     electronHome.path = currentParent
     const legacy = join(currentParent, 'OpenScience')
     if (!missing) await mkdir(legacy)
+    const branded = dataRootFor(currentParent)
+    if (missing) await rm(branded, { recursive: true })
     initDataRoot(undefined, 1234)
     const deps = fakeDeps()
     vi.mocked(deps.settingsService.getStoredSettings).mockResolvedValue({
+      onboardingCompletedAt: 1234
+    })
+    registerStorageIpcHandlers(deps)
+    expect(await invoke('storage:get-info')).toMatchObject({
+      dataRoot: branded,
+      dataRootMissing: missing,
+      canAutoSelectDataDrive: false
+    })
+    expect(existsSync(legacy)).toBe(!missing)
+  }
+)
+
+it.each([true, false])(
+  'retains an explicitly configured legacy root after onboarding (missing=%s)',
+  async (missing) => {
+    electronHome.path = currentParent
+    const legacy = join(currentParent, 'OpenScience')
+    if (!missing) await mkdir(legacy)
+    initDataRoot(legacy, 1234)
+    const deps = fakeDeps()
+    vi.mocked(deps.settingsService.getStoredSettings).mockResolvedValue({
+      dataRoot: legacy,
       onboardingCompletedAt: 1234
     })
     registerStorageIpcHandlers(deps)
