@@ -2846,7 +2846,7 @@ describe('application database migrations', () => {
 
   it('blocks migration when an existing backup belongs to another database', async () => {
     storageRoot = await mkdtemp(join(tmpdir(), 'open-science-database-foreign-backup-'))
-    const databasePath = join(storageRoot, 'open-science.db')
+    const databasePath = join(storageRoot, 'mobius-science.db')
     const backupPath = `${databasePath}.before-0001_runtime_schema_baseline.backup`
     client = createProjectDbClient(storageRoot)
     await client.$executeRawUnsafe(`CREATE TABLE "Project" (
@@ -3396,7 +3396,7 @@ describe('application database migrations', () => {
 
   it('upgrades the real upstream ledger and repairs VisionEvidence after the managed rebuild', async () => {
     storageRoot = await mkdtemp(join(tmpdir(), 'open-science-database-upstream-ledger-'))
-    const databasePath = join(storageRoot, 'open-science.db')
+    const databasePath = join(storageRoot, 'mobius-science.db')
     const backupPath = `${databasePath}.before-0025_managed_file_version_foundation.backup`
     client = createProjectDbClient(storageRoot)
     const upstreamManifest = manifestBefore('0025_managed_file_version_foundation')

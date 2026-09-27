@@ -1380,7 +1380,7 @@ describe('WorkspaceSidebar accessible render', () => {
     expect(loading).toContain('data-slot="session-hover-preview-description-loading"')
   })
 
-  it('docks the update action on the row above Settings', async () => {
+  it('keeps upstream update actions hidden while Settings remains available', async () => {
     useUpdateStore.setState({
       status: { state: 'available', current: '0.2.0', latest: '0.3.0' }
     })
@@ -1419,9 +1419,8 @@ describe('WorkspaceSidebar accessible render', () => {
       const update = container.querySelector('[data-variant="session"]')
       const settings = container.querySelector('[aria-label="Settings"]')
 
-      expect(update).not.toBeNull()
+      expect(update).toBeNull()
       expect(settings).not.toBeNull()
-      expect(update?.compareDocumentPosition(settings!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     } finally {
       act(() => root.unmount())
       container.remove()
