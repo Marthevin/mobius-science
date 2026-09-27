@@ -2,6 +2,12 @@
   "version": 1,
   "skills": [
     {
+      "id": "academic-writing",
+      "name": "Academic Writing",
+      "source": "featured",
+      "updatedAt": "2026-09-27T00:00:00.000Z"
+    },
+    {
       "id": "alphafold2",
       "name": "AlphaFold2",
       "source": "featured",
@@ -119,19 +125,19 @@
       "id": "research-proposal-writing",
       "name": "Research Proposal Writing",
       "source": "featured",
-      "updatedAt": "2026-09-25T00:00:00.000Z"
+      "updatedAt": "2026-09-27T00:00:00.000Z"
     },
     {
       "id": "pdf-report-generation",
       "name": "PDF Report Generation",
       "source": "featured",
-      "updatedAt": "2026-09-16T00:00:00.000Z"
+      "updatedAt": "2026-09-27T00:00:00.000Z"
     },
     {
       "id": "docx-generation",
       "name": "DOCX Report Generation",
       "source": "featured",
-      "updatedAt": "2026-09-25T00:00:00.000Z"
+      "updatedAt": "2026-09-27T00:00:00.000Z"
     },
     {
       "id": "env-management",

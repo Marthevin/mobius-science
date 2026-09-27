@@ -10,4 +10,20 @@
 
 **Feasibility and ethics:** Data/licence/recruitment access, equipment, collaborators, computational demands, consent, privacy, adverse-event procedures, and timeline should be verifiable. Distinguish resources already secured from requests and assumptions.
 
+**Objective-specific feasibility:** For each aim, name the discriminating observation,
+its source/unit, method, prerequisite and fallback. Do not stack fashionable methods
+without saying what rival each distinguishes. A missing sampling permit may block
+destructive dating but need not block an authorized published-data synthesis; mark
+that dependency per aim. An archaeological sequence, a cultural attribution and a
+claim about social organization require different warrants. Keep public accounts,
+excavation reports, measured chronology and proposed observations distinct. A title
+about civilization does not establish an origin claim. Mark unsourced budgets,
+sample yields and dates as planning assumptions, never secured resources or findings.
+
+**Persuasive synthesis:** Open with the supported problem and contribution. Make
+the evidence-to-gap-to-design connection explicit, then develop a viable proposal;
+do not let a page of access caveats replace its positive scientific case. Preserve
+the requested proposal genre through DOCX/PDF export. Record tool/self-repairs and
+review changes outside the scholarly body; reload these records after compaction.
+
 **Final read:** Test logical continuity from evidence → gap → aim → design → analysis → expected contribution. Look for unsupported causal claims, stale sample sizes, citation drift, excessive jargon, page imbalance, and inconsistent language. Ask a domain expert for content review when high-stakes submission quality matters; an automated pass cannot replace them.

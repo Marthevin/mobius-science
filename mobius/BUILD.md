@@ -42,10 +42,15 @@ containing files you want to keep. The command refuses to overwrite existing out
 3. Install exactly the lockfile dependencies with `npm ci`, including native build hooks.
 4. Run Mobius build/brand/runtime regression tests and the upstream license-packaging contract.
 5. Stage OpenCode, Python 3.12 and R 4.4. Verify platform, version, archive sizes and SHA-256.
+   OpenCode is compiled from the checksum-pinned source and patch under `mobius/opencode/`,
+   using pinned Bun and the full model catalog; real-HTTP webfetch regressions must pass.
+   The build cache and package audit bind its source, patch and test identities as well as binary hash.
 6. Generate brand assets; run the complete typecheck and application build.
 7. Package a DMG with the Mobius overlay and publishing disabled.
 8. Inspect the **actual app.asar**. Reject old `dist/`, nested Apps/DMGs/ZIPs, local agent state,
-   missing application entries, missing Skill references/scripts, and oversized output. Compare
+   missing application entries, missing Skill references/scripts, and oversized output. Verify
+   built-in Skill registration and exact source bytes for every required Skill resource, including
+   assets, templates and validators. Compare
    compiled Dock and 1x/2x menu-bar artwork against the freshly generated sources; stale or missing
    runtime variants fail. Record the installed ICNS and modern macOS `Assets.car` fingerprints too.
 9. Verify the deep code signature, DMG integrity, and that the mounted DMG contains the same ASAR.

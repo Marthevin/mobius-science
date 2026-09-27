@@ -1,0 +1,31 @@
+{
+  "skill_name": "academic-writing",
+  "evaluation_status": "development tests; no gold labels or validated grades",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "用中文推进写作，英文1500–1800词批判性短论文：The Smell of Work: Banwei, Everyday Resistance, and the Commodification of Recovery among Chinese Youth。分三步做来源/提纲、正文/修订、DOCX/PDF，不得虚构访谈或语料。",
+      "expected_output": "Genre-appropriate argument grounded in inspected sources; distinguishes critique, coping and commodification; editable DOCX and rendered PDF.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "用中文推进写作，英文1200–1500词理论分析：Everyday Resistance and Poetic Practice on University Campus。用de Certeau分析日常实践，不提供个人经历或田野资料。分步检索、成文和DOCX/PDF。",
+      "expected_output": "Theory does analytical work; hypothetical cases labeled; no invented personal experience, no blanket classification of leisure as resistance.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "route": "research-proposal-writing",
+      "prompt": "撰写中文考古研究proposal：太行山西麓的文明初曙——山西平定移穰仰韶文化遗址的考古发现与学术价值。分步核查来源、研究设计与可行性、proposal正文与评审修订、DOCX/PDF。无指定基金模板、现成田野数据或已获许可。",
+      "expected_output": "Routes to research-proposal-writing; distinguishes current evidence and proposed work, explicit assumptions and access dependencies; links questions to discriminating observations, feasible methods and Plan B; no invented permits, samples, preliminary results or civilization-origin conclusions.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "写一篇中文1200–1600字学术短论：媒体如何框定青年工作疲惫与恢复。允许中文学术文献及署名媒体报道；报道只作为话语分析材料，不把报道中的个例当作总体发生率。先核验来源和论点结构，再写正文，最后交付可编辑Word与PDF。没有访谈数据，不编造访谈。",
+      "expected_output": "Task-scoped language and source policy; appropriately attributed Chinese scholarly/media material; no blanket exclusions or invented corpus; explicit unit of analysis, alternatives, and claim coverage.",
+      "files": []
+    }
+  ]
+}
