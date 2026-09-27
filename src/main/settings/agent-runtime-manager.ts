@@ -93,6 +93,10 @@ import {
 } from './managed-opencode'
 import { resolveBundledOpenCodeDir } from '../../mobius/main/bundled-opencode'
 import {
+  createBundledOpenCodeResolver,
+  type BundledOpenCodeRuntime
+} from '../../mobius/main/bundled-opencode-preference'
+import {
   installManagedCodeBuddy,
   isManagedCodeBuddyPath,
   managedCodeBuddyDir,
@@ -310,6 +314,7 @@ export type AgentRuntimeManagerOptions = {
   allocateSettingsIdSequence: () => number
   detectDeps?: ClaudeDetectDeps
   opencodeDetectDeps?: OpencodeDetectDeps
+  resolveBundledOpenCodeImpl?: () => Promise<BundledOpenCodeRuntime | undefined>
   codebuddyDetectDeps?: CodeBuddyDetectDeps
   codexDetectDeps?: CodexDetectDeps
   allocateOpenCodeUsagePort?: () => Promise<number>
@@ -342,6 +347,7 @@ export class AgentRuntimeManager {
   private readonly allocateSettingsIdSequence: () => number
   private readonly detectDeps: ClaudeDetectDeps
   private readonly opencodeDetectDeps: OpencodeDetectDeps
+  private readonly resolveBundledOpenCode: () => Promise<BundledOpenCodeRuntime | undefined>
   private readonly codebuddyDetectDeps: CodeBuddyDetectDeps
   private readonly codexDetectDeps: CodexDetectDeps
   private readonly allocateOpenCodeUsagePort: () => Promise<number>
@@ -403,6 +409,8 @@ export class AgentRuntimeManager {
     }
 
     const baseOpencodeDetectDeps = options.opencodeDetectDeps ?? createOpencodeDetectDeps()
+    this.resolveBundledOpenCode =
+      options.resolveBundledOpenCodeImpl ?? createBundledOpenCodeResolver()
     const bundledOpencodeDir = resolveBundledOpenCodeDir()
     this.opencodeDetectDeps = {
       ...baseOpencodeDetectDeps,
@@ -452,6 +460,7 @@ export class AgentRuntimeManager {
 
   async getPreflight(providers: ProviderPreflightAccess): Promise<ReadinessPreflight> {
     return this.trackDetection(async (signal) => {
+      await this.preferBundledOpenCode(signal)
       const settings = await this.repository.getSettings()
       signal.throwIfAborted()
       const reusableProbe = this.takeReusableRuntimeProbe('preflightRuntimeProbe', settings)
@@ -520,6 +529,7 @@ export class AgentRuntimeManager {
 
   async checkEnvironment(): Promise<EnvironmentCheckResult> {
     return this.trackDetection(async (signal) => {
+      await this.preferBundledOpenCode(signal)
       const settings = await this.repository.getSettings()
       signal.throwIfAborted()
       const agentFrameworkId = settings.agentFrameworkId ?? DEFAULT_AGENT_FRAMEWORK_ID
@@ -625,6 +635,7 @@ export class AgentRuntimeManager {
 
   async detectOpencode(signal?: AbortSignal): Promise<void> {
     return this.trackDetection(async (operationSignal) => {
+      if (await this.preferBundledOpenCode(operationSignal)) return
       const detected = await detectOpencode(this.opencodeDetectDeps, operationSignal)
       operationSignal.throwIfAborted()
 
@@ -1096,6 +1107,8 @@ export class AgentRuntimeManager {
   }
 
   async resolveOpencodeExecutable(storedPath: string | undefined): Promise<string> {
+    const bundled = await this.preferBundledOpenCode()
+    if (bundled) return bundled.path
     if (storedPath && (await this.pathExists(storedPath))) return storedPath
 
     const detected = await detectOpencode(this.opencodeDetectDeps)
@@ -1256,13 +1269,16 @@ export class AgentRuntimeManager {
     probedVersion: string | null | undefined,
     signal: AbortSignal
   ): Promise<ClaudeDetectResult> {
-    const cachedPath = settings.opencodePath
+    const preferred = await this.resolveBundledOpenCode()
+    signal.throwIfAborted()
+    const cachedPath = preferred?.path ?? settings.opencodePath
     if (cachedPath) {
       const version =
         probedVersion === undefined
           ? await this.opencodeDetectDeps.getVersion(cachedPath, signal)
           : (probedVersion ?? undefined)
       signal.throwIfAborted()
+      if (preferred && version !== preferred.version) return { found: false }
       if (version) {
         if (version !== settings.opencodeVersion) {
           await this.repository.setOpencodeInfo(cachedPath, version)
@@ -1270,6 +1286,8 @@ export class AgentRuntimeManager {
         return { found: true, path: cachedPath, version }
       }
     }
+
+    if (preferred) return { found: false }
 
     const detected = await detectOpencode(this.opencodeDetectDeps, signal)
     signal.throwIfAborted()
@@ -1675,5 +1693,19 @@ export class AgentRuntimeManager {
     } catch {
       return false
     }
+  }
+
+  private async preferBundledOpenCode(
+    signal?: AbortSignal
+  ): Promise<BundledOpenCodeRuntime | undefined> {
+    signal?.throwIfAborted()
+    const bundled = await this.resolveBundledOpenCode()
+    signal?.throwIfAborted()
+    if (!bundled) return undefined
+    const settings = await this.repository.getSettings()
+    signal?.throwIfAborted()
+    if (settings.opencodePath !== bundled.path || settings.opencodeVersion !== bundled.version)
+      await this.repository.setOpencodeInfo(bundled.path, bundled.version)
+    return bundled
   }
 }

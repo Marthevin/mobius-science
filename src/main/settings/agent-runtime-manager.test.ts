@@ -178,6 +178,39 @@ describe('AgentRuntimeManager', () => {
     await expect(manager.getPreflight(providers)).resolves.toMatchObject({ codexReady: false })
   })
 
+  it('uses the packaged runtime for upgraded profiles, PATH detection and session spawn', async () => {
+    const previous = join(storageRoot, 'old-opencode')
+    await writeFile(previous, 'old executable')
+    await chmod(previous, 0o755)
+    await repository.setAgentFramework('opencode')
+    await repository.setOpencodeInfo(previous, '1.18.31')
+    const bundled = { path: join(storageRoot, 'packaged/opencode'), version: '1.18.31' }
+    inventory.opencode.set(bundled.path, bundled.version)
+    inventory.opencode.set('/usr/local/bin/opencode', '1.19.0')
+    manager = createManager({
+      resolveBundledOpenCodeImpl: async () => bundled,
+      opencodeDetectDeps: { ...createOpencodeDeps(inventory), env: { PATH: '/usr/local/bin' } }
+    })
+    expect(await manager.resolveOpencodeExecutable(previous)).toBe(bundled.path)
+    expect((await repository.getSettings()).opencodePath).toBe(bundled.path)
+    await manager.detectOpencode()
+    expect((await repository.getSettings()).opencodePath).toBe(bundled.path)
+    expect((await manager.checkEnvironment()).runtime).toMatchObject({
+      found: true,
+      path: bundled.path
+    })
+  })
+  it('reports a failing bundled runtime unavailable without falling through to working PATH', async () => {
+    await repository.setAgentFramework('opencode')
+    const bundled = { path: join(storageRoot, 'packaged/opencode'), version: '1.18.31' }
+    inventory.opencode.set('/usr/local/bin/opencode', '1.19.0')
+    manager = createManager({
+      resolveBundledOpenCodeImpl: async () => bundled,
+      opencodeDetectDeps: { ...createOpencodeDeps(inventory), env: { PATH: '/usr/local/bin' } }
+    })
+    expect((await manager.checkEnvironment()).runtime).toMatchObject({ found: false })
+    expect((await repository.getSettings()).opencodePath).toBe(bundled.path)
+  })
   it('bootstraps a missing Codex runtime once and persists a usable selection', async () => {
     const install = vi.fn(async () => {
       inventory.codexAdapter.set(managedAdapterPath, '1.6.2')

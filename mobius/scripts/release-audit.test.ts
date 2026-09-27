@@ -9,6 +9,29 @@ afterEach(async () => {
 })
 
 describe('release artifact acceptance', () => {
+  it('rejects a missing or stale packaged Skill resource despite a present SKILL.md', async () => {
+    const { verifySkillResources } = await import('./release-audit.mjs')
+    const root = await mkdtemp(join(tmpdir(), 'mobius-skills-audit-'))
+    roots.push(root)
+    const source = join(root, 'source')
+    const packaged = join(root, 'packaged')
+    for (const path of [source, packaged]) {
+      await mkdir(join(path, 'academic-writing/assets'), { recursive: true })
+      await writeFile(
+        join(path, 'manifest.json'),
+        JSON.stringify({ skills: [{ id: 'academic-writing', source: 'featured' }] })
+      )
+      await writeFile(join(path, 'academic-writing/SKILL.md'), 'instructions')
+      await writeFile(join(path, 'academic-writing/assets/brief.json'), 'current')
+    }
+    expect(await verifySkillResources(packaged, source, ['academic-writing'])).toHaveLength(2)
+    await writeFile(join(packaged, 'academic-writing/assets/brief.json'), 'stale')
+    await expect(verifySkillResources(packaged, source, ['academic-writing'])).rejects.toThrow(
+      /Skill resource/
+    )
+    await rm(join(packaged, 'academic-writing/assets/brief.json'))
+    await expect(verifySkillResources(packaged, source, ['academic-writing'])).rejects.toThrow()
+  })
   it('rejects stale runtime icons even when the package contains the new icon elsewhere', async () => {
     const { createPackage } = await import('@electron/asar')
     const { verifyBrandAssets } = await import('./release-audit.mjs')
