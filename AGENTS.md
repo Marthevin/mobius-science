@@ -270,6 +270,15 @@ downstream overlay whose first design goal is to remain easy to rebase and audit
 - Never embed credentials. Environment variables and external config may override Mobius defaults;
   legacy `OPEN_SCIENCE_*` variables may be read only through an explicit compatibility adapter.
 
+### Upstream synchronization workflow
+
+- A requested direct `master` rebase onto `upstream/main` is branch maintenance. Do not substitute an
+  upstream-sync PR unless the user explicitly requests one.
+- Before an authorized remote history rewrite, back up the local and remote branch heads. Use
+  `--force-with-lease` with the exact observed remote SHA; never use an unbounded force push.
+- Keep feature work outside `master` until its own PR is merged. Base feature PRs on the refreshed
+  `origin/master`; do not merge obsolete remote history into a feature just to avoid its rebase.
+
 ### Upstream touchpoint audit
 
 - Maintain `mobius/upstream-touchpoints.json`. Every intentional modification to an upstream-owned
