@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "8070176663e0564e936cac08cb7c7f85f185a4db",
+  "comparisonBase": "62a6e1df0c2633c28840e41ca760b8973f335a14",
   "productionFiles": [
     {
       "path": "src/main/storage/migration-service.ts",

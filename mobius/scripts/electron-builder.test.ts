@@ -29,6 +29,19 @@ const mainFilterWithExternalOutput = () => {
 }
 
 describe('Mobius electron-builder resolved configuration', () => {
+  it.each([
+    'NSDesktopFolderUsageDescription',
+    'NSDocumentsFolderUsageDescription',
+    'NSDownloadsFolderUsageDescription',
+    'NSNetworkVolumesUsageDescription',
+    'NSRemovableVolumesUsageDescription',
+    'NSLocalNetworkUsageDescription'
+  ])('keeps native privacy purpose %s under the Mobius identity', (key) => {
+    const config = require(join(process.cwd(), 'mobius/electron-builder.cjs')) as {
+      mac?: { extendInfo?: Record<string, string> }
+    }
+    expect(config.mac?.extendInfo?.[key]).toEqual(expect.stringMatching(/^Mobius Science \S/))
+  })
   it('excludes dependency author agent settings from the production dependency filter', () => {
     const config = structuredClone(require(join(process.cwd(), 'mobius/electron-builder.cjs')))
     const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher')

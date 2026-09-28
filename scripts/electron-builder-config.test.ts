@@ -1,4 +1,5 @@
 import { readFileSync, statSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 
 import { FileMatcher } from 'app-builder-lib/out/fileMatcher'
@@ -246,7 +247,10 @@ describe('electron-builder Linux desktop identity', () => {
       name: string
       desktopName: string
     }
-    const config = load(readFileSync(join(process.cwd(), 'electron-builder.yml'), 'utf8')) as {
+    // The package metadata is downstream, so compare it with the effective distribution config.
+    const config = createRequire(import.meta.url)(
+      join(process.cwd(), 'mobius/electron-builder.cjs')
+    ) as {
       linux?: { executableName?: string; syncDesktopName?: boolean }
     }
     const desktopBaseName = packageJson.desktopName.replace(/\.desktop$/, '')

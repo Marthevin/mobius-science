@@ -115,8 +115,12 @@ mac:
     CFBundleDisplayName: Mobius Science
     NSCameraUsageDescription: Mobius Science requests access to the device's camera.
     NSMicrophoneUsageDescription: Mobius Science requests access to the device's microphone.
-    NSDocumentsFolderUsageDescription: Mobius Science requests access to the user's Documents folder.
-    NSDownloadsFolderUsageDescription: Mobius Science requests access to the user's Downloads folder.
+    NSDesktopFolderUsageDescription: Mobius Science needs access to Desktop files to browse, open, and save your research files.
+    NSDocumentsFolderUsageDescription: Mobius Science needs access to Documents files to browse, open, and save your research files.
+    NSDownloadsFolderUsageDescription: Mobius Science needs access to Downloads files to browse, open, and save your research files.
+    NSNetworkVolumesUsageDescription: Mobius Science needs access to network volumes to browse, open, and save your research files.
+    NSRemovableVolumesUsageDescription: Mobius Science needs access to removable volumes to browse, open, and save your research files.
+    NSLocalNetworkUsageDescription: Mobius Science needs local network access to connect to compute hosts and services you configure.
   notarize: false
   extraResources:
     - from: resources/bin/mac/${arch}/micromamba
