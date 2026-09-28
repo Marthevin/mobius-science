@@ -20,7 +20,11 @@ import { detectActiveSessions } from '../storage/detect-active'
 import { registerStorageIpcHandlers } from '../storage/ipc'
 import { isMigrationInProgress, isMigrationPending } from '../storage/migration-state'
 import { createUpdateStrategy } from '../update/create-strategy'
-import { createUpdateCommandOwner, registerUpdateIpcHandlers, type UpdateCommandOwner } from '../update/ipc'
+import {
+  createUpdateCommandOwner,
+  registerUpdateIpcHandlers,
+  type UpdateCommandOwner
+} from '../update/ipc'
 import { startUpdateScheduler } from '../update/scheduler'
 import {
   createActiveResearchSafeInstallGate,

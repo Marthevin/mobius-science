@@ -423,7 +423,11 @@ describe('production application command wiring', () => {
       between(domain('handoff'), 'const durableBackendHandoffGate', 'const detectResearchBlockers')
     )
     const updateStrategy = compact(
-      between(domain('handoff'), 'const updateStrategy', 'const updateCommandOwner')
+      between(
+        domain('handoff'),
+        'const updateStrategy',
+        'updateCommandOwner = createUpdateCommandOwner('
+      )
     )
     expect(updateGate).toContain(
       'shutdownCoordinator.runForUpdateGate(UPDATE_SHUTDOWN_BUDGET_MS, { holdSideChatAdmission: true, legacyShellRecoveryToken: options?.legacyShellRecoveryToken })'

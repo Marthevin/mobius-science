@@ -5,6 +5,11 @@ import { join } from 'node:path'
 import { ipcMain, type IpcMain, type IpcMainInvokeEvent } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const capabilities = vi.hoisted(() => ({ upstreamLinks: true }))
+vi.mock('../../mobius/shared/product-capabilities', () => ({
+  MOBIUS_CAPABILITIES: capabilities
+}))
+
 const native = vi.hoisted(() => ({
   handlers: new Map<string, Parameters<IpcMain['handle']>[1]>(),
   failAt: undefined as string | undefined,
@@ -109,6 +114,7 @@ const eventChannels = [
 ]
 
 beforeEach(async () => {
+  capabilities.upstreamLinks = true
   native.directory = await mkdtemp(join(tmpdir(), 'desktop-surface-'))
   native.saveDialog.mockResolvedValue({
     canceled: false,
@@ -180,6 +186,16 @@ describe('desktop utilities Electron production surface', () => {
     }
     await invoke(WINDOW_CLOSE_CHANNEL, event)
     expect((native.window as { close: unknown }).close).toHaveBeenCalledOnce()
+  })
+
+  it('omits GitHub IPC when downstream external links are disabled', async () => {
+    capabilities.upstreamLinks = false
+    const { owners, event } = fixtures()
+    await install(owners)
+    expect(native.handlers.has('github:get-stars')).toBe(false)
+    expect(owners.github.getStars).not.toHaveBeenCalled()
+    await invoke('logs:get-status', event)
+    expect(owners.logs.getStatus).toHaveBeenCalledOnce()
   })
 
   it.each(['artifact', 'upload'] as const)(
