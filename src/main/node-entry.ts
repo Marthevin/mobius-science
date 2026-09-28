@@ -1,4 +1,5 @@
 import { withRuntimeShutdownLifetime } from './runtime-shutdown-lifetime'
+import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
 import {
   installationRootForEntry,
   registerInstallationRuntime
@@ -279,6 +280,7 @@ async function main(): Promise<void> {
         platform: process.platform,
         packaged,
         credentialStore: getCredentialStore(),
+        credentialStorageNames: MOBIUS_NATIVE_IDENTITY.credentialStorageNames,
         linuxPasswordStore: passwordStore
       })
       ownership.acquireSync(profilePath)
