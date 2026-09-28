@@ -1,18 +1,27 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "93127a122b2a7b3ad4cf595c9da2c64396ceaf5e",
+  "comparisonBase": "8070176663e0564e936cac08cb7c7f85f185a4db",
   "productionFiles": [
     {
       "path": "src/main/storage/migration-service.ts",
       "seam": "Recognizes the configured branded research directory while retaining legacy content and ownership checks."
     },
-    { "path": "package.json", "seam": "Registers downstream build, runtime, and guard commands." },
+    {
+      "path": "package.json",
+      "seam": "Registers downstream build, runtime, and guard commands."
+    },
     {
       "path": "package-lock.json",
       "seam": "Keeps the downstream CLI executable name in package metadata."
     },
-    { "path": "tsconfig.node.json", "seam": "Includes isolated Mobius main/shared sources." },
-    { "path": "tsconfig.web.json", "seam": "Includes isolated Mobius renderer/shared sources." },
+    {
+      "path": "tsconfig.node.json",
+      "seam": "Includes isolated Mobius main/shared sources."
+    },
+    {
+      "path": "tsconfig.web.json",
+      "seam": "Includes isolated Mobius renderer/shared sources."
+    },
     {
       "path": "scripts/stage-default-envs.mjs",
       "seam": "Adds generic output and pack-selection hooks."
@@ -37,7 +46,10 @@
       "path": "src/shared/config-root.ts",
       "seam": "Projects Mobius configuration directories while retaining explicit overrides."
     },
-    { "path": "src/shared/i18n/core.ts", "seam": "Registers downstream brand post-processing." },
+    {
+      "path": "src/shared/i18n/core.ts",
+      "seam": "Registers downstream brand post-processing."
+    },
     {
       "path": "src/shared/session-package.ts",
       "seam": "Accepts the downstream Session package extension."
@@ -79,10 +91,9 @@
       "seam": "Uses the Mobius cosmic identity on the remote pairing page."
     },
     {
-      "path": "src/main/ipc.ts",
-      "seam": "Applies update and Marketplace policy and reuses one primed Session catalog for Session details startup."
+      "path": "src/main/windows.ts",
+      "seam": "Applies the external-navigation blocklist."
     },
-    { "path": "src/main/windows.ts", "seam": "Applies the external-navigation blocklist." },
     {
       "path": "src/main/mac-installation.ts",
       "seam": "Names the macOS installation assistant with the Mobius product identity."
@@ -223,7 +234,10 @@
       "path": "src/main/specialist/identity.ts",
       "seam": "Projects the Mobius product identity into Specialist instructions."
     },
-    { "path": "src/main/connectors/engine.ts", "seam": "Uses the downstream HTTP identity." },
+    {
+      "path": "src/main/connectors/engine.ts",
+      "seam": "Uses the downstream HTTP identity."
+    },
     {
       "path": "src/main/connectors/descriptors/genes-reactome.ts",
       "seam": "Uses the downstream HTTP identity."
@@ -403,6 +417,30 @@
     {
       "path": "src/shared/i18n/locales/zh-Hant.json",
       "seam": "Removes obsolete upstream-only copy."
+    },
+    {
+      "path": "src/main/composition/handoff.ts",
+      "seam": "Applies the existing downstream update capability policy in the upstream handoff composition."
+    },
+    {
+      "path": "src/main/composition/specialists.ts",
+      "seam": "Applies the existing downstream official Marketplace capability policy in specialist composition."
+    },
+    {
+      "path": "src/main/composition/agent-completion.ts",
+      "seam": "Retains migrated managed-workspace recovery at the existing runtime-resume admission boundary."
+    },
+    {
+      "path": "src/main/composition/session-projection.ts",
+      "seam": "Exposes the existing one-use startup catalog hydration so downstream startup readers share the same load."
+    },
+    {
+      "path": "src/main/composition/compute-recovery.ts",
+      "seam": "Primes the existing shared startup Session catalog without a duplicate historical transcript load."
+    },
+    {
+      "path": "src/main/composition/session-surfaces.ts",
+      "seam": "Consumes the existing startup Session catalog during Session details recovery."
     }
   ]
 }
