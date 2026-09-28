@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "maxAppBytes": 1800000000,
+  "maxAsarBytes": 450000000,
+  "maxDmgBytes": 1200000000,
+  "requiredSkills": [
+    "academic-writing",
+    "pdf-report-generation",
+    "docx-generation",
+    "literature-deep-review",
+    "experimental-design-statistics",
+    "evidence-synthesis-meta-analysis",
+    "research-proposal-writing"
+  ]
+}

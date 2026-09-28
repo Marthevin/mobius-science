@@ -5,7 +5,73 @@ import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
 
+const mainFilterWithExternalOutput = () => {
+  const config = structuredClone(require(join(process.cwd(), 'mobius/electron-builder.cjs')))
+  const { getMainFileMatchers } = require('app-builder-lib/out/fileMatcher')
+  const matchers = getMainFileMatchers(
+    process.cwd(),
+    '/tmp/mobius-package-test/app',
+    (value: string) => value,
+    {},
+    {
+      info: {
+        config,
+        projectDir: process.cwd(),
+        buildResourcesDir: 'build',
+        debugLogger: { isEnabled: false }
+      }
+    },
+    '/tmp/mobius-package-test',
+    false
+  )
+  const filter = matchers[0].createFilter()
+  return (path: string) => filter(join(process.cwd(), path), { isDirectory: () => false })
+}
+
 describe('Mobius electron-builder resolved configuration', () => {
+  it('excludes dependency author agent settings from the production dependency filter', () => {
+    const config = structuredClone(require(join(process.cwd(), 'mobius/electron-builder.cjs')))
+    const { getNodeModuleFileMatcher } = require('app-builder-lib/out/fileMatcher')
+    const matcher = getNodeModuleFileMatcher(
+      process.cwd(),
+      '/tmp/mobius-package-test/app',
+      (value: string) => value,
+      {},
+      { config, debugLogger: { isEnabled: false } }
+    )
+    const include = (path: string): boolean =>
+      matcher.createFilter()(join(process.cwd(), path), { isDirectory: () => false })
+    for (const path of [
+      'node_modules/resolve/.claude/notes.md',
+      'node_modules/resolve/.claude/settings.local.json',
+      'node_modules/example/.codex/config.toml'
+    ])
+      expect(include(path), path).toBe(false)
+    expect(include('node_modules/resolve/index.js')).toBe(true)
+    expect(include('node_modules/example/dist/index.js')).toBe(true)
+  })
+  it('never nests previous releases or local files when the output directory is overridden', () => {
+    const include = mainFilterWithExternalOutput()
+    for (const path of [
+      'dist/mobius-science-old.dmg',
+      'dist/mac-arm64/Mobius Science.app/Contents/Resources/app.asar',
+      'old-release.zip',
+      'test-results/trace.zip',
+      '.scratch/probe.json',
+      'e2e/fixtures/private-session.json',
+      'notes/local-profile.json',
+      'resources/bin/mac/arm64/micromamba'
+    ])
+      expect(include(path), path).toBe(false)
+    for (const path of [
+      'out/main/index.js',
+      'out/renderer/index.html',
+      'package.json',
+      'resources/skills/pdf-report-generation/references/methodology.md'
+    ]) {
+      expect(include(path), path).toBe(true)
+    }
+  })
   it('owns visible package identity, icons, Session association, and update policy', () => {
     const configPath = join(process.cwd(), 'mobius', 'electron-builder.cjs')
     delete require.cache[require.resolve(configPath)]
