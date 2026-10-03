@@ -3,6 +3,10 @@
   "comparisonBase": "20120527e9b2f810273cde8780ddce83c72ab8e9",
   "productionFiles": [
     {
+      "path": "src/main/notebook/windows-runtime-components.ts",
+      "seam": "Allows a distribution to disable its executable CDN without an import-time error; validation fails closed because the Mobius overlay disables upstream downloads."
+    },
+    {
       "path": "src/main/storage/migration-service.ts",
       "seam": "Recognizes the configured branded research directory while retaining legacy content and ownership checks."
     },

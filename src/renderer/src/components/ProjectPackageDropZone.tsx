@@ -93,12 +93,13 @@ export const ProjectPackageDropZone = ({
             canAttach
               ? importEnabled
                 ? t('Drop files to attach or import a .science package').replaceAll(
-                    '.science', SESSION_PACKAGE_EXTENSION
+                    '.science',
+                    SESSION_PACKAGE_EXTENSION
                   )
                 : t('Drop files to attach')
-              : t('Drop a .science file to import into “{{project}}”', { project: projectName }).replaceAll(
-                  '.science', SESSION_PACKAGE_EXTENSION
-                )
+              : t('Drop a .science file to import into “{{project}}”', {
+                  project: projectName
+                }).replaceAll('.science', SESSION_PACKAGE_EXTENSION)
           }
           className="rounded-lg px-6 text-center"
         />
