@@ -27,10 +27,11 @@ let configured = true
 let classificationChanged: (() => void) | undefined
 const unsubscribeClassification = vi.fn()
 const serviceId = '55555555-5555-4555-8555-555555555555'
+const fixtureDatabaseFile = 'open-science.db'
 let schemaRoot: string
 beforeAll(async () => {
   schemaRoot = await mkdtemp(join(tmpdir(), 'smart-collection-schema-'))
-  const schemaClient = createProjectDbClient(schemaRoot)
+  const schemaClient = createProjectDbClient(schemaRoot, fixtureDatabaseFile)
   try {
     await migrateApplicationDatabase(schemaClient)
   } finally {
@@ -44,8 +45,8 @@ afterAll(async () => {
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'smart-collection-'))
   // Migration history belongs to the database suite; each case still owns a fresh real database.
-  await copyFile(join(schemaRoot, 'open-science.db'), join(root, 'open-science.db'))
-  db = createProjectDbClient(root)
+  await copyFile(join(schemaRoot, fixtureDatabaseFile), join(root, fixtureDatabaseFile))
+  db = createProjectDbClient(root, fixtureDatabaseFile)
   configured = true
   classificationChanged = undefined
   unsubscribeClassification.mockClear()
@@ -2304,7 +2305,7 @@ it('invalidates completed scans for external commits and model availability; byp
   const id = await create()
   await refresh(id)
   expect(await owner.members(id)).toEqual(['paper'])
-  const external = createProjectDbClient(root)
+  const external = createProjectDbClient(root, fixtureDatabaseFile)
   try {
     await external.literatureItem.update({
       where: { id: 'paper' },
