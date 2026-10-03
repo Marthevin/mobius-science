@@ -14,6 +14,14 @@ import {
   type WindowsRuntimeComponentDependencies
 } from './windows-runtime-components'
 
+vi.mock('../../shared/app-config', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../shared/app-config')>()
+  return {
+    ...original,
+    APP: { ...original.APP, cdnBaseUrl: 'https://statics.aipoch.com/open-science' }
+  }
+})
+
 const roots: string[] = []
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })))

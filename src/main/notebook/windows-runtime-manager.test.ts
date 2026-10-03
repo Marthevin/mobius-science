@@ -4,6 +4,14 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { WindowsRuntimeComponentStore } from './windows-runtime-components'
 import { WindowsNotebookRuntimeManager } from './windows-runtime-manager'
 
+vi.mock('../../shared/app-config', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../shared/app-config')>()
+  return {
+    ...original,
+    APP: { ...original.APP, cdnBaseUrl: 'https://statics.aipoch.com/open-science' }
+  }
+})
+
 afterEach(() => vi.restoreAllMocks())
 
 it('prepares both components only on explicit setup and reuses that selection for later cells', async () => {
