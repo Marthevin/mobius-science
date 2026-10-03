@@ -49,7 +49,7 @@ export class WindowsRuntimeIncompatibleError extends Error {}
 
 const digestPattern = /^[a-f0-9]{64}$/
 // Executable downloads use application configuration, never the environment-bundle override.
-const componentCdnRoot = new URL(`${APP.cdnBaseUrl}/notebook-runtime/`)
+const componentCdnRoot = APP.cdnBaseUrl ? new URL(`${APP.cdnBaseUrl}/notebook-runtime/`) : undefined
 const executableName = (component: WindowsRuntimeComponent): string =>
   component === 'node' ? 'node.exe' : 'pwsh.exe'
 
@@ -64,6 +64,7 @@ export const assertWindowsRuntimeComponentRelease = (
 ): void => {
   const url = new URL(release.archive.url)
   if (
+    !componentCdnRoot ||
     !['node', 'powershell'].includes(release.component) ||
     !['official', 'patched'].includes(release.source) ||
     !['x64', 'arm64'].includes(release.architecture) ||
