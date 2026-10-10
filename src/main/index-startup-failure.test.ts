@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { CredentialIdentityError } from './credential-identity/selection'
 import { MOBIUS_NATIVE_IDENTITY } from '../mobius/main/native-identity'
 
 // Exercise the real production entry up to the process boundary. Database/runtime failures belong
@@ -265,6 +264,7 @@ it.each(['mac-keychain', 'windows-dpapi'] as const)(
   }
 )
 it('shows actionable database recovery before opening the application profile', async () => {
+  const { CredentialIdentityError } = await import('./credential-identity/selection')
   f.validate.mockImplementationOnce(() => {
     throw new CredentialIdentityError('project-database-conflict')
   })
@@ -285,6 +285,7 @@ it('shows actionable database recovery before opening the application profile', 
   expect(f.diagnostics).not.toHaveBeenCalled()
 })
 it('releases credential preflight and exits without yielding or initializing the profile after recovery failure', async () => {
+  const { CredentialIdentityError } = await import('./credential-identity/selection')
   f.validate.mockImplementationOnce(() => {
     throw new CredentialIdentityError('windows-profile-key-unavailable')
   })
