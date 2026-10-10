@@ -468,7 +468,9 @@
       "src/main/desktop-runtime-session-size.integration.test.ts",
       "src/main/notebook-payload.integration.test.ts",
       "src/main/web-service/session-payload.integration.test.ts",
-      "src/main/composition/session-packages.test.ts"
+      "src/main/composition/session-packages.test.ts",
+      "src/main/artifacts/provenance-finalization-recovery.test.ts",
+      "src/mobius/main/turn-presentation-reminder.test.ts"
     ]
   },
   "capabilityOverlays": ["e2e_regressions", "e2e_delegation", "windows_sensitive"],
