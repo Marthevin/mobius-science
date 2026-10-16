@@ -27,6 +27,7 @@ import { RUNTIME_STARTUP_CHANNELS, type RuntimeStartupState } from '../shared/ru
 import { projectDiagnosticError } from './session-diagnostics/detail'
 import { DesktopBackendStartupError } from './backend-startup'
 import { recoverDesktopBackendStartup } from './backend-startup-recovery'
+import { presentStartupError } from '../mobius/main/startup-error'
 import { createDesktopRecoveryEventBuffer } from './desktop-recovery-event-buffer'
 import { createDesktopRuntimeRecovery } from './desktop-runtime-recovery'
 import { DESKTOP_RUNTIME_RECOVERY_CHANNELS } from '../shared/desktop-runtime-recovery'
@@ -1884,7 +1885,7 @@ void startDesktop().catch(async (error: unknown) => {
   if (!app.isReady()) {
     // This path must not await: preserve the diagnostic before the immediate process exit.
     writeFatalLogSync('desktop-bootstrap', 'desktop startup failed', failureFields)
-    dialog.showErrorBox(APP_NAME, message)
+    presentStartupError(message, () => dialog.showErrorBox(APP_NAME, message))
     app.exit(1)
     return
   }
@@ -1899,6 +1900,6 @@ void startDesktop().catch(async (error: unknown) => {
     await recoverDesktopBackendStartup(error)
     return
   }
-  dialog.showErrorBox(APP_NAME, message)
+  presentStartupError(message, () => dialog.showErrorBox(APP_NAME, message))
   app.exit(1)
 })

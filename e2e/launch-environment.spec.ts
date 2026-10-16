@@ -128,6 +128,6 @@ test('can isolate packaged macOS lifecycle tests from the host Keychain', () => 
     )
   ).toEqual({
     args: ['--user-data-dir=profile-root', '--use-mock-keychain'],
-    executablePath: '/artifacts/Mobius Science.app/Contents/MacOS/Mobius Science'
+    executablePath: expect.stringContaining('e2e/fixtures/launch-mock-keychain.sh')
   })
 })

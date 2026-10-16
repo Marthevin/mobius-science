@@ -76,7 +76,13 @@ const electronLaunchTarget = (
         ? []
         : ['--require', resolve(APP_ROOT, 'e2e/fixtures/node-runtime-preload.cjs'), APP_ROOT])
     ],
-    ...(executablePath ? { executablePath } : {})
+    ...(executablePath
+      ? {
+          executablePath: useMockKeychain
+            ? resolve(APP_ROOT, 'e2e/fixtures/launch-mock-keychain.sh')
+            : executablePath
+        }
+      : {})
   }
 }
 
@@ -456,6 +462,7 @@ const launchEnvironment = (
       environment.OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN === '1')
   ) {
     environment.NODE_OPTIONS = `${environment.NODE_OPTIONS ?? ''} --require=${JSON.stringify(resolve(APP_ROOT, 'e2e/fixtures/mock-node-credentials.cjs'))}`
+    environment.OPEN_SCIENCE_E2E_LAUNCHER_NODE = process.execPath
   }
   environment.OPEN_SCIENCE_E2E_HANDOFF_CAPTURE_ROOT = join(storageRoot, 'e2e-handoff-captures')
   environment.OPEN_SCIENCE_E2E_WINDOW_MODE = windowMode
