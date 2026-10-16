@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -109,8 +110,8 @@ it.skipIf(process.platform !== 'darwin')(
     const receiptPath = local.nativeReceiptPath(source, target)
     await mkdir(join(receiptPath, '..'), { recursive: true })
     await writeFile(receiptPath, JSON.stringify(receipt))
-    const resources = join(root, 'resources')
-    await mkdir(resources)
+    const resources = join(root, 'package/Mobius Science.app/Contents/Resources')
+    await mkdir(resources, { recursive: true })
     await copyFile(receiptPath, join(resources, 'mobius-native-components.json'))
     for (const base of ['backend', 'app.asar.unpacked']) {
       for (const file of files) {
@@ -129,6 +130,15 @@ it.skipIf(process.platform !== 'darwin')(
     expect((await local.verifyPackagedLocalNativeComponents(resources, target, source)).size).toBe(
       10
     )
+    const require = createRequire(import.meta.url)
+    const afterSign = require('./sign-windows.cjs').default
+    const context = {
+      arch: require('builder-util').Arch[process.arch],
+      electronPlatformName: 'darwin',
+      appOutDir: join(root, 'package'),
+      packager: { projectDir: source, appInfo: { productFilename: 'Mobius Science' } }
+    }
+    await expect(afterSign(context)).resolves.toBeUndefined()
     await writeFile(
       join(
         resources,
@@ -142,6 +152,7 @@ it.skipIf(process.platform !== 'darwin')(
     await expect(
       local.verifyPackagedLocalNativeComponents(resources, target, source)
     ).rejects.toThrow(/size|checksum/)
+    await expect(afterSign(context)).rejects.toThrow(/size|checksum/)
     await writeFile(join(root, files[0].name), 'corrupt helper')
     await expect(
       local.verifyLocalNativeFiles(root, { target: `darwin-${process.arch}`, files })

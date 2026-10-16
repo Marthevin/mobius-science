@@ -6,7 +6,7 @@
 const { Buffer } = require('node:buffer')
 const fs = require('node:fs')
 const path = require('node:path')
-const verifyPackagedNativeComponents = require('./verify-native-components.cjs')
+const verifyDefaultNativeComponents = require('./verify-native-components.cjs')
 
 // NSIS includes loose native DLLs and Node addons. electron-builder signs EXEs, but does not
 // discover every PE in extraResources or sign .dll/.node files by default. Store submissions
@@ -47,6 +47,8 @@ function* bundledPeFiles(directory) {
 
 /** @param {import('electron-builder').AfterPackContext} context */
 exports.default = async function signWindows(context) {
+  const verifyPackagedNativeComponents =
+    context.verifyNativeComponents ?? verifyDefaultNativeComponents
   const arch = require('builder-util').Arch[context.arch]
   if (context.electronPlatformName === 'darwin') {
     await verifyPackagedNativeComponents(

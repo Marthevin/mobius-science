@@ -13,6 +13,7 @@ directories:
   buildResources: build
 beforePack: mobius/scripts/stage-desktop-runtime.cjs
 afterPack: mobius/scripts/adhoc-sign.cjs
+afterSign: mobius/scripts/sign-windows.cjs
 files:
   # Positive inputs prevent local files and previous releases from being swept into app.asar,
   # even when electron-builder's output directory is moved outside the project.

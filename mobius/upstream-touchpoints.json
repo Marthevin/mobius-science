@@ -461,6 +461,10 @@
     {
       "path": "build/stage-desktop-runtime.cjs",
       "seam": "Accepts an explicitly injected source-bound native staging provider while retaining the upstream backend and Node staging path; Mobius local signing stays in the downstream overlay."
+    },
+    {
+      "path": "build/sign-windows.cjs",
+      "seam": "Accepts the same explicitly injected native verifier in the final signing phase, retaining upstream platform signing logic and default release policy."
     }
   ]
 }

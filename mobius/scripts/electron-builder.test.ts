@@ -94,6 +94,7 @@ describe('Mobius electron-builder resolved configuration', () => {
     const config = require(join(process.cwd(), 'mobius/electron-builder.cjs'))
     expect(config.beforePack).toBe('mobius/scripts/stage-desktop-runtime.cjs')
     expect(config.afterPack).toBe('mobius/scripts/adhoc-sign.cjs')
+    expect(config.afterSign).toBe('mobius/scripts/sign-windows.cjs')
     expect(config.extraResources).toEqual(
       expect.arrayContaining([
         { from: 'out/standalone', to: 'backend' },
