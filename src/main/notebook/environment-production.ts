@@ -120,7 +120,9 @@ export const createProductionProvisioner = (
     deps.fetchBundle ??
     chainFetchBundle([
       createLocalBundleAdapter(opts.root, bundleDir),
-      ...(MOBIUS_CAPABILITIES.remoteRuntimeDownloads && cdnBase ? [createFetchBundleAdapter(opts.root, cdnBase)] : [])
+      ...(MOBIUS_CAPABILITIES.remoteRuntimeDownloads && cdnBase
+        ? [createFetchBundleAdapter(opts.root, cdnBase)]
+        : [])
     ])
   return new DefaultRuntimeProvisioner<EnvironmentRequestContext>({
     root: opts.root,

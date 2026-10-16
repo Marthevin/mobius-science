@@ -1402,41 +1402,107 @@ async function startDesktop(): Promise<void> {
   let update: import('./update/strategy').UpdateStrategy | undefined
   let stopUpdates = (): void => {}
   if (MOBIUS_CAPABILITIES.automaticUpdates) {
-  const { createUpdateStrategy } = await import('./update/create-strategy')
-  const { startUpdateScheduler } = await import('./update/scheduler')
-  const flushUpdateRenderer = createElectronSessionPersistenceFlush(() => getMainWindow())
-  let preparedMacInstallation: PreparedMacInstallation | undefined
-  const isLegacyInstall = (status: { localPath?: string }): boolean =>
-    !status.localPath || !usesSupervisedInstall(process.platform, status.localPath)
-  const updateIntegration = createDesktopUpdateIntegration({
-    location: { installationRoot: installationRootForEntry(backendPaths.entry) },
-    client: () => client!,
-    currentVersion: app.getVersion(),
-    allowedProcessIds: allowedInstallationProcessIds,
-    preparedDebGate: () => preparedMacInstallation?.debGate,
-    verifyInstallerReady: async () => {
-      const gate = preparedMacInstallation?.debGate
-      if (gate && (await inspectDebSystemdGate(gate)) !== 'waiting')
-        throw new Error(
-          'The authorized package gate is no longer ready. Cancel this update and prepare it again.'
+    const { createUpdateStrategy } = await import('./update/create-strategy')
+    const { startUpdateScheduler } = await import('./update/scheduler')
+    const flushUpdateRenderer = createElectronSessionPersistenceFlush(() => getMainWindow())
+    let preparedMacInstallation: PreparedMacInstallation | undefined
+    const isLegacyInstall = (status: { localPath?: string }): boolean =>
+      !status.localPath || !usesSupervisedInstall(process.platform, status.localPath)
+    const updateIntegration = createDesktopUpdateIntegration({
+      location: { installationRoot: installationRootForEntry(backendPaths.entry) },
+      client: () => client!,
+      currentVersion: app.getVersion(),
+      allowedProcessIds: allowedInstallationProcessIds,
+      preparedDebGate: () => preparedMacInstallation?.debGate,
+      verifyInstallerReady: async () => {
+        const gate = preparedMacInstallation?.debGate
+        if (gate && (await inspectDebSystemdGate(gate)) !== 'waiting')
+          throw new Error(
+            'The authorized package gate is no longer ready. Cancel this update and prepare it again.'
+          )
+      },
+      legacyInstall: isLegacyInstall,
+      flushRenderer: async (phase) => {
+        const outcome = await flushUpdateRenderer()
+        diagnostics.log.info('update renderer persistence', { phase, outcome })
+        if (outcome !== 'completed')
+          throw new UpdateLifecycleError(
+            'install-failed',
+            'Your changes could not be saved. The update was stopped; keep the app open and try again.'
+          )
+        rendererPreparedForUpdate = phase === 'final'
+      },
+      verifyArtifact: async (status, signal) => {
+        if (!status.localPath || !status.latest)
+          throw new UpdateLifecycleError(
+            'installation-busy',
+            'This update channel cannot verify the complete replacement installation.',
+            {
+              phase: 'preparing',
+              runtime: 'running',
+              installation: 'unchanged',
+              canCancel: true,
+              canRecover: false,
+              canRetryInstall: false,
+              detail: 'unsupported-channel'
+            }
+          )
+        assertInstallationChannelCertified(
+          installationChannelFor(process.platform, status.localPath) ?? 'linux-deb'
         )
-    },
-    legacyInstall: isLegacyInstall,
-    flushRenderer: async (phase) => {
-      const outcome = await flushUpdateRenderer()
-      diagnostics.log.info('update renderer persistence', { phase, outcome })
-      if (outcome !== 'completed')
-        throw new UpdateLifecycleError(
-          'install-failed',
-          'Your changes could not be saved. The update was stopped; keep the app open and try again.'
-        )
-      rendererPreparedForUpdate = phase === 'final'
-    },
-    verifyArtifact: async (status, signal) => {
-      if (!status.localPath || !status.latest)
+        if (process.platform === 'darwin') {
+          if (preparedMacInstallation) {
+            await discardPreparedMacInstallation(preparedMacInstallation)
+            preparedMacInstallation = undefined
+          }
+          preparedMacInstallation = await prepareSupervisedMacInstallation({
+            archive: status.localPath,
+            targetVersion: status.latest,
+            installationRoot: installationRootForEntry(backendPaths.entry),
+            sha512: status.artifactSha512,
+            signal
+          })
+          return preparedMacInstallation.manifest
+        }
+        if (process.platform === 'linux' && process.env.APPIMAGE && status.artifactSha512) {
+          if (preparedMacInstallation) {
+            await discardPreparedMacInstallation(preparedMacInstallation)
+            preparedMacInstallation = undefined
+          }
+          preparedMacInstallation = await prepareSupervisedAppImageInstallation({
+            archive: status.localPath,
+            targetVersion: status.latest,
+            installationRoot: installationRootForEntry(backendPaths.entry),
+            sha512: status.artifactSha512,
+            runtimeNode: backendPaths.command,
+            signal
+          })
+          return preparedMacInstallation.manifest
+        }
+        if (
+          status.artifactSha512 &&
+          process.platform === 'linux' &&
+          status.localPath.toLowerCase().endsWith('.deb')
+        ) {
+          if (preparedMacInstallation) {
+            await discardPreparedMacInstallation(preparedMacInstallation)
+            preparedMacInstallation = undefined
+          }
+          const installerOptions = {
+            archive: status.localPath,
+            targetVersion: status.latest,
+            installationRoot: installationRootForEntry(backendPaths.entry),
+            sha512: status.artifactSha512,
+            runtimeNode: backendPaths.command,
+            currentExecutable: process.execPath,
+            signal
+          }
+          preparedMacInstallation = await prepareSupervisedDebInstallation(installerOptions)
+          return preparedMacInstallation.manifest
+        }
         throw new UpdateLifecycleError(
           'installation-busy',
-          'This update channel cannot verify the complete replacement installation.',
+          'This installer channel does not yet provide a supervised completion receipt.',
           {
             phase: 'preparing',
             runtime: 'running',
@@ -1447,189 +1513,124 @@ async function startDesktop(): Promise<void> {
             detail: 'unsupported-channel'
           }
         )
-      assertInstallationChannelCertified(
-        installationChannelFor(process.platform, status.localPath) ?? 'linux-deb'
-      )
-      if (process.platform === 'darwin') {
-        if (preparedMacInstallation) {
-          await discardPreparedMacInstallation(preparedMacInstallation)
-          preparedMacInstallation = undefined
-        }
-        preparedMacInstallation = await prepareSupervisedMacInstallation({
-          archive: status.localPath,
-          targetVersion: status.latest,
-          installationRoot: installationRootForEntry(backendPaths.entry),
-          sha512: status.artifactSha512,
-          signal
-        })
-        return preparedMacInstallation.manifest
-      }
-      if (process.platform === 'linux' && process.env.APPIMAGE && status.artifactSha512) {
-        if (preparedMacInstallation) {
-          await discardPreparedMacInstallation(preparedMacInstallation)
-          preparedMacInstallation = undefined
-        }
-        preparedMacInstallation = await prepareSupervisedAppImageInstallation({
-          archive: status.localPath,
-          targetVersion: status.latest,
-          installationRoot: installationRootForEntry(backendPaths.entry),
-          sha512: status.artifactSha512,
-          runtimeNode: backendPaths.command,
-          signal
-        })
-        return preparedMacInstallation.manifest
-      }
-      if (
-        status.artifactSha512 &&
-        process.platform === 'linux' &&
-        status.localPath.toLowerCase().endsWith('.deb')
-      ) {
-        if (preparedMacInstallation) {
-          await discardPreparedMacInstallation(preparedMacInstallation)
-          preparedMacInstallation = undefined
-        }
-        const installerOptions = {
-          archive: status.localPath,
-          targetVersion: status.latest,
-          installationRoot: installationRootForEntry(backendPaths.entry),
-          sha512: status.artifactSha512,
-          runtimeNode: backendPaths.command,
-          currentExecutable: process.execPath,
-          signal
-        }
-        preparedMacInstallation = await prepareSupervisedDebInstallation(installerOptions)
-        return preparedMacInstallation.manifest
-      }
-      throw new UpdateLifecycleError(
-        'installation-busy',
-        'This installer channel does not yet provide a supervised completion receipt.',
-        {
-          phase: 'preparing',
-          runtime: 'running',
-          installation: 'unchanged',
-          canCancel: true,
-          canRecover: false,
-          canRetryInstall: false,
-          detail: 'unsupported-channel'
-        }
-      )
-    },
-    validateConfiguration: (config) => {
-      // Attachment permits file-backed credentials, but an interactive replacement Desktop cannot
-      // silently change their storage mode or the Chromium profile selected during preflight.
-      if (
-        config.credentialStore !== getCredentialStore() ||
-        config.profilePath !== profilePath ||
-        config.configRoot !== configRoot ||
-        (config.passwordStore ?? '') !== app.commandLine.getSwitchValue('password-store')
-      )
-        throw new UpdateLifecycleError(
-          'runtime-configuration-unsupported',
-          'This Desktop cannot safely preserve the running service configuration.'
+      },
+      validateConfiguration: (config) => {
+        // Attachment permits file-backed credentials, but an interactive replacement Desktop cannot
+        // silently change their storage mode or the Chromium profile selected during preflight.
+        if (
+          config.credentialStore !== getCredentialStore() ||
+          config.profilePath !== profilePath ||
+          config.configRoot !== configRoot ||
+          (config.passwordStore ?? '') !== app.commandLine.getSwitchValue('password-store')
         )
-    },
-    setClosing: (closing) => {
-      recovery.setClosing(closing)
-      if (!closing) {
-        rendererPreparedForUpdate = false
-        notifyRendererSessionPersistenceFlushAborted(() => getMainWindow())
-      }
-    },
-    retainLease: retainShutdownLease,
-    onProgress: (status) => update?.publishLifecycleStatus?.(status),
-    onStopped: () => {
-      runtimeStopped = true
-    },
-    onHandoff: () => {
-      updateCommitted = true
-    },
-    reconnectOriginal: async () => {
-      const previous = client!
-      const identity = previous.runtimeInfo()
-      recovery.setClosing(false)
-      recovery.disconnect(previous)
-      const result = await recovery.reconnect()
-      if (
-        result.phase !== 'connected' ||
-        client!.processId() !== previous.processId() ||
-        client!.runtimeInfo().generation !== identity.generation
-      )
-        throw new Error(
-          'The original service could not be reconnected. Check its shutdown logs before recovery.'
+          throw new UpdateLifecycleError(
+            'runtime-configuration-unsupported',
+            'This Desktop cannot safely preserve the running service configuration.'
+          )
+      },
+      setClosing: (closing) => {
+        recovery.setClosing(closing)
+        if (!closing) {
+          rendererPreparedForUpdate = false
+          notifyRendererSessionPersistenceFlushAborted(() => getMainWindow())
+        }
+      },
+      retainLease: retainShutdownLease,
+      onProgress: (status) => update?.publishLifecycleStatus?.(status),
+      onStopped: () => {
+        runtimeStopped = true
+      },
+      onHandoff: () => {
+        updateCommitted = true
+      },
+      reconnectOriginal: async () => {
+        const previous = client!
+        const identity = previous.runtimeInfo()
+        recovery.setClosing(false)
+        recovery.disconnect(previous)
+        const result = await recovery.reconnect()
+        if (
+          result.phase !== 'connected' ||
+          client!.processId() !== previous.processId() ||
+          client!.runtimeInfo().generation !== identity.generation
         )
-      await verifyDesktopRecoveryReadiness(client!, identity.startupOptions)
-    },
-    restart: async (config: RuntimeStartupOptions) => {
-      shutdownLease?.release()
-      shutdownLease = undefined
-      client?.close()
-      preview?.dispose()
-      notifications.dispose()
-      relay?.uninstall()
-      ready = false
-      launch = await startOrAttachDesktopBackend({
-        configRoot: config.configRoot,
-        profilePath: config.profilePath,
-        version: app.getVersion(),
-        ...backendPaths,
-        packaged: app.isPackaged,
-        args: [
-          `--credential-store=${config.credentialStore}`,
-          ...(config.passwordStore ? [`--password-store=${config.passwordStore}`] : []),
-          `--serve=${config.port}`
-        ]
-      })
-      startedBackend = launch.startedProcess
-      client = await attach()
-      notifications = makeNotifications()
-      await verifyDesktopRecoveryReadiness(client, config)
-      runtimeStopped = false
-      updateCommitted = false
-      recovery = makeRecovery()
-      publishStartup(client.startupState())
-      await readiness
-      for (const window of BrowserWindow.getAllWindows())
-        if (isMainWindow(window)) window.webContents.reload()
-    }
-  })
-  update = createUpdateStrategy(process.platform, {
-    translate,
-    getStartupOptions: () => client!.runtimeInfo().startupOptions,
-    ...updateIntegration,
-    cancelInstall: async () => {
-      if (preparedMacInstallation?.debGate)
-        await cancelDebSystemdGate(preparedMacInstallation.debGate)
-      const result = await updateIntegration.cancelInstall!()
-      if (preparedMacInstallation) {
-        await discardPreparedMacInstallation(preparedMacInstallation)
-        preparedMacInstallation = undefined
+          throw new Error(
+            'The original service could not be reconnected. Check its shutdown logs before recovery.'
+          )
+        await verifyDesktopRecoveryReadiness(client!, identity.startupOptions)
+      },
+      restart: async (config: RuntimeStartupOptions) => {
+        shutdownLease?.release()
+        shutdownLease = undefined
+        client?.close()
+        preview?.dispose()
+        notifications.dispose()
+        relay?.uninstall()
+        ready = false
+        launch = await startOrAttachDesktopBackend({
+          configRoot: config.configRoot,
+          profilePath: config.profilePath,
+          version: app.getVersion(),
+          ...backendPaths,
+          packaged: app.isPackaged,
+          args: [
+            `--credential-store=${config.credentialStore}`,
+            ...(config.passwordStore ? [`--password-store=${config.passwordStore}`] : []),
+            `--serve=${config.port}`
+          ]
+        })
+        startedBackend = launch.startedProcess
+        client = await attach()
+        notifications = makeNotifications()
+        await verifyDesktopRecoveryReadiness(client, config)
+        runtimeStopped = false
+        updateCommitted = false
+        recovery = makeRecovery()
+        publishStartup(client.startupState())
+        await readiness
+        for (const window of BrowserWindow.getAllWindows())
+          if (isMainWindow(window)) window.webContents.reload()
       }
-      return result
-    },
-    ...(['darwin', 'linux', 'win32'].includes(process.platform)
-      ? {
-          executeInstall: async (status, options) => {
-            const operationId = status.recovery?.operationId
-            if (isLegacyInstall(status)) return 'legacy' as const
-            if (!preparedMacInstallation || !operationId)
-              throw new UpdateLifecycleError(
-                'install-failed',
-                'The prepared installer is unavailable.'
+    })
+    const activeUpdate = createUpdateStrategy(process.platform, {
+      translate,
+      getStartupOptions: () => client!.runtimeInfo().startupOptions,
+      ...updateIntegration,
+      cancelInstall: async () => {
+        if (preparedMacInstallation?.debGate)
+          await cancelDebSystemdGate(preparedMacInstallation.debGate)
+        const result = await updateIntegration.cancelInstall!()
+        if (preparedMacInstallation) {
+          await discardPreparedMacInstallation(preparedMacInstallation)
+          preparedMacInstallation = undefined
+        }
+        return result
+      },
+      ...(['darwin', 'linux', 'win32'].includes(process.platform)
+        ? {
+            executeInstall: async (status, options) => {
+              const operationId = status.recovery?.operationId
+              if (isLegacyInstall(status)) return 'legacy' as const
+              if (!preparedMacInstallation || !operationId)
+                throw new UpdateLifecycleError(
+                  'install-failed',
+                  'The prepared installer is unavailable.'
+                )
+              await launchPreparedMacInstaller(
+                { installationRoot: installationRootForEntry(backendPaths.entry) },
+                operationId,
+                preparedMacInstallation,
+                { desktopPid: process.pid, relaunch: options.relaunch ?? true }
               )
-            await launchPreparedMacInstaller(
-              { installationRoot: installationRootForEntry(backendPaths.entry) },
-              operationId,
-              preparedMacInstallation,
-              { desktopPid: process.pid, relaunch: options.relaunch ?? true }
-            )
-            app.exit(0)
-            return undefined
+              app.exit(0)
+              return undefined
+            }
           }
-        }
-      : {})
-  })
-  registerUpdateIpcHandlers(update, undefined, requireRecoveryFrame)
-  stopUpdates = startUpdateScheduler(update)
+        : {})
+    })
+    update = activeUpdate
+    registerUpdateIpcHandlers(activeUpdate, undefined, requireRecoveryFrame)
+    stopUpdates = startUpdateScheduler(activeUpdate)
   } else {
     const disabledUpdates = createDisabledUpdateCommandOwner()
     registerUpdateIpcHandlers(disabledUpdates, disabledUpdates, requireRecoveryFrame)
@@ -1671,8 +1672,7 @@ async function startDesktop(): Promise<void> {
         ...handlers,
         iconPath: trayIconPath,
         templateIconPath: process.platform === 'darwin' ? trayMacTemplate : undefined,
-        templateIconRetinaPath:
-          process.platform === 'darwin' ? trayMacTemplateRetina : undefined,
+        templateIconRetinaPath: process.platform === 'darwin' ? trayMacTemplateRetina : undefined,
         variantIconPaths: trayVariantIconPaths,
         translate,
         getNavigationSessions: async () =>

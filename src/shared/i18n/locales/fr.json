@@ -1643,8 +1643,6 @@
     "Follow the system setting, or force light or dark. The Dock icon follows the resolved theme.": "Suivez les paramètres du système ou forcez le mode clair ou sombre. L'icône du Dock suit le thème actif.",
     "Follow the system setting, or pick a language. System is detected once at startup, so a change to your device language takes effect the next time the app opens.": "Suivez les paramètres du système ou choisissez une langue. Le système est détecté une fois au démarrage, donc une modification de la langue de votre appareil prendra effet à la prochaine ouverture de l'application.",
     "Follow up…": "Suivi…",
-    "Follow {{appName}} on X": "Suivez {{appName}} sur X",
-    "Follows this device": "Suit cet appareil",
     "Forward": "En avant",
     "Found {{count}} skills._one": "{{count}} compétence trouvée.",
     "Found {{count}} skills._other": "{{count}} compétences trouvées.",

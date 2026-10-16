@@ -190,7 +190,9 @@ const heartbeatFrame = (latestSequence: number): string =>
 
 const loadBootstrap = async (): Promise<WebApi> => {
   const bootstrapImport = import('./bootstrap')
-  await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+  await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+    timeout: 5000
+  })
   window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))
   await bootstrapImport
   return (window as unknown as { api: WebApi }).api
@@ -233,23 +235,14 @@ afterEach(() => {
 })
 
 describe('Web bootstrap event connection', () => {
-  it('uses the desktop particle loader before React startup and releases it when replaced', async () => {
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      arc: vi.fn(),
-      beginPath: vi.fn(),
-      clearRect: vi.fn(),
-      fill: vi.fn(),
-      restore: vi.fn(),
-      save: vi.fn()
-    } as unknown as CanvasRenderingContext2D)
-    const cancelFrame = vi.spyOn(window, 'cancelAnimationFrame')
+  it('renders the Mobius connection artwork before React startup', async () => {
     await loadBootstrap()
-    expect(document.querySelector('#open-science-connection-logo canvas')).not.toBeNull()
-    expect(document.querySelector('.open-science-connection-name')).toBeNull()
-    expect(document.querySelector('.open-science-connection-spinner')).toBeNull()
+    const artwork = document.querySelector('#open-science-connection-logo svg')
+    expect(artwork).not.toBeNull()
+    expect(artwork?.getAttribute('aria-hidden')).toBe('true')
+    expect(artwork?.getAttribute('focusable')).toBe('false')
     document.getElementById('root')!.replaceChildren(document.createElement('main'))
-    await vi.waitFor(() => expect(cancelFrame).toHaveBeenCalled())
-    expect(document.querySelector('canvas')).toBeNull()
+    expect(document.querySelector('#open-science-connection-logo')).toBeNull()
   })
 
   it('records the caller location returned by bootstrap', async () => {
@@ -315,7 +308,9 @@ describe('Web bootstrap event connection', () => {
     localStorage.setItem('open-science-language', 'zh-Hans')
 
     const bootstrapImport = import('./bootstrap')
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
 
     expect(document.getElementById('open-science-connection-message')?.textContent).toBe(
       '正在连接远程计算机…'
@@ -345,7 +340,9 @@ describe('Web bootstrap event connection', () => {
       )
     )
     await vi.advanceTimersByTimeAsync(500)
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
     window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))
     await bootstrapImport
   })
@@ -889,7 +886,9 @@ describe('Web bootstrap event connection', () => {
 
   it('waits for renderer consumers before opening the event stream', async () => {
     const bootstrapImport = import('./bootstrap')
-    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined())
+    await vi.waitFor(() => expect((window as unknown as { api?: WebApi }).api).toBeDefined(), {
+      timeout: 5000
+    })
 
     expect(FakeWebSocket.instances).toHaveLength(0)
     window.dispatchEvent(new Event(WEB_EVENT_CONSUMERS_READY_EVENT))

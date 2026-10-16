@@ -1643,8 +1643,6 @@
     "Follow the system setting, or force light or dark. The Dock icon follows the resolved theme.": "Использовать системную тему или всегда включать светлую либо тёмную. Значок в Dock соответствует выбранной теме.",
     "Follow the system setting, or pick a language. System is detected once at startup, so a change to your device language takes effect the next time the app opens.": "Используйте язык системы или выберите другой. Системный язык определяется при запуске, поэтому изменения вступят в силу при следующем открытии приложения.",
     "Follow up…": "Уточнить…",
-    "Follow {{appName}} on X": "Следить за {{appName}} на X",
-    "Follows this device": "Как на этом устройстве",
     "Forward": "Вперёд",
     "Found {{count}} skills._one": "Найден {{count}} навык.",
     "Found {{count}} skills._few": "Найдено {{count}} навыка.",

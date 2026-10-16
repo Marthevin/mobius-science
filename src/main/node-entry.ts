@@ -274,7 +274,12 @@ async function main(): Promise<void> {
         : process.platform === 'darwin'
           ? join(home, 'Library', 'Application Support')
           : process.env.XDG_CONFIG_HOME || join(home, '.config')
-    profilePath = resolveElectronProfile({ appData, configRoot, packaged })
+    profilePath = resolveElectronProfile({
+      appData,
+      configRoot,
+      packaged,
+      profileDirectoryNames: MOBIUS_NATIVE_IDENTITY.electronProfileNames
+    })
     const credentialBootstrapLease = acquireCredentialBootstrapLease({
       home,
       profilePath,

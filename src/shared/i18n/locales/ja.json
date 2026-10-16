@@ -1590,8 +1590,6 @@
     "Follow the system setting, or force light or dark. The Dock icon follows the resolved theme.": "システム設定に従うか、ライトまたはダークに固定します。Dock アイコンには現在適用されているテーマが反映されます。",
     "Follow the system setting, or pick a language. System is detected once at startup, so a change to your device language takes effect the next time the app opens.": "システム設定に従うか、言語を選択してください。システムは起動時に一度検出されるため、デバイス言語の変更は次回アプリを開いたときに有効になります。",
     "Follow up…": "フォローアップ…",
-    "Follow {{appName}} on X": "X で {{appName}} をフォローしてください",
-    "Follows this device": "このデバイスをフォローします",
     "Forward": "進む",
     "Found {{count}} skills._other": "{{count}} 件のスキルが見つかりました。",
     "Found {{count}} skills_other": "{{count}} 件のスキルが見つかりました",

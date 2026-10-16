@@ -1,5 +1,5 @@
 import type { TFunction } from 'i18next'
-import { Captions, ChevronRight, Eye, SearchCheck, Workflow, type LucideIcon } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
