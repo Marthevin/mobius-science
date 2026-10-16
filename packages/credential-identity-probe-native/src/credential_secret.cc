@@ -22,7 +22,8 @@ static void clear(void* memory, size_t size) {
   while (size--) *p++ = 0;
 }
 static bool identity(const std::string& name) {
-  return name == "Open-Science" || name == "Open Science" ||
+  return name == "Mobius Science" || name == "Mobius Science (DEV)" ||
+         name == "Open-Science" || name == "Open Science" ||
          name == "Open-Science (DEV)" || name == "Open Science (DEV)";
 }
 int main(int argc, char** argv) {

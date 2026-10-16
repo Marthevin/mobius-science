@@ -1,6 +1,7 @@
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { EventEmitter } from 'node:events'
-import { resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { execFileSync } from 'node:child_process'
 import { runInNewContext } from 'node:vm'
@@ -70,6 +71,74 @@ it.each([true, false])(
     }
   }
 )
+
+describe('ordinary Node mock credentials', () => {
+  it.skipIf(process.platform !== 'darwin')(
+    'requires an explicit mock opt-in for packaged launch environments',
+    () => {
+      const packaged = {
+        OPEN_SCIENCE_E2E_EXECUTABLE: '/fixture/Mobius Science.app/Contents/MacOS/Mobius Science'
+      }
+      expect(
+        launchEnvironment('isolated-storage', undefined, packaged).NODE_OPTIONS
+      ).toBeUndefined()
+      expect(
+        launchEnvironment('isolated-storage', undefined, {
+          ...packaged,
+          OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '1'
+        }).NODE_OPTIONS
+      ).toContain('mock-node-credentials.cjs')
+    }
+  )
+  it.skipIf(process.platform !== 'darwin')(
+    'replaces the backend-local native helper package instead of the source package',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'packaged-node-credentials-'))
+      try {
+        const native = join(root, 'backend/node_modules/@aipoch/credential-identity-probe-native')
+        await mkdir(native, { recursive: true })
+        await writeFile(
+          join(native, 'index.js'),
+          'module.exports = { executablePath: "real-probe", secretExecutablePath: "real-secret" }'
+        )
+        const entry = join(root, 'backend/entry.cjs')
+        await writeFile(
+          entry,
+          "console.log(JSON.stringify(require('@aipoch/credential-identity-probe-native')))"
+        )
+        const result = JSON.parse(
+          execFileSync(
+            process.execPath,
+            ['--require', resolve('e2e/fixtures/mock-node-credentials.cjs'), entry],
+            {
+              encoding: 'utf8',
+              env: {
+                ...process.env,
+                OPEN_SCIENCE_E2E_EXECUTABLE: join(
+                  root,
+                  'Mobius Science.app/Contents/MacOS/Mobius Science'
+                ),
+                OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '1',
+                OPEN_SCIENCE_E2E_STORAGE_ROOT: join(root, 'isolated-storage')
+              }
+            }
+          )
+        )
+        expect(result).toEqual({
+          executablePath: resolve('e2e/fixtures/mock-credential-identity.sh'),
+          secretExecutablePath: resolve('e2e/fixtures/mock-node-secret.sh')
+        })
+        expect(
+          execFileSync(result.secretExecutablePath, ['read-key', 'Mobius Science'], {
+            encoding: 'utf8'
+          })
+        ).toBe('mock_password')
+      } finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    }
+  )
+})
 
 describe('source macOS mock Keychain metadata', () => {
   it('replaces only the native probe path for an explicit source mock launch', async () => {
