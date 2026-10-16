@@ -39,7 +39,7 @@ it('can start from a fresh checkout before node_modules exists', async () => {
   const root = await fixture()
   const scripts = join(root, 'mobius/scripts')
   await mkdir(scripts, { recursive: true })
-  for (const name of ['build-release.mjs', 'release-audit.mjs']) {
+  for (const name of ['build-release.mjs', 'release-audit.mjs', 'build-composition.mjs']) {
     await copyFile(join(process.cwd(), 'mobius/scripts', name), join(scripts, name))
   }
   const output = execFileSync(process.execPath, [join(scripts, 'build-release.mjs'), '--help'], {

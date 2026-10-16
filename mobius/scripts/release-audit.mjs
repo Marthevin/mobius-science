@@ -270,6 +270,13 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
     arch,
     sourceRoot: dependencyRoot ?? process.cwd()
   })
+  const { verifyPackagedLocalNativeComponents } = await import('./local-native-components.mjs')
+  await verifyPackagedLocalNativeComponents(
+    resources,
+    `darwin-${arch}`,
+    dependencyRoot ?? process.cwd()
+  )
+  const nativeComponents = await json(join(resources, 'mobius-native-components.json'))
   await verifySkillResources(
     join(resources, 'backend/resources/skills'),
     join(dependencyRoot ?? process.cwd(), 'resources/skills'),
@@ -322,6 +329,7 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
   return {
     skillResources,
     desktopBackend,
+    nativeComponents,
     appBytes,
     asarBytes: (await lstat(asar)).size,
     asarSha256: await sha256File(asar),

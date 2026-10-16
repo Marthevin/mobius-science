@@ -10,8 +10,11 @@ module.exports = async (context) => {
   if (context.electronPlatformName !== process.platform || arch !== process.arch)
     throw new Error('Build the desktop Node backend on its target platform/architecture.')
   const root = context.packager.projectDir
+  if (context.stageNativeComponents) await context.stageNativeComponents()
   for (const [script, args] of [
-    [path.join(root, 'scripts/native-components.mjs'), []],
+    ...(!context.stageNativeComponents
+      ? [[path.join(root, 'scripts/native-components.mjs'), []]]
+      : []),
     [path.join(root, 'scripts/build-backend.mjs'), ['--desktop']]
   ]) {
     const result = spawnSync(process.execPath, [script, ...args], { cwd: root, stdio: 'inherit' })
