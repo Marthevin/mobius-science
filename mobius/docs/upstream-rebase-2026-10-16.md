@@ -2,7 +2,9 @@
 
 Local `master` was rebased directly onto `upstream/main` at
 `939712535` (fix(session): keep approval and input waits visible, #3574).
-No remote branch was rewritten or pushed.
+The initial rebase was local. The subsequent authorized push preserved the original
+remote head as `origin/backup/master-pre-rebase-20261016` and updated `origin/master`
+with an exact-SHA `--force-with-lease`; later packaging fixes use ordinary pushes.
 
 ## Recovery points
 
@@ -42,3 +44,21 @@ The downstream versions were restored immediately afterward. The upstream baseli
 log is `/private/tmp/mobius-upstream-startup-baseline.log`; the downstream comparison
 is `/private/tmp/mobius-rebase-tests2.log`. These results are not packaged application
 acceptance, and this rebase does not certify a new release.
+
+## Packaging follow-up
+
+The upstream desktop now packages a separate ordinary-Node backend. The Mobius
+builder composes its resources and keeps managed OpenCode outside the backend
+signing tree. Local native components are rebuilt from the recorded source with
+the pinned Node/compiler/SDK, ad-hoc signed and strictly verified at each signing
+and installed-copy audit; they are not represented as upstream release artifacts.
+
+The packaged smoke fixture explicitly opts in to mock credentials and resolves the
+helper from the packaged backend's dependency tree. Chromium's mock Keychain flag
+alone does not mock the ordinary Node backend. The native secret helper also
+recognizes the same two Mobius identities as the metadata probe, preserving its
+fixed service/account mapping and rejection of unknown identities.
+
+Release acceptance is recorded separately in each output directory's
+`release-manifest.json`. Only a manifest with status `ready` certifies that the
+installed DMG copy passed startup, restart and database/file-retention checks.

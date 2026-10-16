@@ -39,6 +39,10 @@
       "seam": "Accepts the Mobius credential identity while retaining legacy identities for safe migration."
     },
     {
+      "path": "packages/credential-identity-probe-native/src/credential_secret.cc",
+      "seam": "Adds the same two fixed Mobius identities already accepted by the metadata probe. The native helper owns its closed identity allowlist, so an overlay cannot enable these identities without changing its boundary."
+    },
+    {
       "path": "packages/notebook-network-sandbox/runtime/src/gateway/address-policy.ts",
       "seam": "Lets an explicitly allowed exact hostname traverse the sandbox DNS fake-IP range while retaining private-network denial."
     },
