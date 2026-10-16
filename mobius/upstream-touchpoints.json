@@ -68,7 +68,7 @@
     },
     {
       "path": "src/main/index.ts",
-      "seam": "Registers native product identity and generated icons."
+      "seam": "Registers native product identity and generated icons; routes final startup errors through the Mobius presentation helper so exact headless launches report to stderr without blocking on a dialog, while retaining exit and cleanup order."
     },
     {
       "path": "src/main/compute/session-catalog-hydration.ts",
