@@ -125,3 +125,6 @@ __pycache__/
 
 # Playwright shard reports (merged by CI).
 blob-report/
+
+# Source-bound local native receipts and signed build outputs.
+mobius/generated/native-components/

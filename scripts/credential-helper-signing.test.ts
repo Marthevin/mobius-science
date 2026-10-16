@@ -237,3 +237,37 @@ it('refuses to package macOS when a credential helper is missing', async () => {
     })
   ).rejects.toThrow(/credential_identity_probe/u)
 })
+
+it('uses an explicit packaged native verifier before signing the outer app', async () => {
+  const verifyNativeComponents = vi.fn(async () => new Set<string>())
+  const fallback = vi.fn(async () => {
+    throw new Error('wrong native verifier')
+  })
+  const exports: { default?: (context: unknown) => Promise<void> } = {}
+  runInNewContext(readFileSync('build/adhoc-sign.cjs', 'utf8'), {
+    exports,
+    __dirname: '/fixture/build',
+    console: { log: vi.fn() },
+    require: (id: string) => {
+      if (id === './verify-native-components.cjs') return fallback
+      if (id === 'builder-util') return { Arch: { 1: 'arm64' } }
+      if (id === 'node:path') return posix
+      if (id === 'node:buffer') return { Buffer }
+      if (id === 'node:fs') return { existsSync: () => true, readdirSync: () => [] }
+      if (id === 'node:child_process') return { execFileSync: vi.fn() }
+      throw new Error(`Unexpected module ${id}`)
+    }
+  })
+  await exports.default!({
+    electronPlatformName: 'darwin',
+    arch: 1,
+    appOutDir: '/fixture',
+    packager: { appInfo: { productFilename: 'Mobius Science' } },
+    verifyNativeComponents
+  })
+  expect(verifyNativeComponents).toHaveBeenCalledWith(
+    '/fixture/Mobius Science.app/Contents/Resources',
+    'darwin-arm64'
+  )
+  expect(fallback).not.toHaveBeenCalled()
+})

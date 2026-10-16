@@ -11,7 +11,8 @@ fileAssociations:
     rank: Default
 directories:
   buildResources: build
-afterPack: build/adhoc-sign.cjs
+beforePack: mobius/scripts/stage-desktop-runtime.cjs
+afterPack: mobius/scripts/adhoc-sign.cjs
 files:
   # Positive inputs prevent local files and previous releases from being swept into app.asar,
   # even when electron-builder's output directory is moved outside the project.
@@ -66,6 +67,8 @@ asarUnpack:
 extraResources:
   - from: mobius/runtime/default-envs
     to: backend/resources/default-envs
+  - from: mobius/generated/native-components/${platform}-${arch}/receipt.json
+    to: mobius-native-components.json
 win:
   executableName: mobius-science
   icon: mobius/generated/app/icon.ico

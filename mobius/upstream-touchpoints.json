@@ -32,7 +32,7 @@
     },
     {
       "path": "build/adhoc-sign.cjs",
-      "seam": "Requires credential helper binaries to be present and signed inside packaged macOS apps."
+      "seam": "Accepts an explicitly injected native verifier before signing, so the local Mobius native receipt can preserve its verified signatures; the upstream default validator is unchanged."
     },
     {
       "path": "packages/credential-identity-probe-native/src/credential_identity_probe.cc",
@@ -457,6 +457,10 @@
     {
       "path": "src/main/composition/research-catalog.ts",
       "seam": "Injects Mobius public destination verification into the reusable full-text downloader without importing downstream policy into the package."
+    },
+    {
+      "path": "build/stage-desktop-runtime.cjs",
+      "seam": "Accepts an explicitly injected source-bound native staging provider while retaining the upstream backend and Node staging path; Mobius local signing stays in the downstream overlay."
     }
   ]
 }

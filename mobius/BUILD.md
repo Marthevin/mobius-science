@@ -15,7 +15,7 @@ This version supports native macOS arm64 and x64. It refuses cross-architecture 
 systems because its mandatory startup test must execute the actual delivered binary. Windows/Linux
 developer build entries are not certified by this workflow.
 
-Prerequisites: Git, Node/npm compatible with this repository, Xcode Command Line Tools, network access
+Prerequisites: Git, Node 22.23.3 and npm, Xcode Command Line Tools, network access
 for npm and first-time runtime staging, and enough free space for an isolated npm installation and
 the native application. The process uses the committed package lock via `npm ci`.
 
@@ -39,13 +39,21 @@ containing files you want to keep. The command refuses to overwrite existing out
 
 1. Check a clean source tree; record commit, branch, version and architecture.
 2. Export only committed files using `git archive` into a new temporary directory.
-3. Install exactly the lockfile dependencies with `npm ci`, including native build hooks.
+3. Install exactly the lockfile dependencies with `npm ci --ignore-scripts`, then run every installed
+   dependency's lockfile-declared install lifecycle, including nested versions. Run the guarded
+   upstream postinstall composition with its native download replaced by the Mobius local native
+   producer, retaining patch checks, Prisma generation, Electron installation/rebuild and package builds.
+   Compile the five first-party native components with pinned Node 22.23.3, apply explicit local
+   ad-hoc signatures, and record source, recipe, compiler, SDK and exact signed bytes in the receipt.
+   These components are never represented as upstream Developer ID signed releases.
 4. Run Mobius build/brand/runtime regression tests and the upstream license-packaging contract.
 5. Stage OpenCode, Python 3.12 and R 4.4. Verify platform, version, archive sizes and SHA-256.
    OpenCode is compiled from the checksum-pinned source and patch under `mobius/opencode/`,
    using pinned Bun and the full model catalog; real-HTTP webfetch regressions must pass.
    The build cache and package audit bind its source, patch and test identities as well as binary hash.
-6. Generate brand assets; run the complete typecheck and application build.
+6. Generate brand assets; run the complete typecheck and application build, replacing only upstream
+   remote native staging with strict verification of the locally produced components. Changes to the
+   upstream build/postinstall commands block this adapter until reviewed.
 7. Package a DMG with the Mobius overlay and publishing disabled.
 8. Inspect the **actual app.asar** and separate Node backend. Reject old `dist/`, nested Apps/DMGs/ZIPs, local agent state,
    missing application entries, missing Skill references/scripts, and oversized output. Verify
