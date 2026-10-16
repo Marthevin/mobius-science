@@ -14,6 +14,14 @@ const fixture = async (): Promise<string> => {
   return root
 }
 
+it('hashes the current package-based runtime staging inputs before reading the cache', async () => {
+  const { runtimeRecipe } = await import('./build-release.mjs')
+  expect(runtimeRecipe).toBeTypeOf('function')
+  const arm = runtimeRecipe(process.cwd(), 'arm64')
+  expect(arm).toMatch(/^[a-f0-9]{64}$/)
+  expect(runtimeRecipe(process.cwd(), 'x64')).not.toBe(arm)
+})
+
 it('canonicalizes temporary-directory aliases before passing the executable to Electron tests', async () => {
   const { realpath, symlink } = await import('node:fs/promises')
   const { createBuildWorkspace } = await import('./build-release.mjs')

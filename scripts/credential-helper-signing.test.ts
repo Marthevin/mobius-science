@@ -209,20 +209,20 @@ it('signs every unsigned bundled Windows PE while preserving vendor signatures',
 })
 
 it('refuses to package macOS when a credential helper is missing', async () => {
-  const app = '/fixture/Mobius Science.app'
-  const missing = posix.join(
-    app,
-    'Contents/Resources/app.asar.unpacked/node_modules/@aipoch/credential-identity-probe-native/build/Release/credential_identity_probe'
-  )
   const exports: { default?: (context: unknown) => Promise<void> } = {}
   runInNewContext(readFileSync('build/adhoc-sign.cjs', 'utf8'), {
     exports,
     __dirname: '/fixture/build',
     console: { log: vi.fn() },
     require: (id: string) => {
+      if (id === './verify-native-components.cjs')
+        return async () => {
+          throw new Error('Missing pinned credential_identity_probe')
+        }
+      if (id === 'builder-util') return { Arch: { 1: 'arm64' } }
       if (id === 'node:path') return posix
       if (id === 'node:buffer') return { Buffer }
-      if (id === 'node:fs') return { existsSync: (path: string) => path !== missing }
+      if (id === 'node:fs') return { existsSync: () => true }
       if (id === 'node:child_process') return { execFileSync: vi.fn() }
       throw new Error(`Unexpected module ${id}`)
     }
@@ -231,6 +231,7 @@ it('refuses to package macOS when a credential helper is missing', async () => {
   await expect(
     exports.default!({
       electronPlatformName: 'darwin',
+      arch: 1,
       appOutDir: '/fixture',
       packager: { appInfo: { productFilename: 'Mobius Science' } }
     })

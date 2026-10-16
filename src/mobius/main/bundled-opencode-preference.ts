@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto'
 import { constants, createReadStream, existsSync } from 'node:fs'
 import { access, lstat, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { app } from 'electron'
+import { runtimeMetadataIfConfigured } from '../../main/runtime-metadata'
+import { resolveBundledOpenCodeDir } from './bundled-opencode'
 import { PRODUCT } from '../shared/product-config'
 
 export type BundledOpenCodeRuntime = { path: string; version: string }
@@ -16,12 +17,14 @@ export const createBundledOpenCodeResolver = (
   let pending: Promise<BundledOpenCodeRuntime | undefined> | undefined
   const resolve = async (): Promise<BundledOpenCodeRuntime | undefined> => {
     const directory =
-      options.directory ??
-      process.env.MOBIUS_OPENCODE_DIR ??
-      (process.resourcesPath ? join(process.resourcesPath, 'managed-runtimes/opencode') : undefined)
+      options.directory ?? process.env.MOBIUS_OPENCODE_DIR ?? resolveBundledOpenCodeDir()
     const required =
       options.required ??
-      Boolean(options.directory || process.env.MOBIUS_OPENCODE_DIR || app?.isPackaged)
+      Boolean(
+        options.directory ||
+        process.env.MOBIUS_OPENCODE_DIR ||
+        runtimeMetadataIfConfigured()?.packaged
+      )
     if (!directory || !existsSync(directory)) {
       if (required)
         throw new Error('Bundled OpenCode is missing; reinstall the verified Mobius Science build')

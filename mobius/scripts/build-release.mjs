@@ -194,7 +194,7 @@ const copyRuntimeFiles = async (from, to, arch) => {
   }
 }
 
-const stageRuntimes = async ({ source, arch, product, run, cacheRoot }) => {
+export const runtimeRecipe = (source, arch) => {
   const recipe = createHash('sha256').update(`darwin-${arch}`)
   for (const path of [
     'mobius/config/product.json',
@@ -209,10 +209,14 @@ const stageRuntimes = async ({ source, arch, product, run, cacheRoot }) => {
     'scripts/pack-archive.mjs',
     'scripts/fetch-micromamba.mjs',
     'scripts/micromamba-versions.json',
-    'src/main/notebook/runtime-paths.ts'
+    'packages/environment/src/runtime-paths.ts'
   ])
     recipe.update(readFileSync(join(source, path)))
-  const key = recipe.digest('hex')
+  return recipe.digest('hex')
+}
+
+const stageRuntimes = async ({ source, arch, product, run, cacheRoot }) => {
+  const key = runtimeRecipe(source, arch)
   const cache = join(cacheRoot, key)
   let reused = false
   if (existsSync(join(cache, 'receipt.json'))) {
@@ -388,7 +392,8 @@ const main = async () => {
               asarSha256: audit.asarSha256,
               appIcon: audit.appIcon,
               iconAssets: audit.iconAssets,
-              brandAssets: audit.brandAssets
+              brandAssets: audit.brandAssets,
+              desktopBackend: audit.desktopBackend
             }
           }
         },
@@ -443,6 +448,7 @@ const main = async () => {
             })
             if (
               installed.asarSha256 !== audit.asarSha256 ||
+              JSON.stringify(installed.desktopBackend) !== JSON.stringify(audit.desktopBackend) ||
               JSON.stringify(installed.iconAssets) !== JSON.stringify(audit.iconAssets)
             )
               throw new Error('Installed DMG candidate differs from audited application')
@@ -453,7 +459,11 @@ const main = async () => {
               '--verbose=2',
               installedApp
             ])
-            return { asarSha256: installed.asarSha256, iconAssets: installed.iconAssets }
+            return {
+              asarSha256: installed.asarSha256,
+              iconAssets: installed.iconAssets,
+              desktopBackend: installed.desktopBackend
+            }
           }
         },
         {
