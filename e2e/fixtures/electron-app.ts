@@ -450,6 +450,13 @@ const launchEnvironment = (
   environment.OPEN_SCIENCE_USER_DATA = join(dirname(storageRoot), 'electron-profile')
   environment.OPEN_SCIENCE_STORAGE_ROOT = storageRoot
   environment.OPEN_SCIENCE_E2E_STORAGE_ROOT = storageRoot
+  if (
+    process.platform === 'darwin' &&
+    (!environment.OPEN_SCIENCE_E2E_EXECUTABLE ||
+      environment.OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN === '1')
+  ) {
+    environment.NODE_OPTIONS = `${environment.NODE_OPTIONS ?? ''} --require=${JSON.stringify(resolve(APP_ROOT, 'e2e/fixtures/mock-node-credentials.cjs'))}`
+  }
   environment.OPEN_SCIENCE_E2E_HANDOFF_CAPTURE_ROOT = join(storageRoot, 'e2e-handoff-captures')
   environment.OPEN_SCIENCE_E2E_WINDOW_MODE = windowMode
   if (environment.OPEN_SCIENCE_WINDOWS_APPCONTAINER_CERT === '1') {
@@ -503,11 +510,6 @@ const launchOpenScience = async (
         windowMode,
         sessionPerformanceTrace
       ),
-      ...(process.platform === 'darwin' && !process.env.OPEN_SCIENCE_E2E_EXECUTABLE
-        ? {
-            NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require=${JSON.stringify(resolve(APP_ROOT, 'e2e/fixtures/mock-node-credentials.cjs'))}`
-          }
-        : {}),
       OPEN_SCIENCE_CONFIG_ROOT: storageRoot,
       OPEN_SCIENCE_USER_DATA: userDataRoot
     }
