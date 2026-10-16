@@ -128,3 +128,5 @@ blob-report/
 
 # Local scratch files
 tmp/
+# Source-bound local native receipts and signed build outputs.
+mobius/generated/native-components/

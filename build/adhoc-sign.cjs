@@ -21,10 +21,12 @@
 const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
-const verifyPackagedNativeComponents = require('./verify-native-components.cjs')
+const verifyDefaultNativeComponents = require('./verify-native-components.cjs')
 
 /** @param {import('electron-builder').AfterPackContext} context */
 exports.default = async function adhocSign(context) {
+  const verifyPackagedNativeComponents =
+    context.verifyNativeComponents ?? verifyDefaultNativeComponents
   const arch = require('builder-util').Arch[context.arch]
   if (context.electronPlatformName !== 'darwin') {
     await verifyPackagedNativeComponents(

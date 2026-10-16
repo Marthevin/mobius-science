@@ -92,12 +92,17 @@ describe('Mobius electron-builder resolved configuration', () => {
   })
   it('retains the separate desktop backend and pinned Node resource mappings', () => {
     const config = require(join(process.cwd(), 'mobius/electron-builder.cjs'))
-    expect(config.beforePack).toBe('build/stage-desktop-runtime.cjs')
+    expect(config.beforePack).toBe('mobius/scripts/stage-desktop-runtime.cjs')
+    expect(config.afterPack).toBe('mobius/scripts/adhoc-sign.cjs')
     expect(config.extraResources).toEqual(
       expect.arrayContaining([
         { from: 'out/standalone', to: 'backend' },
         { from: 'out/standalone/node_modules', to: 'backend/node_modules' },
         { from: 'out/node-runtime/${platform}-${arch}', to: 'node-runtime' },
+        {
+          from: 'mobius/generated/native-components/${platform}-${arch}/receipt.json',
+          to: 'mobius-native-components.json'
+        },
         { from: 'mobius/runtime/default-envs', to: 'backend/resources/default-envs' }
       ])
     )

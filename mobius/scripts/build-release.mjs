@@ -9,6 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
 import { auditMacApp, sha256File, verifyOpenCode, verifyRuntimePacks } from './release-audit.mjs'
+import { buildApplication, installBuildDependencies } from './build-composition.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
@@ -311,7 +312,8 @@ const main = async () => {
         arch: values.arch,
         node: process.version,
         policy,
-        signing: 'local macOS build; signature verification required, notarization not requested',
+        signing:
+          'local-ad-hoc native components compiled from recorded source, Node and compiler; no Developer ID or notarization requested; strict signature verification required',
         testScope:
           'application copied from mounted DMG with exact ASAR/icon fingerprints; fresh/restart, legacy database filename migration with conversation/file retention and conflict rejection in isolated profiles with mock keychain; not all historical schemas, live LLM or real credential migration acceptance'
       },
@@ -325,7 +327,7 @@ const main = async () => {
         },
         {
           name: 'locked-dependencies',
-          run: () => run('npm-ci', 'npm', ['ci', '--no-audit', '--no-fund'])
+          run: () => installBuildDependencies(source, run)
         },
         {
           name: 'packaging-regressions',
@@ -349,7 +351,7 @@ const main = async () => {
             })
         },
         { name: 'brand-assets', run: () => run('brand', 'npm', ['run', 'generate:brand-assets']) },
-        { name: 'typecheck-and-build', run: () => run('build', 'npm', ['run', 'build']) },
+        { name: 'typecheck-and-build', run: () => buildApplication(source, run) },
         {
           name: 'package-dmg',
           run: async () => {
@@ -393,7 +395,8 @@ const main = async () => {
               appIcon: audit.appIcon,
               iconAssets: audit.iconAssets,
               brandAssets: audit.brandAssets,
-              desktopBackend: audit.desktopBackend
+              desktopBackend: audit.desktopBackend,
+              nativeComponents: audit.nativeComponents
             }
           }
         },
@@ -449,6 +452,8 @@ const main = async () => {
             if (
               installed.asarSha256 !== audit.asarSha256 ||
               JSON.stringify(installed.desktopBackend) !== JSON.stringify(audit.desktopBackend) ||
+              JSON.stringify(installed.nativeComponents) !==
+                JSON.stringify(audit.nativeComponents) ||
               JSON.stringify(installed.iconAssets) !== JSON.stringify(audit.iconAssets)
             )
               throw new Error('Installed DMG candidate differs from audited application')
@@ -462,7 +467,8 @@ const main = async () => {
             return {
               asarSha256: installed.asarSha256,
               iconAssets: installed.iconAssets,
-              desktopBackend: installed.desktopBackend
+              desktopBackend: installed.desktopBackend,
+              nativeComponents: installed.nativeComponents
             }
           }
         },
