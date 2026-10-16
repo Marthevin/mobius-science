@@ -239,3 +239,34 @@ describe('release artifact acceptance', () => {
     await expect(verifyRuntimePacks(dir, 'osx-arm64')).rejects.toThrow(/path/)
   })
 })
+
+it('loads the native audit from the dependency snapshot when the outer checkout has no dependencies', async () => {
+  const { copyFile, readFile } = await import('node:fs/promises')
+  const { execFileSync } = await import('node:child_process')
+  const { pathToFileURL } = await import('node:url')
+  const root = await mkdtemp(join(tmpdir(), 'mobius-audit-snapshot-'))
+  roots.push(root)
+  const snapshot = join(root, 'snapshot')
+  await mkdir(join(snapshot, 'mobius/scripts'), { recursive: true })
+  const audit = join(root, 'outer-audit.mjs')
+  await copyFile(join(process.cwd(), 'mobius/scripts/release-audit.mjs'), audit)
+  const marker = join(root, 'verified.json')
+  await writeFile(
+    join(snapshot, 'mobius/scripts/local-native-components.mjs'),
+    `import {writeFile} from 'node:fs/promises'; export async function verifyPackagedLocalNativeComponents(...args) { await writeFile(${JSON.stringify(marker)}, JSON.stringify(args)); }`
+  )
+  execFileSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `const {verifyNativeComponentsFromSnapshot} = await import(${JSON.stringify(pathToFileURL(audit).href)}); await verifyNativeComponentsFromSnapshot('/fixture/resources','darwin-arm64',${JSON.stringify(snapshot)});`
+    ],
+    { cwd: root, stdio: 'pipe' }
+  )
+  expect(JSON.parse(await readFile(marker, 'utf8'))).toEqual([
+    '/fixture/resources',
+    'darwin-arm64',
+    snapshot
+  ])
+})
