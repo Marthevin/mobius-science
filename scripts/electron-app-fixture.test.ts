@@ -1,9 +1,9 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { EventEmitter } from 'node:events'
 import { join, resolve } from 'node:path'
 import { PassThrough } from 'node:stream'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { runInNewContext } from 'node:vm'
 import type { ElectronApplication } from 'playwright'
 
@@ -11,8 +11,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   closeElectronApplicationForCleanup,
-  launchEnvironment,
+  electronLaunchTarget,
   installRestartPersistenceRetry,
+  launchEnvironment,
   observeElectronFlushDiagnostics
 } from '../e2e/fixtures/electron-app'
 
@@ -91,6 +92,95 @@ it.each([true, false])(
 )
 
 describe('ordinary Node mock credentials', () => {
+  it.skipIf(process.platform !== 'darwin')(
+    'restores stripped NODE_OPTIONS at a paused app entry before the backend starts',
+    async () => {
+      const root = await mkdtemp(join(tmpdir(), 'mock-packaged-launch-'))
+      try {
+        const native = join(root, 'backend/node_modules/@aipoch/credential-identity-probe-native')
+        await mkdir(native, { recursive: true })
+        await writeFile(
+          join(native, 'index.js'),
+          'module.exports = { secretExecutablePath: "real-secret" }'
+        )
+        const entry = join(root, 'backend/entry.cjs')
+        await writeFile(
+          entry,
+          "console.log(JSON.stringify(require('@aipoch/credential-identity-probe-native')))"
+        )
+        const executable = join(root, 'fixture-electron')
+        const appEntry = join(root, 'app.asar/out/main/index.js')
+        await mkdir(join(appEntry, '..'), { recursive: true })
+        const hostNative = join(
+          root,
+          'app.asar/node_modules/@aipoch/credential-identity-probe-native'
+        )
+        const electron = join(root, 'app.asar/node_modules/electron')
+        await mkdir(hostNative, { recursive: true })
+        await mkdir(electron, { recursive: true })
+        await writeFile(
+          join(hostNative, 'index.js'),
+          'module.exports={executablePath:"real-probe"}'
+        )
+        await writeFile(
+          join(electron, 'index.js'),
+          `module.exports={app:{getAppPath:()=>${JSON.stringify(join(root, 'app.asar'))}}}`
+        )
+        await writeFile(
+          appEntry,
+          `if(require('@aipoch/credential-identity-probe-native').executablePath!==${JSON.stringify(resolve('e2e/fixtures/mock-credential-identity.sh'))})throw new Error('host probe was not isolated'); process.stdout.write(require('node:child_process').execFileSync(process.execPath, [process.env.MOBIUS_FIXTURE_ENTRY], {env: process.env}))`
+        )
+        await writeFile(
+          executable,
+          '#!/bin/sh\n[ "$1" = "--inspect-brk=0" ] || exit 3\nexec "$MOBIUS_FIXTURE_NODE" "$1" "$MOBIUS_FIXTURE_BOOTSTRAP"\n'
+        )
+        await chmod(executable, 0o755)
+        const env: NodeJS.ProcessEnv = {
+          ...process.env,
+          OPEN_SCIENCE_E2E_EXECUTABLE: executable,
+          OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '1',
+          OPEN_SCIENCE_E2E_STORAGE_ROOT: root,
+          OPEN_SCIENCE_E2E_LAUNCHER_NODE: process.execPath,
+          MOBIUS_FIXTURE_NODE: process.execPath,
+          MOBIUS_FIXTURE_ENTRY: entry,
+          MOBIUS_FIXTURE_APP_ENTRY: appEntry,
+          MOBIUS_FIXTURE_BOOTSTRAP: appEntry
+        }
+        delete env.NODE_OPTIONS
+        const target = electronLaunchTarget(join(root, 'profile'), env, 'darwin')
+        expect(target.executablePath).toBe(resolve('e2e/fixtures/launch-mock-keychain.sh'))
+        const result = JSON.parse(
+          execFileSync(target.executablePath!, ['--inspect=0', ...target.args], {
+            env,
+            encoding: 'utf8',
+            timeout: 10_000,
+            stdio: 'pipe'
+          })
+        )
+        expect(result.secretExecutablePath).toBe(resolve('e2e/fixtures/mock-node-secret.sh'))
+        await writeFile(
+          appEntry,
+          'process.stderr.write("fixture application exit\\n"); process.exitCode = 7'
+        )
+        const exited = spawnSync(target.executablePath!, target.args, {
+          env,
+          encoding: 'utf8',
+          timeout: 10_000
+        })
+        expect(exited.status).toBe(7)
+        expect(exited.stderr).toContain('fixture application exit')
+        expect(() =>
+          execFileSync(target.executablePath!, target.args, {
+            env: { ...env, OPEN_SCIENCE_E2E_USE_MOCK_KEYCHAIN: '' },
+            stdio: 'pipe'
+          })
+        ).toThrow()
+        expect(() => execFileSync(target.executablePath!, [], { env, stdio: 'pipe' })).toThrow()
+      } finally {
+        await rm(root, { recursive: true, force: true })
+      }
+    }
+  )
   it.skipIf(process.platform !== 'darwin')(
     'requires an explicit mock opt-in for packaged launch environments',
     () => {

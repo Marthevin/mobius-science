@@ -7,7 +7,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { basename, dirname, join } from 'node:path'
 import { expect } from '@playwright/test'
-import { test } from './fixtures/electron-app'
+import { electronLaunchTarget, launchEnvironment, test } from './fixtures/electron-app'
 
 test('packaged Mobius Science starts, saves research, and relaunches', async ({
   app
@@ -26,7 +26,10 @@ test('packaged Mobius Science starts, saves research, and relaunches', async ({
   await access(join(dirname(storage.dataRoot), 'mobius-science.db'))
 
   let page = await app.completeOnboarding()
-  await page.getByRole('button', { name: 'New project' }).click()
+  await page
+    .getByRole('region', { name: 'Projects' })
+    .getByRole('button', { name: 'New project' })
+    .click()
   const dialog = page.getByRole('dialog', { name: 'New project' })
   await dialog.getByLabel('Name').fill('Release smoke research')
   await dialog.getByRole('button', { name: 'Create project' }).click()
@@ -114,7 +117,10 @@ test('packaged application migrates a legacy database and preserves conversation
       },
       `http://127.0.0.1:${(gateway.address() as AddressInfo).port}/v1`
     )
-    await page.getByRole('button', { name: 'New project' }).click()
+    await page
+      .getByRole('region', { name: 'Projects' })
+      .getByRole('button', { name: 'New project' })
+      .click()
     const dialog = page.getByRole('dialog', { name: 'New project' })
     await dialog.getByLabel('Name').fill('Retained legacy research')
     await dialog.getByRole('button', { name: 'Create project' }).click()
@@ -175,22 +181,14 @@ test('packaged startup refuses conflicting databases without changing either cop
       database.close()
       snapshots.set(path, await readFile(path))
     }
-    const env: NodeJS.ProcessEnv = {
-      ...process.env,
-      OPEN_SCIENCE_CONFIG_ROOT: config,
-      OPEN_SCIENCE_STORAGE_ROOT: config,
-      OPEN_SCIENCE_USER_DATA: join(root, 'electron-profile')
-    }
+    const env: NodeJS.ProcessEnv = launchEnvironment(config)
     delete env.ELECTRON_RUN_AS_NODE
+    const target = electronLaunchTarget(join(root, 'electron-profile'), env)
     let failure: (Error & { code?: number; stderr?: string }) | undefined
     try {
       await promisify(execFile)(
-        executable!,
-        [
-          '--open-science-headless',
-          '--use-mock-keychain',
-          `--user-data-dir=${join(root, 'electron-profile')}`
-        ],
+        target.executablePath!,
+        ['--inspect=0', '--open-science-headless', ...target.args],
         { env, timeout: 30_000 }
       )
     } catch (error) {
