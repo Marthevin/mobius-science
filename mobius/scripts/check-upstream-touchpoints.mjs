@@ -29,6 +29,8 @@ const changed = new Set([
 const isUpstreamProductionFile = (path) => {
   if (path.startsWith('mobius/') || path.startsWith('src/mobius/')) return false
   if (/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(path)) return false
+  if (path.startsWith('packages/') && (path.includes('/test/') || path.endsWith('/README.md')))
+    return false
   if (path === 'AGENTS.md' || path.startsWith('docs/') || path.startsWith('output/')) return false
   if (
     ['package.json', 'package-lock.json', 'tsconfig.node.json', 'tsconfig.web.json'].includes(path)
@@ -37,7 +39,7 @@ const isUpstreamProductionFile = (path) => {
   }
   if (path === 'scripts/stage-default-envs.mjs') return true
   if (downstreamPackagingSeams.has(path)) return true
-  return path.startsWith('src/')
+  return path.startsWith('src/') || path.startsWith('packages/')
 }
 
 const undeclared = [...changed]

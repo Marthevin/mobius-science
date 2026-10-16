@@ -1,7 +1,7 @@
 import { lookup } from 'node:dns/promises'
 import { expect } from '@playwright/test'
 import { test } from './fixtures/electron-app'
-import { literatureItemInputSchema } from '../src/shared/literature'
+import { literatureItemInputSchema } from '@aipoch/literature-library/item'
 
 // Manual network acceptance: set OPEN_SCIENCE_E2E_LIVE_FULL_TEXT=1 and point
 // OPEN_SCIENCE_E2E_EXECUTABLE at an installed Mobius Science executable.

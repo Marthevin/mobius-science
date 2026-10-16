@@ -3,9 +3,26 @@ import { Readable } from 'node:stream'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 import { downloadFullText as download } from '../src/full-text-download.js'
-const downloadFullText = (...args: Parameters<typeof download>): ReturnType<typeof download> =>
-  download(args[0], args[1], args[2], args[3], args[4], (proxy, address, port, signal) =>
-    fixture.tunnel(proxy, address, port, undefined, signal)
+import {
+  resolveFullTextDestination,
+  type FullTextDestinationDependencies
+} from '../../../src/mobius/main/full-text-destination-verifier'
+const downloadFullText = (
+  url: string,
+  maxBytes: number,
+  onProgress?: Parameters<typeof download>[2],
+  proxy?: Parameters<typeof download>[3],
+  signal?: AbortSignal,
+  dependencies?: FullTextDestinationDependencies
+): ReturnType<typeof download> =>
+  download(
+    url,
+    maxBytes,
+    onProgress,
+    proxy,
+    signal,
+    (proxy, address, port, signal) => fixture.tunnel(proxy, address, port, undefined, signal),
+    dependencies ? (input) => resolveFullTextDestination(input, dependencies) : undefined
   )
 
 const fixture = vi.hoisted(() => ({

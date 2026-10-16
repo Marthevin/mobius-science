@@ -14,6 +14,8 @@ const createDisabledUpdateCommandOwner = (): UpdateCommandOwner => {
       copyright: PRODUCT.copyright
     }),
     getStatus: status,
+    recheck: async () => status(),
+    recover: async () => status(),
     check: async () => status(),
     download: async () => status(),
     cancel: async () => status(),

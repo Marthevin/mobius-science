@@ -45,8 +45,6 @@ export const isPublicFullTextAddress = (address: string): boolean =>
     ? !privateAddresses.check(address, 'ipv4')
     : isIP(address) === 6 && /^[23][0-9a-f]{3}:/iu.test(address)
 
-
-
 export const fullTextUrl = (value: string): URL => {
   const url = new URL(value)
   if (
@@ -71,7 +69,11 @@ export const downloadFullText = async (
   resolveProxy?: (url: string) => Promise<string | undefined>,
   requestSignal?: AbortSignal,
   tunnel?: ProxyTunnel,
-  resolveDestination?: (input: { hostname: string; proxy?: URL; signal: AbortSignal }) => Promise<{ addresses: readonly { address: string; family: number }[] }>
+  resolveDestination?: (input: {
+    hostname: string
+    proxy?: URL
+    signal: AbortSignal
+  }) => Promise<{ addresses: readonly { address: string; family: number }[] }>
 ): Promise<Buffer> => {
   const timeout = AbortSignal.timeout(60_000)
   const signal = requestSignal ? AbortSignal.any([requestSignal, timeout]) : timeout
@@ -96,9 +98,19 @@ export const downloadFullText = async (
     if (retryAt && retryAt > Date.now()) throw new FullTextRateLimitError(retryAt)
     const proxy = await resolveProxy?.(url.href)
     signal.throwIfAborted()
-    const destinationInput = { hostname: url.hostname, ...(proxy ? { proxy: new URL(proxy) } : {}), signal }
-    const destination = resolveDestination ? await resolveDestination(destinationInput) : { addresses: await lookup(url.hostname, { all: true }) }
-    if (!destination.addresses.length || destination.addresses.some(({address}) => !isPublicFullTextAddress(address))) throw new Error('Full-text host did not resolve to a public address.')
+    const destinationInput = {
+      hostname: url.hostname,
+      ...(proxy ? { proxy: new URL(proxy) } : {}),
+      signal
+    }
+    const destination = resolveDestination
+      ? await resolveDestination(destinationInput)
+      : { addresses: await lookup(url.hostname, { all: true }) }
+    if (
+      !destination.addresses.length ||
+      destination.addresses.some(({ address }) => !isPublicFullTextAddress(address))
+    )
+      throw new Error('Full-text host did not resolve to a public address.')
     const agent = proxy ? new Agent({ keepAlive: false }) : undefined
     if (agent && proxy) {
       const target = url
@@ -108,7 +120,8 @@ export const downloadFullText = async (
           for (const { address } of destination.addresses) {
             signal.throwIfAborted()
             try {
-              if (!tunnel) throw new Error('A proxy tunnel adapter is required for proxied downloads.')
+              if (!tunnel)
+                throw new Error('A proxy tunnel adapter is required for proxied downloads.')
               const socket = await tunnel(new URL(proxy), address, 443, signal)
               return connectTls({ socket, servername: target.hostname, rejectUnauthorized: true })
             } catch (error) {
