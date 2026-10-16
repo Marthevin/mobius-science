@@ -271,3 +271,35 @@ it('uses an explicit packaged native verifier before signing the outer app', asy
   )
   expect(fallback).not.toHaveBeenCalled()
 })
+
+it('uses the same explicit native verifier after the macOS signing phase', async () => {
+  const verifyNativeComponents = vi.fn(async () => new Set<string>())
+  const fallback = vi.fn(async () => {
+    throw new Error('wrong final native verifier')
+  })
+  const exports: { default?: (context: unknown) => Promise<void> } = {}
+  runInNewContext(readFileSync('build/sign-windows.cjs', 'utf8'), {
+    exports,
+    console: { log: vi.fn() },
+    require: (id: string) => {
+      if (id === './verify-native-components.cjs') return fallback
+      if (id === 'builder-util') return { Arch: { 1: 'arm64' } }
+      if (id === 'node:path') return posix
+      if (id === 'node:buffer') return { Buffer }
+      if (id === 'node:fs') return {}
+      throw new Error(`Unexpected module ${id}`)
+    }
+  })
+  await exports.default!({
+    electronPlatformName: 'darwin',
+    arch: 1,
+    appOutDir: '/fixture',
+    packager: { appInfo: { productFilename: 'Mobius Science' } },
+    verifyNativeComponents
+  })
+  expect(verifyNativeComponents).toHaveBeenCalledWith(
+    '/fixture/Mobius Science.app/Contents/Resources',
+    'darwin-arm64'
+  )
+  expect(fallback).not.toHaveBeenCalled()
+})
