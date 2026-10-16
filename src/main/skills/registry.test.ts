@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 import { SkillRegistry } from '@aipoch/skills'
 import { ClaudeCodeSkillMaterializer } from './materializer'
 import { toUnpackedAsarPath } from './resource-path'
-import { HostSkillsService, type HostSkillsCatalog } from './host-skills-service'
+import { HostSkillsService } from './host-skills-service'
+import type { SkillAuthoringCatalog as HostSkillsCatalog } from '@aipoch/skills'
 
 describe('SkillRegistry', () => {
   it('materializes the academic writing evidence and revision resources intact', async () => {

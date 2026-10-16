@@ -8,10 +8,7 @@ import {
   configureComposerDraftStorage,
   preserveComposerDraftsForRecovery
 } from '@/pages/workspace/composer-draft-storage'
-import { createElement } from 'react'
-import { createRoot } from 'react-dom/client'
 import { flushSync } from 'react-dom'
-import { OpenScienceLogoLoader } from '@/components/OpenScienceLogoLoader'
 import {
   unwrapApplicationCommandOutcome,
   isApplicationCommandErrorCode

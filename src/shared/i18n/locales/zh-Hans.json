@@ -1616,8 +1616,6 @@
     "Follow the system setting, or force light or dark. The Dock icon follows the resolved theme.": "跟随系统设置，或固定为浅色、深色。Dock 图标会跟随最终生效的主题。",
     "Follow the system setting, or pick a language. System is detected once at startup, so a change to your device language takes effect the next time the app opens.": "跟随系统设置，或指定一种语言。「系统」只在启动时检测一次，修改设备语言后需重新打开应用才会生效。",
     "Follow up…": "继续追问…",
-    "Follow {{appName}} on X": "在 X 上关注 {{appName}}",
-    "Follows this device": "跟随此设备",
     "Forward": "下一步",
     "Found {{count}} skills._other": "找到 {{count}} 个技能。",
     "Found {{count}} skills_other": "找到 {{count}} 个技能",

@@ -1,4 +1,3 @@
-import { RuntimeUpdateOutcomeNotice } from '@/components/runtime-update-outcome-notice'
 import { SideChatProvider } from './pages/workspace/use-side-chat-controller'
 import { WorkspaceComposerDraftsProvider } from './pages/workspace/workspace-composer-drafts'
 import { lazy, memo, Suspense, useCallback, useRef, useState } from 'react'
@@ -80,10 +79,6 @@ const GlobalSearchDialog = lazy(() =>
     default: GlobalSearchDialog
   }))
 )
-const UpdateDialog = lazy(() =>
-  import('@/components/UpdateDialog').then(({ UpdateDialog }) => ({ default: UpdateDialog }))
-)
-
 const StartupIssueDialog = lazy(() =>
   import('@/components/startup-issue-dialog').then(({ StartupIssueDialog }) => ({
     default: StartupIssueDialog

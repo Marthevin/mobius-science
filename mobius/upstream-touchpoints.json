@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "20120527e9b2f810273cde8780ddce83c72ab8e9",
+  "comparisonBase": "939712535e48573160f4bffb0b99633b2b2f491f",
   "productionFiles": [
     {
       "path": "src/main/notebook/windows-runtime-components.ts",
@@ -175,7 +175,7 @@
       "seam": "Accepts downstream and legacy package associations."
     },
     {
-      "path": "src/main/notebook/provisioner.ts",
+      "path": "packages/environment/src/provisioner.ts",
       "seam": "Uses bundled runtimes without upstream CDN fallback."
     },
     {
@@ -183,11 +183,11 @@
       "seam": "Probes Python package mirrors through the same sandbox route used for installation."
     },
     {
-      "path": "src/main/notebook/package-manager.ts",
+      "path": "packages/environment/src/package-manager.ts",
       "seam": "Falls back among trusted Python package indexes after sandbox network failures."
     },
     {
-      "path": "src/main/notebook/package-mutation.ts",
+      "path": "packages/environment/src/package-mutation.ts",
       "seam": "Coordinates sandboxed package installation and trusted mirror fallback."
     },
     {
@@ -195,7 +195,7 @@
       "seam": "Passes package installation operations through the sandbox-aware manager."
     },
     {
-      "path": "src/main/notebook/pip-install-evidence.ts",
+      "path": "packages/environment/src/pip-install-evidence.ts",
       "seam": "Classifies installation network failures for trusted index fallback."
     },
     {
@@ -203,11 +203,11 @@
       "seam": "Keeps scientific-library caches inside the sandbox-writable managed runtime cache."
     },
     {
-      "path": "src/main/notebook/notebook-workload-cache-paths.ts",
+      "path": "packages/environment/src/notebook-workload-cache-paths.ts",
       "seam": "Routes XDG and Fontconfig caches into the disposable managed workload cache."
     },
     {
-      "path": "src/main/notebook/runtime-paths.ts",
+      "path": "packages/environment/src/runtime-paths.ts",
       "seam": "Removes the default upstream runtime CDN."
     },
     {
@@ -223,11 +223,11 @@
       "seam": "Keeps active-session file projection validation and sync bounded on Artifact heads with large execution snapshots."
     },
     {
-      "path": "src/main/skills/marketplace-service.ts",
+      "path": "src/main/skill-marketplace/service.ts",
       "seam": "Blocks upstream Skill Marketplace transport."
     },
     {
-      "path": "src/main/skills/marketplace-source.ts",
+      "path": "src/main/skill-marketplace/source.ts",
       "seam": "Replaces the upstream Skill Marketplace transport locations."
     },
     {
@@ -239,31 +239,31 @@
       "seam": "Projects the Mobius product identity into Specialist instructions."
     },
     {
-      "path": "src/main/connectors/engine.ts",
+      "path": "packages/connector-core/src/engine.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
-      "path": "src/main/connectors/descriptors/genes-reactome.ts",
+      "path": "packages/connector-builtins/src/genes-reactome.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
-      "path": "src/main/connectors/descriptors/regulation.ts",
+      "path": "packages/connector-builtins/src/regulation.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
-      "path": "src/main/connectors/descriptors/zinc.ts",
+      "path": "packages/connector-builtins/src/zinc.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
-      "path": "src/main/literature/full-text-download.ts",
+      "path": "packages/literature-discovery/src/full-text-download.ts",
       "seam": "Uses the downstream HTTP identity and Mobius destination verifier for safe full-text proxy downloads."
     },
     {
-      "path": "src/main/literature/metadata-enricher.ts",
+      "path": "packages/literature-discovery/src/metadata-enricher.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
-      "path": "src/main/literature/reference-resolver.ts",
+      "path": "packages/literature-discovery/src/reference-resolver.ts",
       "seam": "Uses the downstream HTTP identity."
     },
     {
@@ -449,6 +449,14 @@
     {
       "path": "src/main/node-entry.ts",
       "seam": "Passes configured Mobius credential and profile names into the upstream Node host startup while preserving identity preflight and ownership checks."
+    },
+    {
+      "path": "src/main/notebook/environment-production.ts",
+      "seam": "Applies the downstream offline runtime capability at the host provisioning boundary; the reusable environment package remains product-independent."
+    },
+    {
+      "path": "src/main/composition/research-catalog.ts",
+      "seam": "Injects Mobius public destination verification into the reusable full-text downloader without importing downstream policy into the package."
     }
   ]
 }

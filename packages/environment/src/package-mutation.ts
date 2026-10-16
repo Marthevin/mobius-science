@@ -600,4 +600,8 @@ export type EnvironmentPackageDiagnostic = {
   durationMs: number
 }
 
-type EffectivePackageMirrorPlan = Readonly<{ primary: PackageMirror; networkPreflight?: boolean; networkFallback?: PackageMirror }>
+type EffectivePackageMirrorPlan = Readonly<{
+  primary: PackageMirror
+  networkPreflight?: boolean
+  networkFallback?: PackageMirror
+}>

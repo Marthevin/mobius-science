@@ -1449,7 +1449,7 @@ export async function installPackages(
       deps.onChild,
       deps.onBeforeSpawn,
       undefined,
-      deps.interpreter ? req.workspaceCwd : undefined,
+      deps.interpreter ? req.cwd : undefined,
       spawnOptions
     )
   const pipPreflight = async (
