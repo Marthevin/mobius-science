@@ -73,7 +73,12 @@ describe('Mobius electron-builder resolved configuration', () => {
       '.scratch/probe.json',
       'e2e/fixtures/private-session.json',
       'notes/local-profile.json',
-      'resources/bin/mac/arm64/micromamba'
+      'resources/bin/mac/arm64/micromamba',
+      'out/backend/index.cjs',
+      'out/standalone/package.json',
+      'out/node-runtime/darwin-arm64/node',
+      'out/web/index.html',
+      'out/cli-artifacts/archive.tar.gz'
     ])
       expect(include(path), path).toBe(false)
     for (const path of [
@@ -84,6 +89,26 @@ describe('Mobius electron-builder resolved configuration', () => {
     ]) {
       expect(include(path), path).toBe(true)
     }
+  })
+  it('retains the separate desktop backend and pinned Node resource mappings', () => {
+    const config = require(join(process.cwd(), 'mobius/electron-builder.cjs'))
+    expect(config.beforePack).toBe('build/stage-desktop-runtime.cjs')
+    expect(config.extraResources).toEqual(
+      expect.arrayContaining([
+        { from: 'out/standalone', to: 'backend' },
+        { from: 'out/standalone/node_modules', to: 'backend/node_modules' },
+        { from: 'out/node-runtime/${platform}-${arch}', to: 'node-runtime' },
+        { from: 'mobius/runtime/default-envs', to: 'backend/resources/default-envs' }
+      ])
+    )
+    expect(
+      config.extraResources.filter((entry: { to?: string }) => entry.to === 'LICENSE.txt')
+    ).toHaveLength(1)
+    expect(
+      config.extraResources.some(
+        (entry: { from?: string }) => entry.from === 'node_modules/.prisma'
+      )
+    ).toBe(false)
   })
   it('owns visible package identity, icons, Session association, and update policy', () => {
     const configPath = join(process.cwd(), 'mobius', 'electron-builder.cjs')

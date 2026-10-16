@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { access, lstat, readFile, readdir, realpath } from 'node:fs/promises'
+import { access, lstat, readFile, readdir, readlink, realpath } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { basename, isAbsolute, join, relative, sep } from 'node:path'
 
@@ -11,6 +11,31 @@ const json = async (path) => JSON.parse(await readFile(path, 'utf8'))
 export const sha256File = async (path) => {
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(path)) hash.update(chunk)
+  return hash.digest('hex')
+}
+
+export const sha256Directory = async (directory) => {
+  const hash = createHash('sha256')
+  const visit = async (path) => {
+    const entries = (await readdir(path, { withFileTypes: true })).sort((a, b) =>
+      a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+    )
+    for (const entry of entries) {
+      const file = join(path, entry.name)
+      if (entry.isDirectory()) await visit(file)
+      else {
+        const link = entry.isSymbolicLink()
+        hash.update(
+          JSON.stringify([
+            relative(directory, file).split(sep).join('/'),
+            link ? 'link' : 'file',
+            link ? await readlink(file) : await sha256File(file)
+          ]) + '\n'
+        )
+      }
+    }
+  }
+  await visit(directory)
   return hash.digest('hex')
 }
 
@@ -56,6 +81,7 @@ export const inspectAsarHeader = (header, maxBytes) => {
         entries.push({ path, size: child.size ?? 0, unpacked: Boolean(child.unpacked) })
         if (
           !roots.has(path.split('/')[0]) ||
+          /^out\/(?:backend|standalone|node-runtime|web|cli-artifacts)(?:\/|$)/.test(path) ||
           /(?:^|\/)(?:test-results|playwright-report|\.scratch|\.git|\.codex|\.claude|\.agents)(?:\/|$)/.test(
             path
           ) ||
@@ -170,6 +196,43 @@ export const verifySkillResources = async (packagedRoot, sourceRoot, requiredSki
   return checked
 }
 
+export const verifyDesktopBackend = async ({ resources, arch, sourceRoot }) => {
+  for (const path of [
+    'backend/package.json',
+    'backend/out/backend/index.cjs',
+    'backend/out/web/index.html',
+    'backend/node_modules/@prisma/client/index.js',
+    'backend/node_modules/@prisma/client/runtime/library.js',
+    'backend/resources/prisma-client/index.js',
+    'node-runtime/node',
+    'node-runtime/LICENSE',
+    'node-runtime/version.json'
+  ]) {
+    const info = await lstat(join(resources, path))
+    if (!info.isFile() || !info.size) throw new Error(`Missing desktop backend resource: ${path}`)
+  }
+  const pin = await json(join(sourceRoot, 'build/node-runtime.json'))
+  const receipt = await json(join(resources, 'node-runtime/version.json'))
+  if (
+    receipt.platform !== 'darwin' ||
+    receipt.arch !== arch ||
+    receipt.version !== pin.version ||
+    receipt.sha256 !== pin.archives[`darwin-${arch}`]?.sha256
+  )
+    throw new Error('Node runtime pin/target mismatch')
+  const node = join(resources, 'node-runtime/node')
+  const reported = execFileSync(node, ['--version'], { encoding: 'utf8', timeout: 30_000 }).trim()
+  if (reported !== `v${pin.version}`)
+    throw new Error(`Node runtime executable version mismatch: ${reported}`)
+  // The packaging hook signs Node after staging, so record the delivered executable hash rather
+  // than comparing it with its unsigned staging hash. The archive pin remains in the receipt.
+  return {
+    backendSha256: await sha256Directory(join(resources, 'backend')),
+    entrySha256: await sha256File(join(resources, 'backend/out/backend/index.cjs')),
+    nodeRuntime: { ...receipt, executableSha256: await sha256File(node) }
+  }
+}
+
 export const auditMacApp = async ({ appPath, arch, version, product, policy, dependencyRoot }) => {
   const require = createRequire(
     dependencyRoot ? join(dependencyRoot, 'package.json') : import.meta.url
@@ -202,7 +265,16 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
     join(dependencyRoot ?? process.cwd(), 'resources/skills'),
     policy.requiredSkills
   )
-  await access(join(resources, 'node_modules/.prisma/client/index.js'))
+  const desktopBackend = await verifyDesktopBackend({
+    resources,
+    arch,
+    sourceRoot: dependencyRoot ?? process.cwd()
+  })
+  await verifySkillResources(
+    join(resources, 'backend/resources/skills'),
+    join(dependencyRoot ?? process.cwd(), 'resources/skills'),
+    policy.requiredSkills
+  )
   await access(join(resources, 'micromamba'))
   const info = JSON.parse(
     execFileSync('/usr/bin/plutil', ['-convert', 'json', '-o', '-', join(contents, 'Info.plist')], {
@@ -238,7 +310,10 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
   if (binaryArch !== (arch === 'x64' ? 'x86_64' : arch))
     throw new Error(`Application architecture mismatch: ${binaryArch}`)
   const subdir = arch === 'arm64' ? 'osx-arm64' : 'osx-64'
-  const runtimes = await verifyRuntimePacks(join(resources, 'resources/default-envs'), subdir)
+  const runtimes = await verifyRuntimePacks(
+    join(resources, 'backend/resources/default-envs'),
+    subdir
+  )
   const opencode = await verifyOpenCode(
     join(resources, 'managed-runtimes/opencode'),
     arch,
@@ -246,6 +321,7 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
   )
   return {
     skillResources,
+    desktopBackend,
     appBytes,
     asarBytes: (await lstat(asar)).size,
     asarSha256: await sha256File(asar),

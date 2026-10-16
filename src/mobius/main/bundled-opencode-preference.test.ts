@@ -5,10 +5,13 @@ import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { createBundledOpenCodeResolver } from './bundled-opencode-preference'
 
-vi.mock('electron', () => ({ app: { isPackaged: false } }))
+const host = vi.hoisted(() => ({ resourcesPath: undefined as string | undefined, packaged: false }))
+vi.mock('../../main/runtime-metadata', () => ({ runtimeMetadataIfConfigured: () => host }))
 
 const roots: string[] = []
 afterEach(async () => {
+  host.resourcesPath = undefined
+  host.packaged = false
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
 it('validates the packaged identity and bytes before making it authoritative', async () => {
@@ -60,4 +63,11 @@ it('does not fall back when a packaged or explicitly configured runtime is missi
   } finally {
     vi.unstubAllEnvs()
   }
+})
+
+it('requires the managed runtime in a packaged ordinary Node host', async () => {
+  host.packaged = true
+  host.resourcesPath = join(await mkdtemp(join(tmpdir(), 'mobius-node-missing-')), 'resources')
+  roots.push(join(host.resourcesPath, '..'))
+  await expect(createBundledOpenCodeResolver()()).rejects.toThrow(/missing/)
 })

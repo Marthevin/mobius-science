@@ -64,14 +64,8 @@ asarUnpack:
   - node_modules/@img/**
   - node_modules/@agentclientprotocol/claude-agent-acp/**
 extraResources:
-  - from: LICENSE
-    to: LICENSE.txt
-  - from: node_modules/.prisma
-    to: node_modules/.prisma
-  - from: node_modules/@prisma/client
-    to: node_modules/@prisma/client
   - from: mobius/runtime/default-envs
-    to: resources/default-envs
+    to: backend/resources/default-envs
 win:
   executableName: mobius-science
   icon: mobius/generated/app/icon.ico

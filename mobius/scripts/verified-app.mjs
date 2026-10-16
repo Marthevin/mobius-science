@@ -5,7 +5,7 @@ import { readFile, realpath } from 'node:fs/promises'
 import { isAbsolute, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
-import { sha256File } from './release-audit.mjs'
+import { sha256Directory, sha256File } from './release-audit.mjs'
 
 export const assertNoRunningResearchApp = (processList) => {
   if (/\/Contents\/MacOS\/(?:Mobius Science|Open-Science|Open Science)\s*$/m.test(processList))
@@ -30,6 +30,22 @@ export const verifyInstalledApp = async ({ appPath, manifestPath }) => {
     throw new Error(
       `Application fingerprint mismatch at ${canonical}; this is not the certified build.`
     )
+  if (receipt.desktopBackend) {
+    const backend = receipt.desktopBackend
+    if (
+      !/^[a-f0-9]{64}$/.test(backend.backendSha256 ?? '') ||
+      !/^[a-f0-9]{64}$/.test(backend.nodeRuntime?.executableSha256 ?? '')
+    )
+      throw new Error('Release manifest has no valid desktop backend fingerprint.')
+    const resources = join(canonical, 'Contents/Resources')
+    if ((await sha256Directory(join(resources, 'backend'))) !== backend.backendSha256)
+      throw new Error(`Application backend fingerprint mismatch at ${canonical}.`)
+    if (
+      (await sha256File(join(resources, 'node-runtime/node'))) !==
+      backend.nodeRuntime.executableSha256
+    )
+      throw new Error(`Application Node runtime fingerprint mismatch at ${canonical}.`)
+  }
   const icons = [...(receipt?.appIcon ? [receipt.appIcon] : []), ...(receipt?.iconAssets ?? [])]
   for (const icon of icons) {
     if (
