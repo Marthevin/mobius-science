@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { chmod, mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -9,6 +9,75 @@ afterEach(async () => {
 })
 
 describe('release artifact acceptance', () => {
+  it('requires the separate backend, generated Prisma client and pinned Node executable', async () => {
+    const { verifyDesktopBackend } = await import('./release-audit.mjs')
+    expect(verifyDesktopBackend).toBeTypeOf('function')
+    const root = await mkdtemp(join(tmpdir(), 'mobius-backend-audit-'))
+    roots.push(root)
+    const resources = join(root, 'resources')
+    const sourceRoot = join(root, 'source')
+    await mkdir(join(sourceRoot, 'build'), { recursive: true })
+    await writeFile(
+      join(sourceRoot, 'build/node-runtime.json'),
+      JSON.stringify({
+        version: '22.23.3',
+        archives: { 'darwin-arm64': { sha256: 'pinned-archive' } }
+      })
+    )
+    for (const path of [
+      'backend/package.json',
+      'backend/out/backend/index.cjs',
+      'backend/out/web/index.html',
+      'backend/node_modules/@prisma/client/index.js',
+      'backend/node_modules/@prisma/client/runtime/library.js',
+      'backend/resources/prisma-client/index.js',
+      'node-runtime/LICENSE'
+    ]) {
+      await mkdir(join(resources, path, '..'), { recursive: true })
+      await writeFile(join(resources, path), 'fixture')
+    }
+    await writeFile(
+      join(resources, 'node-runtime/version.json'),
+      JSON.stringify({
+        version: '22.23.3',
+        platform: 'darwin',
+        arch: 'arm64',
+        sha256: 'pinned-archive'
+      })
+    )
+    const node = join(resources, 'node-runtime/node')
+    await writeFile(node, '#!/bin/sh\nprintf "v22.23.3\\n"\n')
+    await chmod(node, 0o755)
+    const options = { resources, sourceRoot, arch: 'arm64' }
+    const accepted = await verifyDesktopBackend(options)
+    expect(accepted).toMatchObject({
+      nodeRuntime: { version: '22.23.3', arch: 'arm64' }
+    })
+    expect(accepted.backendSha256).toMatch(/^[a-f0-9]{64}$/)
+    await writeFile(
+      join(resources, 'backend/node_modules/@prisma/client/runtime/library.js'),
+      'changed dependency'
+    )
+    expect((await verifyDesktopBackend(options)).backendSha256).not.toBe(accepted.backendSha256)
+    await expect(verifyDesktopBackend({ ...options, arch: 'x64' })).rejects.toThrow(/Node.*target/i)
+    await writeFile(node, '#!/bin/sh\nprintf "v20.0.0\\n"\n')
+    await expect(verifyDesktopBackend(options)).rejects.toThrow(/Node.*version/i)
+    await writeFile(node, '#!/bin/sh\nprintf "v22.23.3\\n"\n')
+    await rm(join(resources, 'backend/resources/prisma-client/index.js'))
+    await expect(verifyDesktopBackend(options)).rejects.toThrow()
+  })
+  it('rejects duplicated backend and runtime staging trees inside app.asar', async () => {
+    const { inspectAsarHeader } = await import('./release-audit.mjs')
+    for (const name of ['backend', 'standalone', 'node-runtime', 'web', 'cli-artifacts']) {
+      const result = inspectAsarHeader(
+        {
+          files: { out: { files: { [name]: { files: { 'fixture.js': { size: 1 } } } } } }
+        },
+        100
+      )
+      expect(result.violations.join('\n')).toContain(`out/${name}/fixture.js`)
+    }
+  })
   it('rejects a missing or stale packaged Skill resource despite a present SKILL.md', async () => {
     const { verifySkillResources } = await import('./release-audit.mjs')
     const root = await mkdtemp(join(tmpdir(), 'mobius-skills-audit-'))

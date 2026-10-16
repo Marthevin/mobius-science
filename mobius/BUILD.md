@@ -47,12 +47,14 @@ containing files you want to keep. The command refuses to overwrite existing out
    The build cache and package audit bind its source, patch and test identities as well as binary hash.
 6. Generate brand assets; run the complete typecheck and application build.
 7. Package a DMG with the Mobius overlay and publishing disabled.
-8. Inspect the **actual app.asar**. Reject old `dist/`, nested Apps/DMGs/ZIPs, local agent state,
+8. Inspect the **actual app.asar** and separate Node backend. Reject old `dist/`, nested Apps/DMGs/ZIPs, local agent state,
    missing application entries, missing Skill references/scripts, and oversized output. Verify
    built-in Skill registration and exact source bytes for every required Skill resource, including
    assets, templates and validators. Compare
    compiled Dock and 1x/2x menu-bar artwork against the freshly generated sources; stale or missing
-   runtime variants fail. Record the installed ICNS and modern macOS `Assets.car` fingerprints too.
+   runtime variants fail. Verify the backend's generated Prisma client and pinned Node version;
+   fingerprint the complete backend tree and delivered Node executable, as well as the installed
+   ICNS and modern macOS `Assets.car`.
 9. Verify the deep code signature, DMG integrity, and that the mounted DMG contains the same ASAR.
    Copy the application from the read-only mounted DMG to an isolated installation directory, unmount
    the DMG, then repeat bundle and signature audits on the installed copy.
@@ -121,8 +123,8 @@ node mobius/scripts/verified-app.mjs --manifest /absolute/path/release-manifest.
 This fingerprints `/Applications/Mobius Science.app` against a ready release before opening its
 absolute path. Override with `--app /absolute/path/Mobius\ Science.app` only for a deliberate test.
 Keep the manifest with the installer. A same-version older build is still rejected if its bytes
-differ. New manifests also bind ICNS and the modern macOS icon catalog; older manifests verify only
-ASAR bytes. Launch additionally requires a valid deep/strict code signature and refuses while any
+differ. New manifests also bind the separate backend, Node executable, ICNS and modern macOS icon
+catalog; older manifests verify only their recorded fingerprints. Launch additionally requires a valid deep/strict code signature and refuses while any
 Mobius Science or legacy Open Science main process is running, since a single-instance handoff could
 otherwise return to the old process. Quit those applications normally, then retry; the helper never
 kills processes or changes profiles. This is build provenance, not visual design acceptance.

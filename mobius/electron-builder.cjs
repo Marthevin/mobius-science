@@ -31,6 +31,20 @@ delete overlay.extends
 const config = mergeOverlay(base, overlay)
 delete config.extends
 
+// Keep upstream runtime packaging contracts while applying the downstream's positive input list.
+// Other arrays (associations, DMG contents) deliberately retain replacement semantics above.
+for (const key of ['files', 'asarUnpack']) {
+  config[key] = [...new Set([...(overlay[key] ?? []), ...(base[key] ?? [])])]
+}
+config.extraResources = [
+  ...new Map(
+    [...(base.extraResources ?? []), ...(overlay.extraResources ?? [])].map((entry) => [
+      typeof entry === 'string' ? entry : (entry.to ?? entry.from),
+      entry
+    ])
+  ).values()
+]
+
 // The base repeats its legacy .science association inside platform blocks. The downstream top-level
 // association is authoritative for every platform, so remove those inherited platform overrides.
 for (const platform of ['mac', 'win', 'linux']) {
