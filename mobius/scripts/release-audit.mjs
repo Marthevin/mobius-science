@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { access, lstat, readFile, readdir, readlink, realpath } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 import { basename, isAbsolute, join, relative, sep } from 'node:path'
 
 const json = async (path) => JSON.parse(await readFile(path, 'utf8'))
@@ -233,6 +234,13 @@ export const verifyDesktopBackend = async ({ resources, arch, sourceRoot }) => {
   }
 }
 
+export const verifyNativeComponentsFromSnapshot = async (resources, target, sourceRoot) => {
+  const { verifyPackagedLocalNativeComponents } = await import(
+    pathToFileURL(join(sourceRoot, 'mobius/scripts/local-native-components.mjs')).href
+  )
+  return verifyPackagedLocalNativeComponents(resources, target, sourceRoot)
+}
+
 export const auditMacApp = async ({ appPath, arch, version, product, policy, dependencyRoot }) => {
   const require = createRequire(
     dependencyRoot ? join(dependencyRoot, 'package.json') : import.meta.url
@@ -270,8 +278,7 @@ export const auditMacApp = async ({ appPath, arch, version, product, policy, dep
     arch,
     sourceRoot: dependencyRoot ?? process.cwd()
   })
-  const { verifyPackagedLocalNativeComponents } = await import('./local-native-components.mjs')
-  await verifyPackagedLocalNativeComponents(
+  await verifyNativeComponentsFromSnapshot(
     resources,
     `darwin-${arch}`,
     dependencyRoot ?? process.cwd()
