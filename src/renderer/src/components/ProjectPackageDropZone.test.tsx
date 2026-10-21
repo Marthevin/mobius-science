@@ -181,12 +181,12 @@ it.each([
     }))
   }
   fireEvent.dragEnter(target, { dataTransfer })
-  expect(screen.getByText('Drop files to attach or import a .science package')).toBeTruthy()
+  expect(screen.getByText('Drop files to attach or import a .mobius package')).toBeTruthy()
   expect(fireEvent.drop(target, { dataTransfer })).toBe(false)
   expect(attach).not.toHaveBeenCalled()
   expect(importPackage).not.toHaveBeenCalled()
   expect(screen.getByRole('status').textContent).toContain('Folders cannot be attached.')
-  expect(screen.queryByText('Drop files to attach or import a .science package')).toBeNull()
+  expect(screen.queryByText('Drop files to attach or import a .mobius package')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
   expect(screen.queryByRole('status')).toBeNull()
   drop(target, ['data.csv'])
@@ -371,9 +371,9 @@ it('ignores ordinary file drags and drops in portal dialogs', () => {
 it.each(['blur', 'dragend', 'drop'])('clears the destination-free overlay on %s', (type) => {
   render(<ProjectPackageDropZone canImport data-testid="home" />)
   fireEvent.dragEnter(screen.getByTestId('home'), { dataTransfer: { types: ['Files'] } })
-  expect(screen.getByText('Drop a .science file to import')).toBeTruthy()
+  expect(screen.getByText('Drop a .mobius file to import')).toBeTruthy()
   fireEvent(type === 'blur' ? window : document, new Event(type, { bubbles: true }))
-  expect(screen.queryByText('Drop a .science file to import')).toBeNull()
+  expect(screen.queryByText('Drop a .mobius file to import')).toBeNull()
 })
 
 it('does not enable destination-free desktop import on Web', () => {
@@ -384,7 +384,7 @@ it('does not enable destination-free desktop import on Web', () => {
   fireEvent.dragEnter(home, { dataTransfer })
   fireEvent.dragOver(home, { dataTransfer })
   expect(dataTransfer.dropEffect).toBe('none')
-  expect(screen.queryByText('Drop a .science file to import')).toBeNull()
+  expect(screen.queryByText('Drop a .mobius file to import')).toBeNull()
   drop(home, ['research.science'])
   expect(importPackage).not.toHaveBeenCalled()
 })

@@ -197,8 +197,7 @@ it.runIf(opencodePath)(
         {
           type: 'custom',
           baseUrl,
-          openaiBaseUrl: baseUrl,
-          apiEndpoints: ['openai'],
+          apiEndpoints: ['chat-completions'],
           model: 'probe-model',
           key: 'local-test-key'
         },

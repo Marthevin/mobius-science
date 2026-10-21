@@ -463,7 +463,7 @@ describe('HomePage environment repair notice', () => {
     expect(container.querySelector('[aria-label="Open environment repair"]')).toBeNull()
   })
 
-  it('opens the Agent settings panel for a failed selected runtime only after the alert is clicked', async () => {
+  it('opens the Runtimes settings panel for a failed selected runtime only after the alert is clicked', async () => {
     const openSettingsToPanel = vi.fn()
     useSettingsStore.setState({
       environmentCheck: environment([
@@ -495,7 +495,7 @@ describe('HomePage environment repair notice', () => {
     expect(openSettingsToPanel).toHaveBeenCalledWith('runtimes')
   })
 
-  it('opens Storage before Agent when both required checks fail', async () => {
+  it('opens Storage before Runtimes when both required checks fail', async () => {
     const openSettingsToPanel = vi.fn()
     useSettingsStore.setState({
       environmentCheck: environment([
@@ -553,7 +553,7 @@ describe('HomePage environment repair notice', () => {
     expect(openSettingsToPanel).toHaveBeenCalledWith('storage')
   })
 
-  it('opens Agent settings for an install-network blocker', async () => {
+  it('opens Runtimes settings for an install-network blocker', async () => {
     const openSettingsToPanel = vi.fn()
     useSettingsStore.setState({
       environmentCheck: environment([
@@ -579,7 +579,7 @@ describe('HomePage environment repair notice', () => {
     expect(openSettingsToPanel).toHaveBeenCalledWith('runtimes')
   })
 
-  it('opens Agent settings for a system compatibility blocker', async () => {
+  it('opens Runtimes settings for a system compatibility blocker', async () => {
     const openSettingsToPanel = vi.fn()
     useSettingsStore.setState({
       environmentCheck: environment([
@@ -2281,12 +2281,12 @@ describe('HomePage package drop', () => {
       fireEvent.dragOver(home, { dataTransfer })
     })
     expect(dataTransfer.dropEffect).toBe('copy')
-    expect(within(container).getByText('Drop a .science file to import')).toBeTruthy()
+    expect(within(container).getByText('Drop a .mobius file to import')).toBeTruthy()
     await act(async () => {
       fireEvent.drop(home, { dataTransfer })
     })
     expect(importPackage).toHaveBeenCalledExactlyOnceWith({}, file)
-    expect(within(container).queryByText('Drop a .science file to import')).toBeNull()
+    expect(within(container).queryByText('Drop a .mobius file to import')).toBeNull()
   })
 
   it('rejects a mixed batch on Home without starting a partial import', async () => {
@@ -2307,7 +2307,7 @@ describe('HomePage package drop', () => {
     })
     expect(importPackage).not.toHaveBeenCalled()
     expect(
-      within(container).getByText('Drop one .science file at a time. No files were added.')
+      within(container).getByText('Drop one .mobius file at a time. No files were added.')
     ).toBeTruthy()
   })
 })

@@ -403,7 +403,7 @@ describe('opencodeFramework.prepareModelConfig', () => {
         vendorId: 'deepseek',
         agentProviderId: 'open-science-deepseek-model',
         baseUrl: 'http://127.0.0.1:41002/v1',
-        apiEndpoints: ['openai'],
+        apiEndpoints: ['chat-completions'],
         model: 'deepseek-v4-flash',
         key: 'local-deepseek-token'
       },

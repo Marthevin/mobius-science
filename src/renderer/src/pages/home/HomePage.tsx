@@ -61,7 +61,7 @@ import { ProductWordmark } from '../../../../mobius/renderer/ProductWordmark'
 import { earliestCurrentDelegatedAttemptStartedAt } from '../../../../shared/delegated-work-projection'
 import type { Project } from '../../../../shared/projects'
 import type { EnvironmentCheckItem, EnvironmentCheckResult } from '../../../../shared/settings'
-import { getEnvironmentRepairPanel } from '@/lib/settings-navigation'
+import { getEnvironmentRepairPanel } from '../../../../mobius/renderer/environment-repair-navigation'
 import {
   isSessionWaitReason,
   projectPresentedSessionActionability,

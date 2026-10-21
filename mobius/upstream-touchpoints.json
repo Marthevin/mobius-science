@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "939712535e48573160f4bffb0b99633b2b2f491f",
+  "comparisonBase": "1ab86cf9f4dc8bd42b83957a614f308b172b8e51",
   "productionFiles": [
     {
       "path": "src/main/notebook/windows-runtime-components.ts",
@@ -328,7 +328,7 @@
     },
     {
       "path": "src/renderer/src/pages/home/HomePage.tsx",
-      "seam": "Uses Mobius branding and removes Star/update controls."
+      "seam": "Uses Mobius branding, removes Star/update controls, and registers the downstream managed-runtime repair navigation adapter."
     },
     {
       "path": "src/renderer/src/pages/onboarding/OnboardingWizard.tsx",

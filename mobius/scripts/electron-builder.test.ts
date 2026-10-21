@@ -76,6 +76,8 @@ describe('Mobius electron-builder resolved configuration', () => {
       'resources/bin/mac/arm64/micromamba',
       'out/backend/index.cjs',
       'out/standalone/package.json',
+      'out/desktop-backend/package.json',
+      'out/desktop-backend-build/index.cjs',
       'out/node-runtime/darwin-arm64/node',
       'out/web/index.html',
       'out/cli-artifacts/archive.tar.gz'
@@ -97,8 +99,8 @@ describe('Mobius electron-builder resolved configuration', () => {
     expect(config.afterSign).toBe('mobius/scripts/sign-windows.cjs')
     expect(config.extraResources).toEqual(
       expect.arrayContaining([
-        { from: 'out/standalone', to: 'backend' },
-        { from: 'out/standalone/node_modules', to: 'backend/node_modules' },
+        { from: 'out/desktop-backend', to: 'backend' },
+        { from: 'out/desktop-backend/node_modules', to: 'backend/node_modules' },
         { from: 'out/node-runtime/${platform}-${arch}', to: 'node-runtime' },
         {
           from: 'mobius/generated/native-components/${platform}-${arch}/receipt.json',
