@@ -105,7 +105,7 @@ test('packaged application migrates a legacy database and preserves conversation
         const settings = await window.api.settings.upsertProvider({
           type: 'custom',
           name,
-          apiEndpoints: ['openai'],
+          apiEndpoints: ['chat-completions'],
           baseUrl,
           key: 'synthetic-release-fixture',
           model: 'e2e-model'
