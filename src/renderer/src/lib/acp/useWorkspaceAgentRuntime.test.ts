@@ -13132,8 +13132,11 @@ describe('manual native context compaction', () => {
 
     const session = useSessionStore.getState().sessions[0]
     expect(session.messages.map(({ id }) => id)).toEqual(messageIds)
-    expect(session.status).toBe('error')
-    expect(session.error).toContain('Session revision conflict: expected 117, actual 119')
+    expect(session.status).toBe('idle')
+    expect(session.error).toBeUndefined()
+    expect(useWorkspaceOperationErrors.getState().errors[session.id]).toContain(
+      'Session revision conflict: expected 117, actual 119'
+    )
     expect(session.activeRun).toBeUndefined()
     expect(session.compacting).toBeUndefined()
     expect(runtime.sendPrompt).not.toHaveBeenCalled()
@@ -13251,6 +13254,14 @@ describe('manual native context compaction', () => {
       content: 'Prompt stranded after a revision conflict'
     })
     expect(appended).toBeDefined()
+    await acceptTestMainContinuation({
+      sessionId: 'session-1',
+      promptMessageId: appended!.messageId
+    })
+    expect(useSessionStore.getState().sessions[0]).toMatchObject({
+      status: 'running',
+      activeRun: { promptMessageId: appended!.messageId }
+    })
     const runtime = { cancel: vi.fn().mockResolvedValue(createSnapshot(['session-1'])) }
 
     await cancelWorkspaceRun(runtime, 'session-1')
@@ -13261,21 +13272,35 @@ describe('manual native context compaction', () => {
   })
 
   it('does not settle a newer run while checking an orphaned cancellation', async () => {
-    useSessionStore.getState().appendUserMessage({
+    const appended = useSessionStore.getState().appendUserMessage({
       sessionId: 'session-1',
       content: 'Old stranded prompt'
     })
+    expect(appended).toBeDefined()
+    await acceptTestMainContinuation({
+      sessionId: 'session-1',
+      promptMessageId: appended!.messageId
+    })
+    const oldRun = useSessionStore.getState().sessions[0].activeRun
+    expect(oldRun).toMatchObject({ promptMessageId: appended!.messageId })
     const cancellation = createDeferred<AcpStateSnapshot>()
     const runtime = { cancel: vi.fn(() => cancellation.promise) }
     const pending = cancelWorkspaceRun(runtime, 'session-1')
+    await vi.waitFor(() => expect(runtime.cancel).toHaveBeenCalledWith('session-1'))
 
     useSessionStore.getState().finishRun('session-1')
     const replacement = useSessionStore.getState().appendUserMessage({
       sessionId: 'session-1',
       content: 'New live prompt'
     })
-    const newerRun = useSessionStore.getState().sessions[0].activeRun
     expect(replacement).toBeDefined()
+    await acceptTestMainContinuation({
+      sessionId: 'session-1',
+      promptMessageId: replacement!.messageId
+    })
+    const newerRun = useSessionStore.getState().sessions[0].activeRun
+    expect(newerRun).toMatchObject({ promptMessageId: replacement!.messageId })
+    expect(newerRun).not.toBe(oldRun)
 
     cancellation.resolve(createSnapshot(['session-1']))
     await pending

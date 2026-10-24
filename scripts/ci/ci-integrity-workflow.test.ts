@@ -208,6 +208,7 @@ describe('module registration approval boundary', () => {
       '/.github/dependabot.yml @aipoch/ci-maintainers',
       '/.github/labels.json @aipoch/ci-maintainers',
       '/scripts/ci/ @aipoch/ci-maintainers',
+      '/mobius/config/module-boundaries.json @aipoch/ci-maintainers',
       '/scripts/ci/module-impact.json',
       '/scripts/ci/module-impact/*.json'
     ])

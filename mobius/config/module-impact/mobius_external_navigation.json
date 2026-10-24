@@ -1,0 +1,27 @@
+{
+  "ownerPaths": [
+    "src/mobius/main/external-navigation.test.ts",
+    "src/mobius/main/external-navigation.ts",
+    "src/mobius/main/full-text-destination-verifier.test.ts",
+    "src/mobius/main/full-text-destination-verifier.ts",
+    "src/mobius/main/full-text-dns-message.test.ts",
+    "src/mobius/main/full-text-dns-message.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/main/external-navigation.ts",
+    "src/mobius/main/full-text-destination-verifier.ts",
+    "src/mobius/main/full-text-dns-message.ts"
+  ],
+  "testFiles": {
+    "owner": [
+      "src/mobius/main/external-navigation.test.ts",
+      "src/mobius/main/full-text-destination-verifier.test.ts",
+      "src/mobius/main/full-text-dns-message.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": ["windows_sensitive"],
+  "fallbackCapability": "main_runtime"
+}

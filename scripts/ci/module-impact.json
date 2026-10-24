@@ -1,3 +1,11 @@
 {
-  "schemaVersion": 1
+  "schemaVersion": 1,
+  "fragments": {
+    "mobius_agent_runtime": "mobius/config/module-impact/mobius_agent_runtime.json",
+    "mobius_external_navigation": "mobius/config/module-impact/mobius_external_navigation.json",
+    "mobius_host_identity": "mobius/config/module-impact/mobius_host_identity.json",
+    "mobius_product_policy": "mobius/config/module-impact/mobius_product_policy.json",
+    "mobius_renderer_branding": "mobius/config/module-impact/mobius_renderer_branding.json",
+    "mobius_startup": "mobius/config/module-impact/mobius_startup.json"
+  }
 }

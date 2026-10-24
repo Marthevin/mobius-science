@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "fileLayers": {
+    "src/mobius/main/bundled-opencode-preference.ts": "host-owner",
+    "src/mobius/main/bundled-opencode.ts": "host-owner",
+    "src/mobius/main/disabled-update-owner.ts": "host-owner",
+    "src/mobius/main/external-navigation.ts": "host-owner",
+    "src/mobius/main/full-text-destination-verifier.ts": "host-owner",
+    "src/mobius/main/full-text-dns-message.ts": "host-owner",
+    "src/mobius/main/native-identity.ts": "host-owner",
+    "src/mobius/main/opencode-offline-config.ts": "host-owner",
+    "src/mobius/main/project-database-identity.ts": "host-owner",
+    "src/mobius/main/single-instance-isolation.ts": "host-owner",
+    "src/mobius/main/startup-error.ts": "host-owner",
+    "src/mobius/main/turn-presentation-reminder.ts": "host-owner",
+    "src/mobius/renderer/MobiusAppVersionSection.tsx": "presentation-adapter",
+    "src/mobius/renderer/MobiusParticleMark.tsx": "presentation-adapter",
+    "src/mobius/renderer/ProductWordmark.tsx": "presentation-adapter",
+    "src/mobius/renderer/environment-repair-navigation.ts": "presentation-model",
+    "src/mobius/renderer/infinity-particle-geometry.ts": "presentation-model",
+    "src/mobius/renderer/provider-default.ts": "presentation-adapter",
+    "src/mobius/renderer/scenario-icons.tsx": "presentation-adapter",
+    "src/mobius/shared/i18n-branding.ts": "shared-contract",
+    "src/mobius/shared/product-capabilities.ts": "shared-contract",
+    "src/mobius/shared/product-config.ts": "shared-contract",
+    "src/mobius/shared/session-package-branding.ts": "shared-contract",
+    "mobius/config/product.json": "shared-contract",
+    "mobius/brand/mobius-science-icon.svg": "presentation",
+    "mobius/generated/renderer/logo.png": "presentation",
+    "mobius/generated/renderer/logo-dark.png": "presentation"
+  },
+  "modules": {
+    "main_remote_access": {
+      "resourceImports": ["mobius/brand/mobius-science-icon.svg"]
+    },
+    "renderer_application": {
+      "resourceImports": [
+        "mobius/generated/renderer/logo-dark.png",
+        "mobius/generated/renderer/logo.png"
+      ],
+      "requiredTests": ["src/mobius/renderer/logo-registration.test.ts"],
+      "resourceTests": ["src/mobius/renderer/logo-registration.test.ts"]
+    },
+    "web_renderer_bridge": {
+      "resourceImports": ["mobius/brand/mobius-science-icon.svg"],
+      "requiredTests": ["src/mobius/renderer/web-brand-registration.test.ts"],
+      "resourceTests": ["src/mobius/renderer/web-brand-registration.test.ts"]
+    },
+    "workspace_tool_model": {
+      "sources": ["src/renderer/src/pages/workspace/first-party-tool-presentation.ts"],
+      "sourceLayers": {
+        "src/renderer/src/pages/workspace/first-party-tool-presentation.ts": "presentation-model"
+      },
+      "requiredTests": ["src/renderer/src/pages/workspace/first-party-tool-presentation.test.ts"]
+    }
+  }
+}

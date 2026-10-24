@@ -73,9 +73,19 @@ export const installBuildDependencies = async (root, run) => {
       'Upstream install-electron composition changed; review the Mobius lifecycle adapter.'
     )
   await run('electron', process.execPath, [join(root, 'node_modules/electron', installer)])
-  // Staging is checksum-pinned; use its exact Node only for the reviewed native producer.
-  await run('native-node', process.execPath, ['scripts/stage-node-runtime.mjs'])
-  const node = join(root, 'out/node-runtime', `${process.platform}-${process.arch}`, 'node')
+  // The producer's reviewed Node pin can differ from the delivered backend runtime.
+  const producerOutput = join(
+    'node_modules/.cache/mobius-native-node',
+    `${process.platform}-${process.arch}`
+  )
+  await run('native-node', process.execPath, [
+    'scripts/stage-node-runtime.mjs',
+    '--manifest',
+    'mobius/config/native-producer-node-runtime.json',
+    '--output',
+    producerOutput
+  ])
+  const node = join(root, producerOutput, 'node')
   await run('local-native', node, ['mobius/scripts/local-native-components.mjs', 'build'])
   await run('electron-dependencies', process.execPath, [
     'mobius/scripts/rebuild-electron-dependencies.mjs'

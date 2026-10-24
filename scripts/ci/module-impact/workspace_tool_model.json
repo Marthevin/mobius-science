@@ -22,7 +22,9 @@
     "src/renderer/src/pages/workspace/workspace-tool-activity-style.test.ts",
     "src/renderer/src/pages/workspace/workspace-tool-activity-style.ts",
     "src/renderer/src/pages/workspace/workspace-web-search-details.test.ts",
-    "src/renderer/src/pages/workspace/workspace-web-search-details.ts"
+    "src/renderer/src/pages/workspace/workspace-web-search-details.ts",
+    "src/renderer/src/pages/workspace/first-party-tool-presentation.ts",
+    "src/renderer/src/pages/workspace/first-party-tool-presentation.test.ts"
   ],
   "interfacePaths": [
     "src/renderer/src/pages/workspace/agent-loading-message.ts",
@@ -36,7 +38,8 @@
     "src/renderer/src/pages/workspace/workspace-tool-activity-details.ts",
     "src/renderer/src/pages/workspace/workspace-tool-activity-groups.ts",
     "src/renderer/src/pages/workspace/workspace-tool-activity-style.ts",
-    "src/renderer/src/pages/workspace/workspace-web-search-details.ts"
+    "src/renderer/src/pages/workspace/workspace-web-search-details.ts",
+    "src/renderer/src/pages/workspace/first-party-tool-presentation.ts"
   ],
   "testFiles": {
     "owner": [
@@ -50,7 +53,8 @@
       "src/renderer/src/pages/workspace/workspace-tool-activity-details.test.ts",
       "src/renderer/src/pages/workspace/workspace-tool-activity-groups.test.ts",
       "src/renderer/src/pages/workspace/workspace-tool-activity-style.test.ts",
-      "src/renderer/src/pages/workspace/workspace-web-search-details.test.ts"
+      "src/renderer/src/pages/workspace/workspace-web-search-details.test.ts",
+      "src/renderer/src/pages/workspace/first-party-tool-presentation.test.ts"
     ],
     "contract": ["src/main/host-layer-dependencies.architecture.test.ts"],
     "consumer": [

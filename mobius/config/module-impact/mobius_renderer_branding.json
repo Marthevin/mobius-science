@@ -1,0 +1,42 @@
+{
+  "ownerPaths": [
+    "mobius/brand/mobius-science-icon.svg",
+    "mobius/generated/renderer/logo-dark.png",
+    "mobius/generated/renderer/logo.png",
+    "src/mobius/renderer/MobiusAppVersionSection.tsx",
+    "src/mobius/renderer/MobiusParticleMark.test.tsx",
+    "src/mobius/renderer/MobiusParticleMark.tsx",
+    "src/mobius/renderer/ProductWordmark.tsx",
+    "src/mobius/renderer/environment-repair-navigation.ts",
+    "src/mobius/renderer/infinity-particle-geometry.ts",
+    "src/mobius/renderer/logo-registration.test.ts",
+    "src/mobius/renderer/provider-default.test.ts",
+    "src/mobius/renderer/provider-default.ts",
+    "src/mobius/renderer/scenario-icons.test.tsx",
+    "src/mobius/renderer/scenario-icons.tsx",
+    "src/mobius/renderer/web-brand-registration.test.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/renderer/MobiusAppVersionSection.tsx",
+    "src/mobius/renderer/MobiusParticleMark.tsx",
+    "src/mobius/renderer/ProductWordmark.tsx",
+    "src/mobius/renderer/environment-repair-navigation.ts",
+    "src/mobius/renderer/infinity-particle-geometry.ts",
+    "src/mobius/renderer/provider-default.ts",
+    "src/mobius/renderer/scenario-icons.tsx"
+  ],
+  "testFiles": {
+    "owner": [
+      "src/mobius/renderer/MobiusParticleMark.test.tsx",
+      "src/mobius/renderer/logo-registration.test.ts",
+      "src/mobius/renderer/provider-default.test.ts",
+      "src/mobius/renderer/scenario-icons.test.tsx",
+      "src/mobius/renderer/web-brand-registration.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": [],
+  "fallbackCapability": "renderer_view"
+}

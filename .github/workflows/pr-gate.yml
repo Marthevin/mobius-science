@@ -147,8 +147,8 @@ jobs:
           BASE_SHA: ${{ steps.revisions.outputs.trusted-base }}
         run: |
           set -euo pipefail
-          trusted_dir="$RUNNER_TEMP/pr-gate-trusted-classifier"
-          mkdir -p "$trusted_dir"
+          trusted_root="$(mktemp -d "$RUNNER_TEMP/pr-gate-trusted-classifier.XXXXXX")"
+          trusted_dir="$trusted_root/scripts/ci"
           echo "dir=$trusted_dir" >> "$GITHUB_OUTPUT"
 
           # A base without the authority predates the trusted classifier: bootstrap a full plan.
@@ -156,9 +156,13 @@ jobs:
             echo "source=bootstrap" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Export the whole trusted tree, so internal module layout never requires a workflow
-          # edit. Only Git blobs are read; candidate code is never checked out or executed.
-          git archive --format=tar "$BASE_SHA" scripts/ci | tar -x -C "$trusted_dir" --strip-components=2
+          # Preserve repository-relative trusted policy and registration paths. Older upstream
+          # bases may not have the downstream config tree; never fill it from candidate files.
+          trusted_paths=(scripts/ci)
+          if git cat-file -e "${BASE_SHA}:mobius/config" 2>/dev/null; then
+            trusted_paths+=(mobius/config)
+          fi
+          git archive --format=tar "$BASE_SHA" "${trusted_paths[@]}" | tar -x -C "$trusted_root"
           echo "source=base" >> "$GITHUB_OUTPUT"
 
       - name: Classify change impact

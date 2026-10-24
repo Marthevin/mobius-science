@@ -18,7 +18,10 @@
       "src/renderer/web/bootstrap.test.ts",
       "src/renderer/web/renderer-argument-shape-characterization.test.ts"
     ],
-    "contract": ["src/main/host-layer-dependencies.architecture.test.ts"],
+    "contract": [
+      "src/main/host-layer-dependencies.architecture.test.ts",
+      "src/mobius/renderer/web-brand-registration.test.ts"
+    ],
     "consumer": [
       "src/main/specialist/application-commands.test.ts",
       "src/renderer/src/pages/workspace/handoff-lifecycle-source.test.ts",

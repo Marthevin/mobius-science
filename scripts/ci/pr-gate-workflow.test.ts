@@ -319,61 +319,87 @@ describe('PR Gate workflow', () => {
     expect(result.stderr).toContain('unit_macos_related_merge ended with failure')
   })
 
-  it('exports the complete trusted base tree and never candidate files', () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), 'pr-gate-trusted-')))
-    const git = (...args: string[]): string =>
-      execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
-    const put = (path: string, contents: string): void => {
-      mkdirSync(dirname(join(root, path)), { recursive: true })
-      writeFileSync(join(root, path), contents)
-    }
-    const prepare = workflow.jobs.preflight.steps!.find(({ id }) => id === 'trusted_classifier')!
-    const run = (base: string): { output: string; dir: string } => {
-      const output = join(root, 'outputs')
-      writeFileSync(output, '')
-      const result = spawnSync('bash', ['-c', prepare.run!], {
-        cwd: root,
-        encoding: 'utf8',
-        env: { ...process.env, BASE_SHA: base, RUNNER_TEMP: root, GITHUB_OUTPUT: output }
-      })
-      expect(result.status, result.stderr).toBe(0)
-      return { output: readFileSync(output, 'utf8'), dir: join(root, 'pr-gate-trusted-classifier') }
-    }
-    try {
-      git('init', '--quiet')
-      git('config', 'user.email', 'ci@example.com')
-      git('config', 'user.name', 'CI Test')
-      put('scripts/ci/classify-pr-changes.mjs', 'export const policy = "unrelated"\n')
-      git('add', '.')
-      git('commit', '--quiet', '-m', 'base without a trusted classifier')
-      expect(run(git('rev-parse', 'HEAD')).output).toContain('source=bootstrap')
-
-      // Nested internals and data travel with the entrypoint; no workflow file list exists.
-      put(
-        'scripts/ci/module-impact-authority.mjs',
-        "import { value } from './module-graph/policy.mjs'\nprocess.stdout.write(value)\n"
-      )
-      put('scripts/ci/module-graph/policy.mjs', 'export const value = "trusted nested"\n')
-      put('scripts/ci/module-boundaries.json', '{"trusted":true}\n')
-      git('add', '.')
-      git('commit', '--quiet', '-m', 'trusted base')
-      const base = git('rev-parse', 'HEAD')
-      put('scripts/ci/module-graph/policy.mjs', 'throw new Error("candidate internals")\n')
-      put('scripts/ci/candidate-only.mjs', 'throw new Error("candidate addition")\n')
-
-      const { output, dir } = run(base)
-      expect(output).toContain('source=base')
-      expect(readFileSync(join(dir, 'module-boundaries.json'), 'utf8')).toContain('trusted')
-      expect(existsSync(join(dir, 'candidate-only.mjs'))).toBe(false)
-      expect(
-        execFileSync(process.execPath, [join(dir, 'module-impact-authority.mjs')], {
-          encoding: 'utf8'
+  it.each([false, true])(
+    'exports the complete trusted base tree and never candidate files (overlay: %s)',
+    (withOverlay) => {
+      const root = realpathSync(mkdtempSync(join(tmpdir(), 'pr-gate-trusted-')))
+      const git = (...args: string[]): string =>
+        execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
+      const put = (path: string, contents: string): void => {
+        mkdirSync(dirname(join(root, path)), { recursive: true })
+        writeFileSync(join(root, path), contents)
+      }
+      const prepare = workflow.jobs.preflight.steps!.find(({ id }) => id === 'trusted_classifier')!
+      const run = (base: string): { output: string; dir: string } => {
+        const output = join(root, 'outputs')
+        writeFileSync(output, '')
+        const result = spawnSync('bash', ['-c', prepare.run!], {
+          cwd: root,
+          encoding: 'utf8',
+          env: { ...process.env, BASE_SHA: base, RUNNER_TEMP: root, GITHUB_OUTPUT: output }
         })
-      ).toBe('trusted nested')
-    } finally {
-      rmSync(root, { recursive: true, force: true })
+        expect(result.status, result.stderr).toBe(0)
+        const values = readFileSync(output, 'utf8')
+        return { output: values, dir: /^dir=(.+)$/m.exec(values)![1] }
+      }
+      try {
+        git('init', '--quiet')
+        git('config', 'user.email', 'ci@example.com')
+        git('config', 'user.name', 'CI Test')
+        put('scripts/ci/classify-pr-changes.mjs', 'export const policy = "unrelated"\n')
+        git('add', '.')
+        git('commit', '--quiet', '-m', 'base without a trusted classifier')
+        expect(run(git('rev-parse', 'HEAD')).output).toContain('source=bootstrap')
+
+        // Nested internals and data travel with the entrypoint; no workflow file list exists.
+        put(
+          'scripts/ci/module-impact-authority.mjs',
+          "import { value } from './module-graph/policy.mjs'\nprocess.stdout.write(value)\n"
+        )
+        put(
+          'scripts/ci/module-graph/policy.mjs',
+          withOverlay
+            ? `import { readFileSync } from 'node:fs'
+const read = path => JSON.parse(readFileSync(new URL('../../../' + path, import.meta.url), 'utf8')).value
+export const value = ['trusted nested', read('mobius/config/module-boundaries.json'), read('mobius/config/module-impact/sample.json')].join(' / ')
+`
+            : 'export const value = "trusted nested"\n'
+        )
+        put('scripts/ci/module-boundaries.json', '{"trusted":true}\n')
+        if (withOverlay) {
+          put('mobius/config/module-boundaries.json', '{"value":"trusted policy"}\n')
+          put('mobius/config/module-impact/sample.json', '{"value":"trusted fragment"}\n')
+        }
+        git('add', '.')
+        git('commit', '--quiet', '-m', 'trusted base')
+        const base = git('rev-parse', 'HEAD')
+        put('scripts/ci/module-graph/policy.mjs', 'throw new Error("candidate internals")\n')
+        put('scripts/ci/candidate-only.mjs', 'throw new Error("candidate addition")\n')
+        put('mobius/config/module-boundaries.json', '{"value":"candidate policy"}\n')
+        put('mobius/config/module-impact/sample.json', '{"value":"candidate fragment"}\n')
+        put('mobius/config/candidate-only.json', '{"value":"candidate addition"}\n')
+        git('add', '.')
+        git('commit', '--quiet', '-m', 'candidate policy and internals')
+        put('mobius/config/module-boundaries.json', '{"value":"uncommitted policy"}\n')
+
+        const { output, dir } = run(base)
+        expect(output).toContain('source=base')
+        expect(readFileSync(join(dir, 'module-boundaries.json'), 'utf8')).toContain('trusted')
+        expect(existsSync(join(dir, 'candidate-only.mjs'))).toBe(false)
+        expect(existsSync(join(dir, '../../mobius/config/candidate-only.json'))).toBe(false)
+        expect(existsSync(join(dir, '../../mobius/config'))).toBe(withOverlay)
+        expect(
+          execFileSync(process.execPath, [join(dir, 'module-impact-authority.mjs')], {
+            encoding: 'utf8'
+          })
+        ).toBe(
+          withOverlay ? 'trusted nested / trusted policy / trusted fragment' : 'trusted nested'
+        )
+      } finally {
+        rmSync(root, { recursive: true, force: true })
+      }
     }
-  })
+  )
 
   it.each([
     'pull_request',
@@ -430,6 +456,8 @@ describe('PR Gate workflow', () => {
               : readFileSync(`scripts/ci/${name}`, 'utf8')
           )
         }
+        const policy = JSON.parse(readFileSync('scripts/ci/module-boundaries.json', 'utf8'))
+        for (const overlay of policy.overlays ?? []) put(overlay, readFileSync(overlay, 'utf8'))
         if (scenario === 'sharded') {
           const registered = loadModuleImpactManifest()
           put('scripts/ci/module-impact.json', JSON.stringify({ schemaVersion: 1 }))
@@ -528,17 +556,18 @@ describe('PR Gate workflow', () => {
           }
         })
         expect(prepared.status, prepared.stderr).toBe(0)
+        const trustedDir = /^dir=(.+)$/m.exec(readFileSync(output, 'utf8'))![1]
 
-        expect(
-          readFileSync(join(root, 'pr-gate-trusted-classifier/classify-pr-changes.mjs'), 'utf8')
-        ).toContain('// current trusted policy')
-        expect(
-          loadModuleImpactManifest(join(root, 'pr-gate-trusted-classifier/module-impact.json'))
-        ).toEqual(loadModuleImpactManifest())
+        expect(readFileSync(join(trustedDir, 'classify-pr-changes.mjs'), 'utf8')).toContain(
+          '// current trusted policy'
+        )
+        expect(loadModuleImpactManifest(join(trustedDir, 'module-impact.json'))).toEqual(
+          loadModuleImpactManifest()
+        )
         const classified = spawnSync(
           process.execPath,
           [
-            join(root, 'pr-gate-trusted-classifier/module-impact-authority.mjs'),
+            join(trustedDir, 'module-impact-authority.mjs'),
             '--base',
             revisions.base,
             '--head',
@@ -844,7 +873,7 @@ describe('PR Gate workflow', () => {
       ({ name }) => name === 'Classify change impact'
     )
 
-    expect(prepare?.run).toContain('git archive --format=tar "$BASE_SHA" scripts/ci')
+    expect(prepare?.run).toContain('git archive --format=tar "$BASE_SHA" "${trusted_paths[@]}"')
     expect(prepare?.run).toContain('source=bootstrap')
     expect(classify?.env).toMatchObject({
       DRY_RUN_MODE: "${{ inputs.dry_run || 'classified' }}",
@@ -1016,7 +1045,7 @@ describe('PR Gate workflow', () => {
     expect(prepare?.['continue-on-error']).toBeUndefined()
     // The authority marks a trusted base; the whole base tree is exported, never a file list.
     expect(prepare?.run).toContain('scripts/ci/module-impact-authority.mjs')
-    expect(prepare?.run).toContain('git archive --format=tar "$BASE_SHA" scripts/ci')
+    expect(prepare?.run).toContain('git archive --format=tar "$BASE_SHA" "${trusted_paths[@]}"')
     expect(prepare?.run).not.toContain('git show')
     expect(prepare?.run).toContain('source=bootstrap')
     expect(shadowPrepare).toBeUndefined()

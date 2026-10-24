@@ -1,0 +1,32 @@
+{
+  "ownerPaths": [
+    "mobius/config/product.json",
+    "src/mobius/shared/i18n-branding.test.ts",
+    "src/mobius/shared/i18n-branding.ts",
+    "src/mobius/shared/product-capabilities.test.ts",
+    "src/mobius/shared/product-capabilities.ts",
+    "src/mobius/shared/product-config.test.ts",
+    "src/mobius/shared/product-config.ts",
+    "src/mobius/shared/session-package-branding.test.ts",
+    "src/mobius/shared/session-package-branding.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/shared/i18n-branding.ts",
+    "src/mobius/shared/product-capabilities.ts",
+    "src/mobius/shared/product-config.ts",
+    "src/mobius/shared/session-package-branding.ts"
+  ],
+  "testFiles": {
+    "owner": [
+      "src/mobius/shared/i18n-branding.test.ts",
+      "src/mobius/shared/product-capabilities.test.ts",
+      "src/mobius/shared/product-config.test.ts",
+      "src/mobius/shared/session-package-branding.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": ["windows_sensitive"],
+  "fallbackCapability": "main_runtime"
+}

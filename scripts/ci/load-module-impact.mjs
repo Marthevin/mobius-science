@@ -34,16 +34,39 @@ function normalizeModule(module) {
   return normalized
 }
 
-function assembleManifest(rootText, shards) {
+function fragmentRecords(rootText) {
+  const fragments = JSON.parse(rootText)?.fragments
+  if (fragments === undefined) return []
+  if (!fragments || typeof fragments !== 'object' || Array.isArray(fragments))
+    throw Error('Module-impact fragments must map module ids to repository-relative JSON files')
+  return Object.entries(fragments).map(([id, path]) => {
+    if (
+      !/^[a-z][a-z0-9_]*$/.test(id) ||
+      typeof path !== 'string' ||
+      !path.endsWith('.json') ||
+      path === moduleImpactRegistrationPath ||
+      path.startsWith(shardDirectory) ||
+      path.includes('\\') ||
+      /^[A-Za-z]:/.test(path) ||
+      path.split('/').some((segment) => !segment || segment === '.' || segment === '..')
+    )
+      throw Error('Invalid module-impact fragment registration')
+    return { id, path }
+  })
+}
+
+function assembleManifest(rootText, shards, fragments = []) {
   const manifest = JSON.parse(rootText)
   if (!manifest || Array.isArray(manifest) || manifest.schemaVersion !== 1) {
     throw new Error('Module-impact manifest schemaVersion must be 1')
   }
+  delete manifest.fragments
   if (Object.keys(manifest).some((key) => !['schemaVersion', 'modules'].includes(key))) {
     throw new Error('Unsupported module-impact manifest metadata')
   }
   if (Object.hasOwn(manifest, 'modules')) {
-    if (shards.length > 0) throw new Error('Module-impact manifest mixes inline modules and shards')
+    if (shards.length > 0 || fragments.length > 0)
+      throw new Error('Module-impact manifest mixes inline modules and shards')
     if (
       !manifest.modules ||
       Array.isArray(manifest.modules) ||
@@ -59,7 +82,8 @@ function assembleManifest(rootText, shards) {
       )
     }
   }
-  if (shards.length === 0) throw new Error('Module-impact manifest must declare modules')
+  if (shards.length === 0 && fragments.length === 0)
+    throw new Error('Module-impact manifest must declare modules')
   const modules = Object.fromEntries(
     shards
       .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
@@ -74,7 +98,17 @@ function assembleManifest(rootText, shards) {
         return [match[1], normalizeModule(module)]
       })
   )
-  return { ...manifest, modules }
+  for (const { id, path, read } of fragments) {
+    if (Object.hasOwn(modules, id)) throw Error(`Duplicate module-impact module id: ${id}`)
+    const module = JSON.parse(read())
+    if (!module || typeof module !== 'object' || Array.isArray(module))
+      throw Error(`Module-impact fragment must contain one module object: ${path}`)
+    modules[id] = normalizeModule(module)
+  }
+  return {
+    ...manifest,
+    modules: Object.fromEntries(Object.entries(modules).sort(([a], [b]) => (a < b ? -1 : 1)))
+  }
 }
 
 export function loadModuleImpactManifest(
@@ -99,13 +133,31 @@ export function loadModuleImpactManifest(
       read: () => readFileSync(join(directory, entry.name), 'utf8')
     }
   })
-  return assembleManifest(readFileSync(path, 'utf8'), shards)
+  const rootText = readFileSync(path, 'utf8')
+  const fragments = fragmentRecords(rootText).map((record) => ({
+    ...record,
+    read: () => {
+      const fragment = join(dirname(path), '../..', record.path)
+      if (!lstatSync(fragment).isFile())
+        throw Error(`Module-impact fragment must be a regular file: ${record.path}`)
+      return readFileSync(fragment, 'utf8')
+    }
+  }))
+  return assembleManifest(rootText, shards, fragments)
 }
 
 // Read candidate blobs as data using trusted code, without checking out or executing them.
 export function loadModuleImpactManifestAtRevision(revision, { cwd = process.cwd() } = {}) {
   const git = (...args) =>
     execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
+  const rootEntry = git('ls-tree', '-z', revision, '--', moduleImpactRegistrationPath)
+  if (!rootEntry) throw Error(`Missing module-impact manifest at ${revision}`)
+  const [rootMode, rootType, rootOid] = rootEntry.slice(0, rootEntry.indexOf('\t')).split(' ')
+  if (rootType !== 'blob' || !['100644', '100755'].includes(rootMode))
+    throw Error(
+      `Module-impact registration must be a regular file: ${moduleImpactRegistrationPath}`
+    )
+  const fragments = fragmentRecords(git('cat-file', 'blob', rootOid))
   const entries = git(
     'ls-tree',
     '-r',
@@ -113,7 +165,8 @@ export function loadModuleImpactManifestAtRevision(revision, { cwd = process.cwd
     revision,
     '--',
     moduleImpactRegistrationPath,
-    shardDirectory.slice(0, -1)
+    shardDirectory.slice(0, -1),
+    ...fragments.map(({ path }) => path)
   )
     .split('\0')
     .filter(Boolean)
@@ -158,13 +211,22 @@ export function loadModuleImpactManifestAtRevision(revision, { cwd = process.cwd
     offset += size + 1
   }
   if (offset !== batch.length) throw new Error('Unexpected module-impact Git batch data')
+  const fragmentPaths = new Set(fragments.map(({ path }) => path))
   return assembleManifest(
     contents.get(root.oid),
     entries
-      .filter(({ path }) => path !== moduleImpactRegistrationPath)
+      .filter(({ path }) => path !== moduleImpactRegistrationPath && !fragmentPaths.has(path))
       .map(({ path, oid }) => ({
         path,
         read: () => contents.get(oid)
-      }))
+      })),
+    fragments.map((record) => ({
+      ...record,
+      read: () => {
+        const entry = entries.find(({ path }) => path === record.path)
+        if (!entry) throw Error(`Missing module-impact fragment: ${record.path}`)
+        return contents.get(entry.oid)
+      }
+    }))
   )
 }

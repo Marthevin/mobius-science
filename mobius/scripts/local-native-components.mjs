@@ -23,7 +23,11 @@ export const nativeReceiptPath = (root, target) =>
 
 export const localNativeRecipe = async (root = ROOT) => {
   const hash = createHash('sha256')
-  for (const path of ['mobius/scripts/local-native-components.mjs', 'mobius/config/product.json'])
+  for (const path of [
+    'mobius/scripts/local-native-components.mjs',
+    'mobius/config/product.json',
+    'mobius/config/native-producer-node-runtime.json'
+  ])
     hash.update(path).update(await readFile(join(root, path)))
   return hash.digest('hex')
 }

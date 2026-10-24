@@ -1,0 +1,31 @@
+{
+  "ownerPaths": [
+    "src/mobius/main/bundled-opencode-preference.test.ts",
+    "src/mobius/main/bundled-opencode-preference.ts",
+    "src/mobius/main/bundled-opencode.test.ts",
+    "src/mobius/main/bundled-opencode.ts",
+    "src/mobius/main/managed-agent-policy.test.ts",
+    "src/mobius/main/opencode-offline-config.ts",
+    "src/mobius/main/turn-presentation-reminder.test.ts",
+    "src/mobius/main/turn-presentation-reminder.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/main/bundled-opencode-preference.ts",
+    "src/mobius/main/bundled-opencode.ts",
+    "src/mobius/main/opencode-offline-config.ts",
+    "src/mobius/main/turn-presentation-reminder.ts"
+  ],
+  "testFiles": {
+    "owner": [
+      "src/mobius/main/bundled-opencode-preference.test.ts",
+      "src/mobius/main/bundled-opencode.test.ts",
+      "src/mobius/main/managed-agent-policy.test.ts",
+      "src/mobius/main/turn-presentation-reminder.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": ["e2e_delegation", "windows_sensitive"],
+  "fallbackCapability": "main_runtime"
+}

@@ -145,7 +145,8 @@
       "src/main/host-layer-dependencies.architecture.test.ts",
       "src/renderer/src/assets/diff-colors.test.ts",
       "src/renderer/src/assets/pdf-text-layer.test.ts",
-      "src/renderer/src/assets/provider-icons.packaging.test.ts"
+      "src/renderer/src/assets/provider-icons.packaging.test.ts",
+      "src/mobius/renderer/logo-registration.test.ts"
     ],
     "consumer": [
       "src/main/renderer-diagnostics.test.ts",

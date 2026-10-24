@@ -113,6 +113,41 @@ describe('module registration layouts', () => {
     expect(moduleOwnershipFromRevisions(base, head, { cwd: root }).ok).toBe(true)
   })
 
+  it('loads exact downstream fragments consistently from the working tree and immutable Git data', () => {
+    split(sample())
+    const extension = {
+      ...sample().modules.sample,
+      ownerPaths: ['src/extension.ts', 'src/extension.test.ts'],
+      interfacePaths: ['src/extension.ts'],
+      testFiles: { owner: ['src/extension.test.ts'], contract: [], consumer: [] }
+    }
+    put(moduleImpactRegistrationPath, {
+      schemaVersion: 1,
+      fragments: { extension: 'mobius/config/module-impact/extension.json' }
+    })
+    put('mobius/config/module-impact/extension.json', extension)
+    put('src/extension.ts', 'source must not execute')
+    put('src/extension.test.ts', 'test must not execute')
+    const revision = commit()
+    for (const manifest of [local(), loadModuleImpactManifestAtRevision(revision, { cwd: root })]) {
+      expect(manifest).toEqual({
+        schemaVersion: 1,
+        modules: { extension, ...sample().modules }
+      })
+      expect(validateModuleImpactManifest(manifest)).toBe(manifest)
+    }
+  })
+
+  it('rejects duplicate module ids across standard shards and downstream fragments', () => {
+    split(sample())
+    put(moduleImpactRegistrationPath, {
+      schemaVersion: 1,
+      fragments: { sample: 'mobius/config/module-impact/sample.json' }
+    })
+    put('mobius/config/module-impact/sample.json', sample().modules.sample)
+    expect(() => local()).toThrow('Duplicate module-impact module id')
+  })
+
   it.each([
     [
       'testFiles.consumer',
@@ -262,9 +297,11 @@ describe('module registration layouts', () => {
   })
 
   it('keeps checked-in root metadata separate from module records', () => {
-    expect(JSON.parse(readFileSync(moduleImpactRegistrationPath, 'utf8'))).toEqual({
+    const metadata = JSON.parse(readFileSync(moduleImpactRegistrationPath, 'utf8'))
+    expect(metadata).toMatchObject({
       schemaVersion: 1
     })
+    expect(metadata).not.toHaveProperty('modules')
     expect(Object.keys(loadModuleImpactManifest().modules).length).toBeGreaterThan(0)
   })
 })

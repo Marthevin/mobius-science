@@ -226,6 +226,36 @@ describe('opencodeFramework.prepareModelConfig', () => {
     expect(JSON.parse(specialist.configFiles![0].content).instructions ?? []).toEqual([])
   })
 
+  it('keeps provisioned Skill resources read-only when discovery is scoped', () => {
+    const config = opencodeFramework.prepareModelConfig(
+      { type: 'custom', baseUrl: 'https://gw/v1', model: 'm' },
+      {
+        storageRoot: '/data',
+        executablePath: '/bin/opencode',
+        skillDiscovery: {
+          allowedNames: ['mcp-genes'],
+          allowedPaths: ['/data/opencode/config/opencode/skills/mcp-genes/SKILL.md']
+        }
+      }
+    )
+
+    const rules = JSON.parse(config.env!.OPENCODE_CONFIG_CONTENT!).permission
+    expect(rules.edit).toEqual({
+      '*': 'ask',
+      [join('/data/opencode/config/opencode/skills', '*')]: 'deny',
+      '**/opencode/config/opencode/skills/**': 'deny'
+    })
+    expect(rules.external_directory).toEqual({
+      '*': 'deny',
+      [join('/data/opencode/config/opencode/skills/mcp-genes', '*')]: 'allow'
+    })
+    expect(rules.skill).toEqual({ '*': 'deny', 'mcp-genes': 'ask' })
+    for (const tool of ['bash', 'glob', 'grep', 'list', 'task']) {
+      expect(rules[tool]).toBe('deny')
+    }
+    for (const tool of ['webfetch', 'websearch']) expect(rules[tool]).toBe('ask')
+  })
+
   it('omits instructions when none are provided', () => {
     const config = opencodeFramework.prepareModelConfig(
       { type: 'custom', baseUrl: 'https://gw/v1', model: 'm', key: 'k' },
@@ -291,7 +321,7 @@ describe('opencodeFramework.prepareModelConfig', () => {
     const writtenConfig = JSON.parse(
       config.configFiles?.find((file) => file.path.endsWith('opencode.json'))?.content ?? '{}'
     )
-    expect(writtenConfig.permission).toEqual({ ...rules, external_directory: 'deny' })
+    expect(writtenConfig.permission).toEqual({ ...rules, edit: 'ask', external_directory: 'deny' })
     expect(rules.task).toBe('deny')
     expect(JSON.parse(config.env?.OPENCODE_CONFIG_CONTENT ?? '{}').agent).toEqual({
       general: { disable: true },

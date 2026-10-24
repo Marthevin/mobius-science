@@ -43,6 +43,32 @@ it('keeps the local signature policy distinct and rejects stale native provenanc
     expect(() => local.validateLocalNativeReceipt({ ...receipt, ...change }, identity)).toThrow()
 })
 
+it('invalidates native provenance when the pinned producer archive changes', async () => {
+  const { localNativeRecipe } = await import('./local-native-components.mjs')
+  const root = await mkdtemp(join(tmpdir(), 'mobius-producer-recipe-'))
+  roots.push(root)
+  await mkdir(join(root, 'mobius/scripts'), { recursive: true })
+  await mkdir(join(root, 'mobius/config'), { recursive: true })
+  await copyFile(
+    'mobius/scripts/local-native-components.mjs',
+    join(root, 'mobius/scripts/local-native-components.mjs')
+  )
+  await copyFile('mobius/config/product.json', join(root, 'mobius/config/product.json'))
+  const manifest = join(root, 'mobius/config/native-producer-node-runtime.json')
+  const producer = {
+    version: '22.23.3',
+    source: 'https://nodejs.org/dist/v22.23.3/SHASUMS256.txt',
+    archives: {
+      'darwin-arm64': { file: 'node-v22.23.3-darwin-arm64.tar.gz', sha256: 'a'.repeat(64) }
+    }
+  }
+  await writeFile(manifest, JSON.stringify(producer))
+  const recipe = await localNativeRecipe(root)
+  producer.archives['darwin-arm64'].sha256 = 'b'.repeat(64)
+  await writeFile(manifest, JSON.stringify(producer))
+  expect(await localNativeRecipe(root)).not.toBe(recipe)
+})
+
 it.skipIf(process.platform !== 'darwin')(
   'verifies actual ad-hoc signatures and rejects altered helper bytes',
   async () => {
@@ -79,7 +105,8 @@ it.skipIf(process.platform !== 'darwin')(
       'scripts/produce-native-components.mjs',
       'scripts/verify-native-component-signatures.ps1',
       'mobius/scripts/local-native-components.mjs',
-      'mobius/config/product.json'
+      'mobius/config/product.json',
+      'mobius/config/native-producer-node-runtime.json'
     ]) {
       await mkdir(join(source, path, '..'), { recursive: true })
       await copyFile(join(process.cwd(), path), join(source, path))

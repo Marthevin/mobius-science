@@ -259,6 +259,8 @@ describe('trusted additive module registrations', () => {
         'validate-module-impact.mjs'
       ])
         put(`scripts/ci/${file}`, readFileSync(`scripts/ci/${file}`, 'utf8'))
+      const policy = JSON.parse(readFileSync('scripts/ci/module-boundaries.json', 'utf8'))
+      for (const overlay of policy.overlays ?? []) put(overlay, readFileSync(overlay, 'utf8'))
       put('scripts/ci/module-impact.json', '{"schemaVersion":1}')
       const manifest = sample()
       manifest.modules.other = {
@@ -307,8 +309,9 @@ describe('trusted additive module registrations', () => {
       }
       const prepared = spawnSync('bash', ['-c', prepare.run!], { cwd, env, encoding: 'utf8' })
       expect(prepared.status, prepared.stderr).toBe(0)
+      const trustedDir = /^dir=(.+)$/m.exec(readFileSync(env.GITHUB_OUTPUT, 'utf8'))![1]
       const run = (file: string, args: string[]): string =>
-        execFileSync(process.execPath, [join(cwd, 'pr-gate-trusted-classifier', file), ...args], {
+        execFileSync(process.execPath, [join(trustedDir, file), ...args], {
           cwd,
           encoding: 'utf8',
           env: { ...process.env, EVENT_NAME: event, GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' }

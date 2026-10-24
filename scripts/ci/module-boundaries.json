@@ -11464,5 +11464,6 @@
       ],
       "externalImports": ["node:crypto", "node:util"]
     }
-  }
+  },
+  "overlays": ["mobius/config/module-boundaries.json"]
 }

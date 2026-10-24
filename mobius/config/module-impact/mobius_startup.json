@@ -1,0 +1,19 @@
+{
+  "ownerPaths": [
+    "src/mobius/main/disabled-update-owner.ts",
+    "src/mobius/main/startup-error.test.ts",
+    "src/mobius/main/startup-error.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/main/disabled-update-owner.ts",
+    "src/mobius/main/startup-error.ts"
+  ],
+  "testFiles": {
+    "owner": ["src/mobius/main/startup-error.test.ts"],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": ["e2e_regressions", "windows_sensitive"],
+  "fallbackCapability": "main_runtime"
+}

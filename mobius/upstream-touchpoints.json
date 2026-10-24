@@ -1,7 +1,11 @@
 {
   "schemaVersion": 1,
-  "comparisonBase": "1ab86cf9f4dc8bd42b83957a614f308b172b8e51",
+  "comparisonBase": "4161f4ac66c3ff65e2076a5bc09dc3e178b38e95",
   "productionFiles": [
+    {
+      "path": "scripts/stage-node-runtime.mjs",
+      "seam": "Accepts an explicit checksum-pinned manifest and isolated output for build tooling, so the Mobius native producer can remain on its required Node version while the shipped runtime follows upstream security updates. The default upstream runtime manifest is unchanged."
+    },
     {
       "path": "src/main/notebook/windows-runtime-components.ts",
       "seam": "Allows a distribution to disable its executable CDN without an import-time error; validation fails closed because the Mobius overlay disables upstream downloads."
@@ -469,6 +473,74 @@
     {
       "path": "build/sign-windows.cjs",
       "seam": "Accepts the same explicitly injected native verifier in the final signing phase, retaining upstream platform signing logic and default release policy."
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "seam": "Extends the existing CI policy owner protection to the exact downstream boundary policy file; moving policy under mobius/config must not remove review protection."
+    },
+    {
+      "path": ".github/workflows/pr-gate.yml",
+      "seam": "Preserves repository-relative paths when exporting trusted-base CI and its optional downstream config. The workflow owns this snapshot boundary, so an overlay cannot supply trusted files independently."
+    },
+    {
+      "path": "scripts/ci/change-impact.json",
+      "seam": "Registers downstream harness paths and existing release/manual E2E lanes in the upstream routing authority without introducing PR executors for those lanes."
+    },
+    {
+      "path": "scripts/ci/classify-pr-changes.mjs",
+      "seam": "Allows exact registered src owners to use the existing owner fallback after global rules, so isolated downstream source registration works without broad path rules."
+    },
+    {
+      "path": "scripts/ci/load-module-impact.mjs",
+      "seam": "Loads explicitly registered repository-relative JSON fragments locally and from immutable Git blobs, allowing downstream module configuration to remain under mobius/config."
+    },
+    {
+      "path": "scripts/ci/module-boundaries.json",
+      "seam": "Registers one additive downstream policy overlay; the reviewed upstream boundary authority must explicitly opt into external policy data."
+    },
+    {
+      "path": "scripts/ci/module-derived-consumers.json",
+      "seam": "Regenerates the upstream source-derived consumer index after registering downstream source owners and evidence; this shared generated authority cannot be supplied by an independent overlay."
+    },
+    {
+      "path": "scripts/ci/module-graph/boundaries.mjs",
+      "seam": "Adds a validated additive policy loader that rejects role changes and loading-policy replacement; downstream boundary declarations remain isolated under mobius/config."
+    },
+    {
+      "path": "scripts/ci/module-impact.json",
+      "seam": "Registers exact downstream module fragment paths; all downstream-only module definitions remain under mobius/config."
+    },
+    {
+      "path": "scripts/ci/module-impact/acp_runtime.json",
+      "seam": "Registers downstream runtime-resume sources and affected consumer evidence at their existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/artifact_provenance.json",
+      "seam": "Registers retained downstream provenance recovery evidence at the existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/main_agent_framework.json",
+      "seam": "Registers the downstream agent-launch adapter and its evidence at the existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/main_cli_install.json",
+      "seam": "Retains the downstream CLI fixture in its existing upstream module test registration."
+    },
+    {
+      "path": "scripts/ci/module-impact/renderer_application.json",
+      "seam": "Registers the downstream renderer startup integration at the existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/user_skills_repository.json",
+      "seam": "Registers downstream skill discovery evidence at the existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/web_renderer_bridge.json",
+      "seam": "Registers downstream web branding consumer evidence at the existing upstream owner."
+    },
+    {
+      "path": "scripts/ci/module-impact/workspace_tool_model.json",
+      "seam": "Registers downstream first-party tool presentation and affected evidence at the existing upstream owner."
     }
   ]
 }

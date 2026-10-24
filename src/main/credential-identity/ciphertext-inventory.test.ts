@@ -140,14 +140,15 @@ describe('read-only ciphertext inventory', () => {
   })
 
   it.each(['DELETE', 'PERSIST'])(
-    'accepts an existing .open-science directory without renaming it after a completed %s transaction',
+    'accepts an explicitly selected legacy .open-science directory after a completed %s transaction',
     (mode) => {
       const home = mkdtempSync(join(tmpdir(), 'credential-upgrade-home-'))
       roots.push(home)
       const appData = join(home, 'AppData', 'Roaming')
       const legacyProfile = join(appData, 'Open Science')
       mkdirSync(legacyProfile, { recursive: true })
-      const configRoot = resolveBootstrapConfigRoot(home, true, {})
+      const env = { OPEN_SCIENCE_CONFIG_ROOT: join(home, '.open-science') }
+      const configRoot = resolveBootstrapConfigRoot(home, true, env)
       expect(configRoot).toBe(join(home, '.open-science'))
       mkdirSync(configRoot)
       writeFileSync(
@@ -169,7 +170,7 @@ describe('read-only ciphertext inventory', () => {
         expect(original['open-science.db-journal'].subarray(0, 28)).toEqual(Buffer.alloc(28))
       }
       const preflight = (): string => {
-        const selectedRoot = resolveBootstrapConfigRoot(home, true, {})
+        const selectedRoot = resolveBootstrapConfigRoot(home, true, env)
         const profilePath = resolveElectronProfile({
           appData,
           configRoot: selectedRoot,

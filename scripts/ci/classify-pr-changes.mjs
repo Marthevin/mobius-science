@@ -189,7 +189,7 @@ export function classifyChanges(
       // Directory placement is not risk evidence: exact registered owners can bound
       // resources and packages, while global rules always take precedence.
       const owners =
-        /^(resources|test|packages)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path)
+        /^(src|resources|test|packages)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path)
           ? Object.entries(moduleManifest.modules).filter(([, module]) =>
               module.ownerPaths.includes(path)
             )

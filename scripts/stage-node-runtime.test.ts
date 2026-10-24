@@ -93,6 +93,55 @@ it('rejects unsupported targets before downloading', async () => {
 })
 
 it.each(['darwin', 'win32'])(
+  'stages a separately pinned %s toolchain without changing the product runtime pin',
+  async (platform) => {
+    const directory = await temporary()
+    const arch = 'x64'
+    const version = '22.23.3'
+    const name = `node-v${version}-${platform === 'win32' ? 'win' : platform}-${arch}`
+    const file = `${name}.${platform === 'win32' ? 'zip' : 'tar.gz'}`
+    const archive = join(directory, file)
+    if (platform === 'win32') {
+      await writeFile(
+        archive,
+        zipSync({
+          [`${name}/node.exe`]: strToU8('producer-node'),
+          [`${name}/LICENSE`]: strToU8('producer-license')
+        })
+      )
+    } else {
+      await mkdir(join(directory, name, 'bin'), { recursive: true })
+      await writeFile(join(directory, name, 'bin/node'), 'producer-node')
+      await writeFile(join(directory, name, 'LICENSE'), 'producer-license')
+      await createTar({ cwd: directory, file: archive, gzip: true }, [name])
+    }
+    const manifest = {
+      version,
+      source: `https://nodejs.org/dist/v${version}/SHASUMS256.txt`,
+      archives: {
+        [`${platform}-${arch}`]: {
+          file,
+          sha256: createHash('sha256')
+            .update(await readFile(archive))
+            .digest('hex')
+        }
+      }
+    }
+    const output = join(directory, 'producer-output')
+    const options = { platform, arch, cache: directory, output, manifest, reuse: true }
+    // An ignored manifest must fail locally instead of attempting a network download.
+    await writeFile(join(directory, nodeRuntime.archives[`${platform}-${arch}`].file), 'other pin')
+    await expect(stageNodeRuntime(options)).resolves.toBe(output)
+    const executable = platform === 'win32' ? 'node.exe' : 'node'
+    expect(await readFile(join(output, executable), 'utf8')).toBe('producer-node')
+    expect(JSON.parse(await readFile(join(output, 'version.json'), 'utf8')).version).toBe('22.23.3')
+    expect(nodeRuntime).toEqual(JSON.parse(await readFile('build/node-runtime.json', 'utf8')))
+    await writeFile(archive, 'corrupted producer archive')
+    await expect(stageNodeRuntime(options)).rejects.toThrow('checksum mismatch')
+  }
+)
+
+it.each(['darwin', 'win32'])(
   'reuses verified %s output and repairs stale or corrupt staging',
   async (platform) => {
     const directory = await temporary()

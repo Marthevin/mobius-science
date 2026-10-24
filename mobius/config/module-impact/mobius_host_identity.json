@@ -1,0 +1,31 @@
+{
+  "ownerPaths": [
+    "src/mobius/main/native-icon-registration.test.ts",
+    "src/mobius/main/native-identity.test.ts",
+    "src/mobius/main/native-identity.ts",
+    "src/mobius/main/project-database-identity.test.ts",
+    "src/mobius/main/project-database-identity.ts",
+    "src/mobius/main/single-instance-isolation.test.ts",
+    "src/mobius/main/single-instance-isolation.ts",
+    "src/mobius/main/windows-runtime-cdn.test.ts"
+  ],
+  "interfacePaths": [
+    "src/mobius/main/native-identity.ts",
+    "src/mobius/main/project-database-identity.ts",
+    "src/mobius/main/single-instance-isolation.ts"
+  ],
+  "testFiles": {
+    "owner": [
+      "src/mobius/main/native-icon-registration.test.ts",
+      "src/mobius/main/native-identity.test.ts",
+      "src/mobius/main/project-database-identity.test.ts",
+      "src/mobius/main/single-instance-isolation.test.ts",
+      "src/mobius/main/windows-runtime-cdn.test.ts"
+    ],
+    "contract": [],
+    "consumer": []
+  },
+  "consumerModules": [],
+  "capabilityOverlays": ["e2e_regressions", "windows_sensitive"],
+  "fallbackCapability": "main_runtime"
+}

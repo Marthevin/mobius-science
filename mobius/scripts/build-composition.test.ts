@@ -1,7 +1,18 @@
 import { execFileSync } from 'node:child_process'
-import { readFile, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  readFile,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { c as createTar } from 'tar'
 import { afterEach, expect, it } from 'vitest'
 
 const roots: string[] = []
@@ -56,6 +67,75 @@ it('restores every installed dependency lifecycle without rerunning the upstream
     await realpath(join(root, 'node_modules/vite/node_modules/esbuild'))
   ])
 })
+
+it.skipIf(process.platform === 'win32')(
+  'runs the native producer with its own pinned Node while preserving the product runtime',
+  async () => {
+    const { installBuildDependencies } = await import('./build-composition.mjs')
+    const root = await mkdtemp(join(tmpdir(), 'mobius-producer-composition-'))
+    roots.push(root)
+    await mkdir(join(root, 'scripts'), { recursive: true })
+    await mkdir(join(root, 'build'), { recursive: true })
+    await mkdir(join(root, 'mobius/config'), { recursive: true })
+    await mkdir(join(root, 'node_modules/electron'), { recursive: true })
+    await copyFile('package.json', join(root, 'package.json'))
+    await writeFile(join(root, 'package-lock.json'), JSON.stringify({ packages: {} }))
+    await writeFile(
+      join(root, 'node_modules/electron/package.json'),
+      JSON.stringify({ bin: { 'install-electron': 'install.js' } })
+    )
+    await copyFile('scripts/stage-node-runtime.mjs', join(root, 'scripts/stage-node-runtime.mjs'))
+    for (const dependency of ['tar', 'fflate', 'undici'])
+      await symlink(
+        join(process.cwd(), 'node_modules', dependency),
+        join(root, 'node_modules', dependency)
+      )
+    const target = `${process.platform}-${process.arch}`
+    const cache = join(root, 'node_modules/.cache/node-runtime')
+    await mkdir(cache, { recursive: true })
+    for (const [version, path] of [
+      ['22.23.4', 'build/node-runtime.json'],
+      ['22.23.3', 'mobius/config/native-producer-node-runtime.json']
+    ]) {
+      const name = `node-v${version}-${target}`
+      const file = `${name}.tar.gz`
+      await mkdir(join(root, name, 'bin'), { recursive: true })
+      await writeFile(join(root, name, 'bin/node'), `#!/bin/sh\nprintf 'v${version}\\n'\n`)
+      await writeFile(join(root, name, 'LICENSE'), 'fixture license')
+      const archive = join(cache, file)
+      await createTar({ cwd: root, file: archive, gzip: true }, [name])
+      await writeFile(
+        join(root, path),
+        JSON.stringify({
+          version,
+          source: `https://nodejs.org/dist/v${version}/SHASUMS256.txt`,
+          archives: {
+            [target]: {
+              file,
+              sha256: createHash('sha256')
+                .update(await readFile(archive))
+                .digest('hex')
+            }
+          }
+        })
+      )
+    }
+    const productRuntime = join(root, 'out/node-runtime', target)
+    await mkdir(productRuntime, { recursive: true })
+    await writeFile(join(productRuntime, 'node'), 'preserved product runtime')
+    let producerVersion: string | undefined
+    await installBuildDependencies(
+      root,
+      async (name: string, executable: string, args: string[]) => {
+        if (name === 'native-node') execFileSync(executable, args, { cwd: root, stdio: 'pipe' })
+        if (name === 'local-native')
+          producerVersion = execFileSync(executable, ['--version'], { encoding: 'utf8' }).trim()
+      }
+    )
+    expect(producerVersion).toBe('v22.23.3')
+    expect(await readFile(join(productRuntime, 'node'), 'utf8')).toBe('preserved product runtime')
+  }
+)
 
 it('runs nested dependency lifecycles with canonical paths and excludes root lifecycle hooks', async () => {
   const { dependencyRebuildSpecs } = await import('./build-composition.mjs')

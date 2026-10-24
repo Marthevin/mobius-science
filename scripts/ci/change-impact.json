@@ -79,6 +79,8 @@
         "playwright.config.*",
         "electron-builder.yml",
         "scripts/ci/**",
+        "mobius/config/module-boundaries.json",
+        "mobius/config/module-impact/*.json",
         ".github/workflows/pr-gate.yml",
         "e2e/playwright.*.config.ts",
         "e2e/vite.browser-test.config.ts",
@@ -578,6 +580,8 @@
         "e2e/fixtures/electron-app.ts",
         "e2e/fixtures/fake-opencode.mjs",
         "e2e/fixtures/fake-remoteit.cjs",
+        "e2e/fixtures/launch-mock-keychain.mjs",
+        "e2e/fixtures/launch-mock-keychain.sh",
         "e2e/fixtures/mock-credential-identity.cjs",
         "e2e/fixtures/mock-credential-identity.sh",
         "e2e/fixtures/mock-node-credentials.cjs",
@@ -600,7 +604,10 @@
       "runner": "playwright",
       "paths": [
         "e2e/certification/*.spec.ts",
+        "e2e/live-full-text-opt-in.spec.ts",
+        "e2e/mobius-release-smoke.spec.ts",
         "e2e/runtime-performance.spec.ts",
+        "e2e/session15-runtime-acceptance.spec.ts",
         "e2e/startup-performance.spec.ts"
       ],
       "capabilities": ["desktop_e2e_source"]
@@ -669,8 +676,11 @@
         "e2e/fixtures/node-runtime-preload.cjs",
         "e2e/fixtures/session-outcome-preload.cjs",
         "e2e/fixtures/mock-node-credentials.cjs",
+        "e2e/fixtures/mock-node-secret.sh",
         "e2e/fixtures/mock-credential-identity.cjs",
-        "e2e/fixtures/mock-credential-identity.sh"
+        "e2e/fixtures/mock-credential-identity.sh",
+        "e2e/fixtures/launch-mock-keychain.mjs",
+        "e2e/fixtures/launch-mock-keychain.sh"
       ],
       "tests": ["scripts/electron-app-fixture.test.ts"],
       "capabilities": ["desktop_e2e_unit_readers"]

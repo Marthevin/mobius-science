@@ -636,7 +636,7 @@ export const createOpencodeFramework = ({
           ...(ctx.skillDiscovery
             ? {
                 permission: {
-                  ...opencodePermissionRules(),
+                  ...opencodePermissionRules(ctx.storageRoot),
                   external_directory: {
                     '*': 'deny',
                     ...Object.fromEntries(

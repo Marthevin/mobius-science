@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs'
 import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { x as extractTar } from 'tar'
 import { unzipSync } from 'fflate'
 import { fetch, EnvHttpProxyAgent } from 'undici'
@@ -46,8 +47,8 @@ async function reusableRuntime(output, identity, executable) {
   }
 }
 
-export async function extractNodeRuntime(archive, output, platform, arch) {
-  const archiveRoot = `node-v${nodeRuntime.version}-${platform === 'win32' ? 'win' : platform}-${arch}`
+export async function extractNodeRuntime(archive, output, platform, arch, manifest = nodeRuntime) {
+  const archiveRoot = `node-v${manifest.version}-${platform === 'win32' ? 'win' : platform}-${arch}`
   const executable = platform === 'win32' ? 'node.exe' : 'bin/node'
   const entries = new Set([`${archiveRoot}/${executable}`, `${archiveRoot}/LICENSE`])
   await mkdir(output, { recursive: true })
@@ -84,9 +85,10 @@ export async function stageNodeRuntime({
   arch = process.arch,
   output = join(root, 'out/node-runtime', `${platform}-${arch}`),
   cache = join(root, 'node_modules/.cache/node-runtime'),
-  reuse = false
+  reuse = false,
+  manifest = nodeRuntime
 } = {}) {
-  const source = nodeRuntime.archives[`${platform}-${arch}`]
+  const source = manifest.archives[`${platform}-${arch}`]
   if (!source) throw new Error(`No pinned Node runtime for ${platform}/${arch}.`)
   await mkdir(cache, { recursive: true })
   const archive = join(cache, source.file)
@@ -96,13 +98,10 @@ export async function stageNodeRuntime({
     if (error.code !== 'ENOENT') throw error
     const dispatcher = new EnvHttpProxyAgent()
     try {
-      const response = await fetch(
-        `https://nodejs.org/dist/v${nodeRuntime.version}/${source.file}`,
-        {
-          signal: AbortSignal.timeout(120_000),
-          dispatcher
-        }
-      )
+      const response = await fetch(`https://nodejs.org/dist/v${manifest.version}/${source.file}`, {
+        signal: AbortSignal.timeout(120_000),
+        dispatcher
+      })
       if (!response.ok || !response.body)
         throw new Error(`Node runtime download failed (${response.status}).`)
       const temporary = `${archive}.${randomUUID()}.partial`
@@ -125,13 +124,13 @@ export async function stageNodeRuntime({
       await dispatcher.close()
     }
   }
-  const identity = { version: nodeRuntime.version, platform, arch, sha256: source.sha256 }
+  const identity = { version: manifest.version, platform, arch, sha256: source.sha256 }
   const executable = platform === 'win32' ? 'node.exe' : 'node'
   if (reuse && (await reusableRuntime(output, identity, executable))) return output
   await mkdir(dirname(output), { recursive: true })
   const temporary = await mkdtemp(join(dirname(output), '.node-runtime-'))
   try {
-    await extractNodeRuntime(archive, temporary, platform, arch)
+    await extractNodeRuntime(archive, temporary, platform, arch, manifest)
     await writeFile(
       join(temporary, 'version.json'),
       JSON.stringify({
@@ -155,8 +154,25 @@ export async function stageNodeRuntime({
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [platform = process.platform, arch = process.arch] = process.argv
-    .slice(2)
-    .filter((arg) => arg !== '--reuse')
-  console.log(await stageNodeRuntime({ platform, arch, reuse: process.argv.includes('--reuse') }))
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      manifest: { type: 'string' },
+      output: { type: 'string' },
+      reuse: { type: 'boolean', default: false }
+    }
+  })
+  const [platform = process.platform, arch = process.arch] = positionals
+  const manifest = values.manifest
+    ? JSON.parse(await readFile(resolve(values.manifest), 'utf8'))
+    : nodeRuntime
+  console.log(
+    await stageNodeRuntime({
+      platform,
+      arch,
+      manifest,
+      output: values.output && resolve(values.output),
+      reuse: values.reuse
+    })
+  )
 }

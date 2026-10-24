@@ -10,6 +10,7 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 const declared = new Set(manifest.productionFiles.map((entry) => entry.path))
 
 const downstreamPackagingSeams = new Set([
+  'scripts/stage-node-runtime.mjs',
   'build/adhoc-sign.cjs',
   'build/sign-windows.cjs',
   'build/stage-desktop-runtime.cjs',
@@ -40,6 +41,8 @@ const isUpstreamProductionFile = (path) => {
     return true
   }
   if (path === 'scripts/stage-default-envs.mjs') return true
+  if (path.startsWith('scripts/ci/') || path.startsWith('.github/workflows/')) return true
+  if (path === '.github/CODEOWNERS') return true
   if (downstreamPackagingSeams.has(path)) return true
   return path.startsWith('src/') || path.startsWith('packages/')
 }

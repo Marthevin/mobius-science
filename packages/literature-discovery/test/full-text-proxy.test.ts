@@ -13,7 +13,8 @@ const downloadFullText = (
   onProgress?: Parameters<typeof download>[2],
   proxy?: Parameters<typeof download>[3],
   signal?: AbortSignal,
-  dependencies?: FullTextDestinationDependencies
+  dependencies?: FullTextDestinationDependencies,
+  options: Parameters<typeof download>[6] = {}
 ): ReturnType<typeof download> =>
   download(
     url,
@@ -22,6 +23,7 @@ const downloadFullText = (
     proxy,
     signal,
     (proxy, address, port, signal) => fixture.tunnel(proxy, address, port, undefined, signal),
+    options,
     dependencies ? (input) => resolveFullTextDestination(input, dependencies) : undefined
   )
 
@@ -197,30 +199,38 @@ it('resolves proxy and validates DNS again after a redirect', async () => {
   expect(fixture.tunnel).toHaveBeenCalledTimes(1)
 })
 
-it('pins an independently verified address when proxy DNS returns fake IPs', async () => {
+it('retains attachment download options while pinning an independently verified fake-IP destination', async () => {
   fixture.lookup.mockResolvedValue([{ address: '198.18.2.4', family: 4 }])
-  await expect(
-    downloadFullText(
-      'https://journal.example/paper.pdf',
-      100,
-      undefined,
-      async () => 'socks5://127.0.0.1:1086',
-      undefined,
-      { lookupAll: fixture.lookup, queryPublicDns: fixture.queryPublicDns }
+  const timeout = vi.spyOn(AbortSignal, 'timeout')
+  try {
+    await expect(
+      downloadFullText(
+        'https://journal.example/supplement',
+        100,
+        undefined,
+        async () => 'socks5://127.0.0.1:1086',
+        undefined,
+        { lookupAll: fixture.lookup, queryPublicDns: fixture.queryPublicDns },
+        { accept: '*/*', timeoutMs: 180_000 }
+      )
+    ).resolves.toEqual(Buffer.from('%PDF-test'))
+    expect(timeout).toHaveBeenCalledWith(180_000)
+    expect(fixture.requests.mock.calls[0][1].headers.Accept).toBe('*/*')
+    expect(fixture.queryPublicDns).toHaveBeenCalledWith(
+      'journal.example',
+      new URL('socks5://127.0.0.1:1086'),
+      timeout.mock.results[0].value
     )
-  ).resolves.toEqual(Buffer.from('%PDF-test'))
-  expect(fixture.queryPublicDns).toHaveBeenCalledWith(
-    'journal.example',
-    new URL('socks5://127.0.0.1:1086'),
-    expect.any(AbortSignal)
-  )
-  expect(fixture.tunnel).toHaveBeenCalledWith(
-    new URL('socks5://127.0.0.1:1086'),
-    '93.184.216.34',
-    443,
-    undefined,
-    expect.any(AbortSignal)
-  )
+    expect(fixture.tunnel).toHaveBeenCalledWith(
+      new URL('socks5://127.0.0.1:1086'),
+      '93.184.216.34',
+      443,
+      undefined,
+      timeout.mock.results[0].value
+    )
+  } finally {
+    timeout.mockRestore()
+  }
 })
 
 it('revalidates a synthetic redirect and blocks a private independent answer', async () => {

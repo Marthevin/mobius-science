@@ -23,7 +23,8 @@
     "src/main/agent-framework/resolved-agent-backend-leases.test.ts",
     "src/main/agent-framework/resolved-agent-backend-leases.ts",
     "src/main/agent-framework/session-mcp-isolation.integration.test.ts",
-    "src/main/agent-framework/types.ts"
+    "src/main/agent-framework/types.ts",
+    "src/main/agent-framework/opencode-skill-resource.integration.test.ts"
   ],
   "interfacePaths": [
     "src/main/agent-framework/app-mcp-names.ts",
@@ -50,7 +51,8 @@
       "src/main/agent-framework/opencode.test.ts",
       "src/main/agent-framework/registry.test.ts",
       "src/main/agent-framework/resolved-agent-backend-leases.test.ts",
-      "src/main/agent-framework/session-mcp-isolation.integration.test.ts"
+      "src/main/agent-framework/session-mcp-isolation.integration.test.ts",
+      "src/main/agent-framework/opencode-skill-resource.integration.test.ts"
     ],
     "contract": [
       "src/preload/index.test.ts",

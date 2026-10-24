@@ -15,7 +15,7 @@ This version supports native macOS arm64 and x64. It refuses cross-architecture 
 systems because its mandatory startup test must execute the actual delivered binary. Windows/Linux
 developer build entries are not certified by this workflow.
 
-Prerequisites: Git, Node 22.23.3 and npm, Xcode Command Line Tools, network access
+Prerequisites: Git, a current Node 22 release and npm, Xcode Command Line Tools, network access
 for npm and first-time runtime staging, and enough free space for an isolated npm installation and
 the native application. The process uses the committed package lock via `npm ci`.
 
@@ -80,6 +80,14 @@ containing files you want to keep. The command refuses to overwrite existing out
 
 Any failed phase leaves `status: failed` with the phase and log path. There are no skip-audit or
 skip-smoke flags. Do not deliver a directory whose manifest says `running` or `failed`.
+
+The native producer uses the independent checksum pin in
+`mobius/config/native-producer-node-runtime.json`, staged beneath
+`node_modules/.cache/mobius-native-node/<platform>-<arch>/`. Its exact version must match
+`build/native-components.json`; the producer retains its strict version check. The delivered backend
+uses `build/node-runtime.json` and `out/node-runtime/`, so updating that runtime does not change the
+native compiler toolchain. The producer manifest is included in the local native recipe: changing
+its pins invalidates existing native receipts and requires rebuilding the components.
 
 ## Artifacts and storage
 

@@ -39,6 +39,49 @@ const listSourceFiles = (directory: string): string[] =>
 const windowsRuntimeSignal =
   /['"]win32['"]|powershell|taskkill(?:\.exe)?|windowsHide|SystemRoot|WINDIR|USERPROFILE|ProgramFiles|LOCALAPPDATA|APPDATA/i
 
+describe('exact registered source ownership', () => {
+  const path = 'src/downstream/runtime.ts'
+  const moduleManifest = {
+    modules: {
+      downstream: {
+        ownerPaths: [path],
+        testFiles: { owner: ['src/downstream/runtime.test.ts'], contract: [], consumer: [] },
+        fallbackCapability: 'settings_ipc',
+        capabilityOverlays: ['windows_sensitive']
+      }
+    }
+  }
+
+  it('uses the exact source owner when directory rules do not describe its location', () => {
+    const plan = classifyChanges([{ path, status: 'modified' }], readManifest(), { moduleManifest })
+    expect(plan).toMatchObject({ mode: 'selective', roots: ['module:downstream'] })
+    expect(plan.lanes).toEqual(expect.arrayContaining(['unit_macos', 'windows_runtime']))
+  })
+
+  it('keeps full validation for unregistered source in the same directory', () => {
+    expect(
+      classifyChanges(
+        [{ path: 'src/downstream/unregistered.ts', status: 'modified' }],
+        readManifest(),
+        {
+          moduleManifest
+        }
+      )
+    ).toMatchObject({ mode: 'full', roots: ['unknown'] })
+  })
+
+  it('retains global rule precedence over an exact source owner', () => {
+    const manifest = readManifest()
+    manifest.rules.find((rule: { id: string }) => rule.id === 'global_gate_input').paths.push(path)
+    expect(
+      classifyChanges([{ path, status: 'modified' }], manifest, { moduleManifest })
+    ).toMatchObject({
+      mode: 'full',
+      roots: ['global_gate_input']
+    })
+  })
+})
+
 describe('declared test evidence without source ownership', () => {
   const path = 'scripts/unowned-consumer.test.ts'
   const moduleManifest = {

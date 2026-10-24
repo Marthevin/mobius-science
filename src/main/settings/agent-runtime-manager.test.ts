@@ -387,6 +387,8 @@ describe('AgentRuntimeManager', () => {
       allocateSettingsIdSequence: vi.fn().mockReturnValue(1),
       detectDeps: createClaudeDeps(inventory),
       opencodeDetectDeps: createOpencodeDeps(inventory),
+      // Runtime inventory fixtures must not load generated bundles from the developer checkout.
+      resolveBundledOpenCodeImpl: async () => undefined,
       codexDetectDeps: createCodexDeps(inventory, managedAdapterPath, managedCodexPath),
       allocateOpenCodeUsagePort: () => Promise.resolve(42_424),
       installManagedClaudeImpl: async ({ installId }) => ({

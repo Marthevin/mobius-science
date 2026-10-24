@@ -70,7 +70,8 @@
     "src/main/artifacts/resumed-finalization-ownership.test.ts",
     "src/main/artifacts/export-filename.ts",
     "src/main/artifacts/artifact-reproducibility-commands.test.ts",
-    "src/main/artifacts/artifact-reproducibility-commands.ts"
+    "src/main/artifacts/artifact-reproducibility-commands.ts",
+    "src/main/artifacts/provenance-finalization-recovery.test.ts"
   ],
   "interfacePaths": [
     "src/main/artifacts/provenance-message-snapshot.ts",
@@ -148,7 +149,8 @@
       "src/main/artifacts/session-reproducibility.test.ts",
       "src/main/artifacts/storage-access.context.test.ts",
       "src/main/artifacts/resumed-finalization-ownership.test.ts",
-      "src/main/artifacts/artifact-reproducibility-commands.test.ts"
+      "src/main/artifacts/artifact-reproducibility-commands.test.ts",
+      "src/main/artifacts/provenance-finalization-recovery.test.ts"
     ],
     "contract": [
       "src/main/artifacts/artifact-reproducibility-ipc.test.ts",
